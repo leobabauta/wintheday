@@ -1,6 +1,6 @@
 import { verifySessionToken } from './auth';
 import { COOKIE_NAME } from './config';
-import { getDb } from './db';
+import { queryOne } from './db';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface AuthResult {
@@ -21,11 +21,11 @@ export function requireAuth(request: NextRequest, requiredRole?: string): AuthRe
   return auth;
 }
 
-export function requireCoachOwnsClient(coachId: number, clientUserId: number): void {
-  const db = getDb();
-  const row = db.prepare(
-    `SELECT id FROM client_info WHERE user_id = ? AND coach_id = ?`
-  ).get(clientUserId, coachId);
+export async function requireCoachOwnsClient(coachId: number, clientUserId: number): Promise<void> {
+  const row = await queryOne(
+    'SELECT id FROM client_info WHERE user_id = $1 AND coach_id = $2',
+    [clientUserId, coachId]
+  );
   if (!row) throw new AuthError('Forbidden', 403);
 }
 

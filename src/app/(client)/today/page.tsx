@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { queryOne } from '@/lib/db';
 import { getTodaysWins, getDateString } from '@/lib/wins';
 import { getUserSettings } from '@/lib/settings';
 import { redirect } from 'next/navigation';
@@ -10,26 +10,26 @@ export default async function TodayPage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
-  const settings = getUserSettings(session.userId);
+  const settings = await getUserSettings(session.userId);
 
   if (!settings.onboarded) {
     redirect('/welcome');
   }
 
-  const db = getDb();
-  const user = db.prepare('SELECT name FROM users WHERE id = ?').get(session.userId) as { name: string };
-  const wins = getTodaysWins(session.userId);
+  const user = await queryOne<{ name: string }>('SELECT name FROM users WHERE id = $1', [session.userId]);
+  const wins = await getTodaysWins(session.userId);
   const today = getDateString();
 
-  const todayEntry = db.prepare(
-    'SELECT content FROM journal_entries WHERE user_id = ? AND date = ?'
-  ).get(session.userId, today) as { content: string } | undefined;
+  const todayEntry = await queryOne<{ content: string }>(
+    'SELECT content FROM journal_entries WHERE user_id = $1 AND date = $2',
+    [session.userId, today]
+  );
 
   return (
-    <SplashScreen userName={user.name}>
+    <SplashScreen userName={user!.name}>
       <DailyWins
         initialWins={wins}
-        userName={user.name}
+        userName={user!.name}
         reflectionTime={settings.reflection_time}
         existingReflection={todayEntry?.content || ''}
         date={today}

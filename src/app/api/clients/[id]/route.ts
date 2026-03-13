@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { query, queryOne, execute } from '@/lib/db';
 import { requireAuth, requireCoachOwnsClient, handleAuthError } from '@/lib/api-auth';
 import { getClientWinHistory } from '@/lib/client-stats';
 
@@ -11,26 +11,27 @@ export async function GET(
     const auth = requireAuth(request, 'coach');
     const { id } = await params;
     const clientId = parseInt(id);
-    requireCoachOwnsClient(auth.userId, clientId);
+    await requireCoachOwnsClient(auth.userId, clientId);
 
-    const db = getDb();
-
-    const user = db.prepare('SELECT id, name, email, created_at FROM users WHERE id = ?').get(clientId);
-    const clientInfo = db.prepare('SELECT * FROM client_info WHERE user_id = ?').get(clientId);
-    const commitments = db.prepare(
-      'SELECT * FROM commitments WHERE user_id = ? ORDER BY active DESC, type, title'
-    ).all(clientId);
-    const winHistory = getClientWinHistory(clientId, 14);
-    const journalEntries = db.prepare(
-      'SELECT * FROM journal_entries WHERE user_id = ? ORDER BY date DESC LIMIT 14'
-    ).all(clientId);
-    const messages = db.prepare(
+    const user = await queryOne('SELECT id, name, email, created_at FROM users WHERE id = $1', [clientId]);
+    const clientInfo = await queryOne('SELECT * FROM client_info WHERE user_id = $1', [clientId]);
+    const commitments = await query(
+      'SELECT * FROM commitments WHERE user_id = $1 ORDER BY active DESC, type, title',
+      [clientId]
+    );
+    const winHistory = await getClientWinHistory(clientId, 14);
+    const journalEntries = await query(
+      'SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 14',
+      [clientId]
+    );
+    const messages = await query(
       `SELECT m.*, u.name as sender_name FROM messages m
        JOIN users u ON u.id = m.sender_id
-       WHERE (m.sender_id = ? OR m.recipient_id = ?)
-         AND (m.sender_id = ? OR m.recipient_id = ?)
-       ORDER BY m.created_at DESC LIMIT 20`
-    ).all(clientId, clientId, auth.userId, auth.userId);
+       WHERE (m.sender_id = $1 OR m.recipient_id = $1)
+         AND (m.sender_id = $2 OR m.recipient_id = $2)
+       ORDER BY m.created_at DESC LIMIT 20`,
+      [clientId, auth.userId]
+    );
 
     return NextResponse.json({
       user,
@@ -53,15 +54,14 @@ export async function PUT(
     const auth = requireAuth(request, 'coach');
     const { id } = await params;
     const clientId = parseInt(id);
-    requireCoachOwnsClient(auth.userId, clientId);
+    await requireCoachOwnsClient(auth.userId, clientId);
 
     const body = await request.json();
-    const db = getDb();
 
     const fields = ['sign_on_date', 'closing_date', 'coaching_day', 'coaching_time', 'coaching_frequency'];
     for (const field of fields) {
       if (body[field] !== undefined) {
-        db.prepare(`UPDATE client_info SET ${field} = ? WHERE user_id = ?`).run(body[field], clientId);
+        await execute(`UPDATE client_info SET ${field} = $1 WHERE user_id = $2`, [body[field], clientId]);
       }
     }
 

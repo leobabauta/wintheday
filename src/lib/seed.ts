@@ -1,62 +1,75 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import { Pool } from 'pg';
 import bcrypt from 'bcryptjs';
-import { runMigrations } from './schema';
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
 
-const DB_DIR = path.join(process.cwd(), 'data');
-const DB_PATH = path.join(DB_DIR, 'wintheday.db');
-
-if (!fs.existsSync(DB_DIR)) {
-  fs.mkdirSync(DB_DIR, { recursive: true });
-}
-
-const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-runMigrations(db);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
 const hash = (pw: string) => bcrypt.hashSync(pw, 10);
 
-// Create coach
-const coachResult = db.prepare(
-  `INSERT OR IGNORE INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)`
-).run('coach@wintheday.app', hash('coach123'), 'Leo (Coach)', 'coach');
+async function seed() {
+  const client = await pool.connect();
+  try {
+    // Create coach
+    const coachRes = await client.query(
+      `INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4)
+       ON CONFLICT (email) DO NOTHING RETURNING id`,
+      ['coach@wintheday.app', hash('coach123'), 'Leo (Coach)', 'coach']
+    );
+    let coachId = coachRes.rows[0]?.id;
+    if (!coachId) {
+      const existing = await client.query('SELECT id FROM users WHERE email = $1', ['coach@wintheday.app']);
+      coachId = existing.rows[0].id;
+    }
 
-const coachId = coachResult.lastInsertRowid || db.prepare(`SELECT id FROM users WHERE email = ?`).get('coach@wintheday.app') as { id: number };
-const coachUserId = typeof coachId === 'number' ? coachId : (coachId as { id: number }).id;
+    // Create sample client
+    const clientRes = await client.query(
+      `INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4)
+       ON CONFLICT (email) DO NOTHING RETURNING id`,
+      ['client@example.com', hash('client123'), 'Sample Client', 'client']
+    );
+    let clientId = clientRes.rows[0]?.id;
+    if (!clientId) {
+      const existing = await client.query('SELECT id FROM users WHERE email = $1', ['client@example.com']);
+      clientId = existing.rows[0].id;
+    }
 
-// Create sample client
-const clientResult = db.prepare(
-  `INSERT OR IGNORE INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)`
-).run('client@example.com', hash('client123'), 'Sample Client', 'client');
+    // Client info
+    await client.query(
+      `INSERT INTO client_info (user_id, coach_id, sign_on_date, coaching_day, coaching_time, coaching_frequency)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT DO NOTHING`,
+      [clientId, coachId, '2024-03-01', 'Wednesday', '4:00 PM', 'Every 2 weeks']
+    );
 
-const clientId = clientResult.lastInsertRowid || db.prepare(`SELECT id FROM users WHERE email = ?`).get('client@example.com') as { id: number };
-const clientUserId = typeof clientId === 'number' ? clientId : (clientId as { id: number }).id;
+    // Sample commitments
+    const commitments = [
+      { title: 'Morning meditation (10 min)', type: 'commitment', days: '["mon","tue","wed","thu","fri"]' },
+      { title: 'Write 500 words', type: 'commitment', days: '["mon","wed","fri"]' },
+      { title: 'Exercise 30 min', type: 'commitment', days: '["mon","tue","wed","thu","fri"]' },
+      { title: 'Practice deep breathing', type: 'practice', days: '["mon","tue","wed","thu","fri","sat","sun"]' },
+      { title: 'Practice gratitude journaling', type: 'practice', days: '["mon","wed","fri"]' },
+    ];
 
-// Client info
-db.prepare(
-  `INSERT OR IGNORE INTO client_info (user_id, coach_id, sign_on_date, coaching_day, coaching_time, coaching_frequency)
-   VALUES (?, ?, ?, ?, ?, ?)`
-).run(clientUserId, coachUserId, '2024-03-01', 'Wednesday', '4:00 PM', 'Every 2 weeks');
+    for (const c of commitments) {
+      await client.query(
+        `INSERT INTO commitments (user_id, title, type, days_of_week)
+         SELECT $1, $2, $3, $4
+         WHERE NOT EXISTS (SELECT 1 FROM commitments WHERE user_id = $1 AND title = $2)`,
+        [clientId, c.title, c.type, c.days]
+      );
+    }
 
-// Sample commitments
-const commitments = [
-  { title: 'Morning meditation (10 min)', type: 'commitment', days: '["mon","tue","wed","thu","fri"]' },
-  { title: 'Write 500 words', type: 'commitment', days: '["mon","wed","fri"]' },
-  { title: 'Exercise 30 min', type: 'commitment', days: '["mon","tue","wed","thu","fri"]' },
-  { title: 'Practice deep breathing', type: 'practice', days: '["mon","tue","wed","thu","fri","sat","sun"]' },
-  { title: 'Practice gratitude journaling', type: 'practice', days: '["mon","wed","fri"]' },
-];
-
-for (const c of commitments) {
-  db.prepare(
-    `INSERT OR IGNORE INTO commitments (user_id, title, type, days_of_week) VALUES (?, ?, ?, ?)`
-  ).run(clientUserId, c.title, c.type, c.days);
+    console.log('Seed complete!');
+    console.log('Coach login: coach@wintheday.app / coach123');
+    console.log('Client login: client@example.com / client123');
+  } finally {
+    client.release();
+    await pool.end();
+  }
 }
 
-console.log('Seed complete!');
-console.log('Coach login: coach@wintheday.app / coach123');
-console.log('Client login: client@example.com / client123');
-
-db.close();
+seed().catch(console.error);

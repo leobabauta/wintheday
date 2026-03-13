@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { query, queryOne, execute } from '@/lib/db';
 import { getClientWinHistory } from '@/lib/client-stats';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -14,49 +14,54 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   const { id } = await params;
   const clientId = parseInt(id);
-  const db = getDb();
 
   // Verify coach owns this client
-  const clientInfo = db.prepare(
-    'SELECT * FROM client_info WHERE user_id = ? AND coach_id = ?'
-  ).get(clientId, session.userId) as {
+  const clientInfo = await queryOne<{
     sign_on_date: string; closing_date: string | null;
     coaching_day: string; coaching_time: string; coaching_frequency: string;
-  } | undefined;
+  }>(
+    'SELECT * FROM client_info WHERE user_id = $1 AND coach_id = $2',
+    [clientId, session.userId]
+  );
 
   if (!clientInfo) notFound();
 
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(clientId) as {
-    id: number; name: string; email: string; created_at: string;
-  };
+  const user = await queryOne<{ id: number; name: string; email: string; created_at: string }>(
+    'SELECT * FROM users WHERE id = $1',
+    [clientId]
+  );
 
-  const commitments = db.prepare(
-    'SELECT * FROM commitments WHERE user_id = ? AND active = 1 ORDER BY type, title'
-  ).all(clientId) as Array<{
+  const commitments = await query<{
     id: number; title: string; type: string; days_of_week: string; active: number;
-  }>;
+  }>(
+    'SELECT * FROM commitments WHERE user_id = $1 AND active = 1 ORDER BY type, title',
+    [clientId]
+  );
 
-  const winHistory = getClientWinHistory(clientId, 14);
+  const winHistory = await getClientWinHistory(clientId, 14);
 
-  const journalEntries = db.prepare(
-    'SELECT * FROM journal_entries WHERE user_id = ? ORDER BY date DESC LIMIT 14'
-  ).all(clientId) as Array<{ id: number; date: string; content: string; updated_at: string }>;
+  const journalEntries = await query<{ id: number; date: string; content: string; updated_at: string }>(
+    'SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 14',
+    [clientId]
+  );
 
-  const messages = db.prepare(
-    `SELECT m.*, u.name as sender_name FROM messages m
-     JOIN users u ON u.id = m.sender_id
-     WHERE (m.sender_id = ? OR m.recipient_id = ?)
-       AND (m.sender_id = ? OR m.recipient_id = ?)
-     ORDER BY m.created_at DESC LIMIT 20`
-  ).all(clientId, clientId, session.userId, session.userId) as Array<{
+  const messages = await query<{
     id: number; sender_id: number; recipient_id: number; sender_name: string;
     type: string; content: string; parent_id: number | null; read: number; created_at: string;
-  }>;
+  }>(
+    `SELECT m.*, u.name as sender_name FROM messages m
+     JOIN users u ON u.id = m.sender_id
+     WHERE (m.sender_id = $1 OR m.recipient_id = $1)
+       AND (m.sender_id = $2 OR m.recipient_id = $2)
+     ORDER BY m.created_at DESC LIMIT 20`,
+    [clientId, session.userId]
+  );
 
   // Mark messages from this client as read
-  db.prepare(
-    'UPDATE messages SET read = 1 WHERE recipient_id = ? AND sender_id = ? AND read = 0'
-  ).run(session.userId, clientId);
+  await execute(
+    'UPDATE messages SET read = 1 WHERE recipient_id = $1 AND sender_id = $2 AND read = 0',
+    [session.userId, clientId]
+  );
 
   const DAYS = [
     { key: 'mon', label: 'M' }, { key: 'tue', label: 'T' }, { key: 'wed', label: 'W' },
@@ -70,8 +75,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       <div className="flex items-center justify-between mb-6">
         <div>
           <Link href="/dashboard" className="text-sm text-navy/50 hover:text-navy mb-1 block">← Back</Link>
-          <h1 className="text-2xl font-bold text-navy">{user.name}</h1>
-          <p className="text-sm text-navy/50">{user.email}</p>
+          <h1 className="text-2xl font-bold text-navy">{user!.name}</h1>
+          <p className="text-sm text-navy/50">{user!.email}</p>
         </div>
       </div>
 
@@ -191,7 +196,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             userId={clientId}
             coachId={session.userId}
             isCoach={true}
-            clientName={user.name}
+            clientName={user!.name}
           />
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { query, queryOne, execute } from '@/lib/db';
 import { requireAuth, requireCoachOwnsClient, handleAuthError } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
@@ -11,22 +11,21 @@ export async function GET(request: NextRequest) {
     let targetUserId = auth.userId;
     if (clientId && auth.role === 'coach') {
       targetUserId = parseInt(clientId);
-      requireCoachOwnsClient(auth.userId, targetUserId);
+      await requireCoachOwnsClient(auth.userId, targetUserId);
     }
 
-    const db = getDb();
-
     if (date) {
-      const entry = db.prepare(
-        'SELECT * FROM journal_entries WHERE user_id = ? AND date = ?'
-      ).get(targetUserId, date);
+      const entry = await queryOne(
+        'SELECT * FROM journal_entries WHERE user_id = $1 AND date = $2',
+        [targetUserId, date]
+      );
       return NextResponse.json(entry || null);
     }
 
-    // Return recent entries
-    const entries = db.prepare(
-      'SELECT * FROM journal_entries WHERE user_id = ? ORDER BY date DESC LIMIT 14'
-    ).all(targetUserId);
+    const entries = await query(
+      'SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 14',
+      [targetUserId]
+    );
     return NextResponse.json(entries);
   } catch (error) {
     return handleAuthError(error);
@@ -42,19 +41,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Date required' }, { status: 400 });
     }
 
-    const db = getDb();
-    const existing = db.prepare(
-      'SELECT id FROM journal_entries WHERE user_id = ? AND date = ?'
-    ).get(auth.userId, date);
+    const existing = await queryOne(
+      'SELECT id FROM journal_entries WHERE user_id = $1 AND date = $2',
+      [auth.userId, date]
+    );
 
     if (existing) {
-      db.prepare(
-        'UPDATE journal_entries SET content = ?, updated_at = datetime(\'now\') WHERE user_id = ? AND date = ?'
-      ).run(content || '', auth.userId, date);
+      await execute(
+        'UPDATE journal_entries SET content = $1, updated_at = now() WHERE user_id = $2 AND date = $3',
+        [content || '', auth.userId, date]
+      );
     } else {
-      db.prepare(
-        'INSERT INTO journal_entries (user_id, date, content) VALUES (?, ?, ?)'
-      ).run(auth.userId, date, content || '');
+      await execute(
+        'INSERT INTO journal_entries (user_id, date, content) VALUES ($1, $2, $3)',
+        [auth.userId, date, content || '']
+      );
     }
 
     return NextResponse.json({ ok: true });

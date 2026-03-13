@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { query, queryOne } from '@/lib/db';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import CommitmentEditor from '@/components/wins/CommitmentEditor';
@@ -10,20 +10,21 @@ export default async function EditClientCommitmentsPage({ params }: { params: Pr
 
   const { id } = await params;
   const clientId = parseInt(id);
-  const db = getDb();
 
   // Verify coach owns this client
-  const clientInfo = db.prepare(
-    'SELECT ci.*, u.name FROM client_info ci JOIN users u ON u.id = ci.user_id WHERE ci.user_id = ? AND ci.coach_id = ?'
-  ).get(clientId, session.userId) as { name: string } | undefined;
+  const clientInfo = await queryOne<{ name: string }>(
+    'SELECT ci.*, u.name FROM client_info ci JOIN users u ON u.id = ci.user_id WHERE ci.user_id = $1 AND ci.coach_id = $2',
+    [clientId, session.userId]
+  );
 
   if (!clientInfo) notFound();
 
-  const commitments = db.prepare(
-    'SELECT * FROM commitments WHERE user_id = ? ORDER BY type, title'
-  ).all(clientId) as Array<{
+  const commitments = await query<{
     id: number; title: string; type: string; days_of_week: string; active: number;
-  }>;
+  }>(
+    'SELECT * FROM commitments WHERE user_id = $1 ORDER BY type, title',
+    [clientId]
+  );
 
   return (
     <div>

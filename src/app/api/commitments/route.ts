@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { query, queryOne, execute, insertReturning } from '@/lib/db';
 import { requireAuth, requireCoachOwnsClient, handleAuthError } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
@@ -10,13 +10,13 @@ export async function GET(request: NextRequest) {
 
     if (clientId && auth.role === 'coach') {
       targetUserId = parseInt(clientId);
-      requireCoachOwnsClient(auth.userId, targetUserId);
+      await requireCoachOwnsClient(auth.userId, targetUserId);
     }
 
-    const db = getDb();
-    const commitments = db.prepare(
-      'SELECT * FROM commitments WHERE user_id = ? ORDER BY type, title'
-    ).all(targetUserId);
+    const commitments = await query(
+      'SELECT * FROM commitments WHERE user_id = $1 ORDER BY type, title',
+      [targetUserId]
+    );
 
     return NextResponse.json(commitments);
   } catch (error) {
@@ -32,19 +32,19 @@ export async function POST(request: NextRequest) {
     let targetUserId = auth.userId;
     if (userId && auth.role === 'coach') {
       targetUserId = userId;
-      requireCoachOwnsClient(auth.userId, targetUserId);
+      await requireCoachOwnsClient(auth.userId, targetUserId);
     }
 
     if (!title || !type || !days_of_week) {
       return NextResponse.json({ error: 'Title, type, and days_of_week required' }, { status: 400 });
     }
 
-    const db = getDb();
-    const result = db.prepare(
-      'INSERT INTO commitments (user_id, title, type, days_of_week) VALUES (?, ?, ?, ?)'
-    ).run(targetUserId, title, type, JSON.stringify(days_of_week));
+    const result = await insertReturning<{ id: number }>(
+      'INSERT INTO commitments (user_id, title, type, days_of_week) VALUES ($1, $2, $3, $4) RETURNING id',
+      [targetUserId, title, type, JSON.stringify(days_of_week)]
+    );
 
-    return NextResponse.json({ id: result.lastInsertRowid, ok: true });
+    return NextResponse.json({ id: result.id, ok: true });
   } catch (error) {
     return handleAuthError(error);
   }
@@ -58,26 +58,26 @@ export async function PUT(request: NextRequest) {
     let targetUserId = auth.userId;
     if (userId && auth.role === 'coach') {
       targetUserId = userId;
-      requireCoachOwnsClient(auth.userId, targetUserId);
+      await requireCoachOwnsClient(auth.userId, targetUserId);
     }
 
-    const db = getDb();
-    const commitment = db.prepare(
-      'SELECT id FROM commitments WHERE id = ? AND user_id = ?'
-    ).get(id, targetUserId);
+    const commitment = await queryOne(
+      'SELECT id FROM commitments WHERE id = $1 AND user_id = $2',
+      [id, targetUserId]
+    );
 
     if (!commitment) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
     if (title !== undefined) {
-      db.prepare('UPDATE commitments SET title = ?, updated_at = datetime(\'now\') WHERE id = ?').run(title, id);
+      await execute('UPDATE commitments SET title = $1, updated_at = now() WHERE id = $2', [title, id]);
     }
     if (days_of_week !== undefined) {
-      db.prepare('UPDATE commitments SET days_of_week = ?, updated_at = datetime(\'now\') WHERE id = ?').run(JSON.stringify(days_of_week), id);
+      await execute('UPDATE commitments SET days_of_week = $1, updated_at = now() WHERE id = $2', [JSON.stringify(days_of_week), id]);
     }
     if (active !== undefined) {
-      db.prepare('UPDATE commitments SET active = ?, updated_at = datetime(\'now\') WHERE id = ?').run(active ? 1 : 0, id);
+      await execute('UPDATE commitments SET active = $1, updated_at = now() WHERE id = $2', [active ? 1 : 0, id]);
     }
 
     return NextResponse.json({ ok: true });

@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { query } from '@/lib/db';
 import { getUserSettings } from '@/lib/settings';
 import { redirect } from 'next/navigation';
 import CommitmentEditor from '@/components/wins/CommitmentEditor';
@@ -11,14 +11,14 @@ export default async function SettingsPage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
-  const db = getDb();
-  const commitments = db.prepare(
-    'SELECT * FROM commitments WHERE user_id = ? ORDER BY type, title'
-  ).all(session.userId) as Array<{
+  const commitments = await query<{
     id: number; title: string; type: string; days_of_week: string; active: number;
-  }>;
+  }>(
+    'SELECT * FROM commitments WHERE user_id = $1 ORDER BY type, title',
+    [session.userId]
+  );
 
-  const settings = getUserSettings(session.userId);
+  const settings = await getUserSettings(session.userId);
 
   return (
     <div>

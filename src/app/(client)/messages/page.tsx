@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { query, queryOne, execute } from '@/lib/db';
 import { redirect } from 'next/navigation';
 import MessageThread from '@/components/messages/MessageThread';
 
@@ -7,12 +7,10 @@ export default async function MessagesPage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
-  const db = getDb();
-
-  // Get coach ID for this client
-  const clientInfo = db.prepare(
-    'SELECT coach_id FROM client_info WHERE user_id = ?'
-  ).get(session.userId) as { coach_id: number } | undefined;
+  const clientInfo = await queryOne<{ coach_id: number }>(
+    'SELECT coach_id FROM client_info WHERE user_id = $1',
+    [session.userId]
+  );
 
   if (!clientInfo) {
     return (
@@ -23,21 +21,23 @@ export default async function MessagesPage() {
     );
   }
 
-  const messages = db.prepare(
-    `SELECT m.*, u.name as sender_name FROM messages m
-     JOIN users u ON u.id = m.sender_id
-     WHERE (m.sender_id = ? OR m.recipient_id = ?)
-       AND (m.sender_id = ? OR m.recipient_id = ?)
-     ORDER BY m.created_at DESC LIMIT 50`
-  ).all(session.userId, session.userId, clientInfo.coach_id, clientInfo.coach_id) as Array<{
+  const messages = await query<{
     id: number; sender_id: number; recipient_id: number; sender_name: string;
     type: string; content: string; parent_id: number | null; read: number; created_at: string;
-  }>;
+  }>(
+    `SELECT m.*, u.name as sender_name FROM messages m
+     JOIN users u ON u.id = m.sender_id
+     WHERE (m.sender_id = $1 OR m.recipient_id = $1)
+       AND (m.sender_id = $2 OR m.recipient_id = $2)
+     ORDER BY m.created_at DESC LIMIT 50`,
+    [session.userId, clientInfo.coach_id]
+  );
 
   // Mark unread messages from coach as read
-  db.prepare(
-    'UPDATE messages SET read = 1 WHERE recipient_id = ? AND sender_id = ? AND read = 0'
-  ).run(session.userId, clientInfo.coach_id);
+  await execute(
+    'UPDATE messages SET read = 1 WHERE recipient_id = $1 AND sender_id = $2 AND read = 0',
+    [session.userId, clientInfo.coach_id]
+  );
 
   return (
     <div>

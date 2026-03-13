@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { query, execute } from './db';
 
 const DAY_MAP: Record<number, string> = {
   0: 'sun', 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat',
@@ -21,18 +21,17 @@ export interface WinItem {
   completed: boolean;
 }
 
-export function getTodaysWins(userId: number, date?: string): WinItem[] {
-  const db = getDb();
+export async function getTodaysWins(userId: number, date?: string): Promise<WinItem[]> {
   const today = date || getDateString();
   const dayName = date
     ? DAY_MAP[new Date(date + 'T12:00:00').getDay()]
     : getTodayDayName();
 
   // Get active commitments for today's day of week
-  const commitments = db.prepare(
-    `SELECT id, title, type, days_of_week FROM commitments
-     WHERE user_id = ? AND active = 1`
-  ).all(userId) as { id: number; title: string; type: string; days_of_week: string }[];
+  const commitments = await query<{ id: number; title: string; type: string; days_of_week: string }>(
+    'SELECT id, title, type, days_of_week FROM commitments WHERE user_id = $1 AND active = 1',
+    [userId]
+  );
 
   const todayCommitments = commitments.filter(c => {
     const days: string[] = JSON.parse(c.days_of_week);
@@ -40,26 +39,26 @@ export function getTodaysWins(userId: number, date?: string): WinItem[] {
   });
 
   // Ensure win_entries exist for each commitment today
-  const upsert = db.prepare(
-    `INSERT OR IGNORE INTO win_entries (user_id, commitment_id, date, completed) VALUES (?, ?, ?, 0)`
-  );
-
   for (const c of todayCommitments) {
-    upsert.run(userId, c.id, today);
+    await execute(
+      'INSERT INTO win_entries (user_id, commitment_id, date, completed) VALUES ($1, $2, $3, 0) ON CONFLICT (user_id, commitment_id, date) DO NOTHING',
+      [userId, c.id, today]
+    );
   }
 
   // Fetch win entries only for active commitments scheduled today
   const commitmentIds = todayCommitments.map(c => c.id);
   if (commitmentIds.length === 0) return [];
 
-  const placeholders = commitmentIds.map(() => '?').join(',');
-  const wins = db.prepare(
+  const placeholders = commitmentIds.map((_, i) => `$${i + 3}`).join(',');
+  const wins = await query<{ id: number; commitment_id: number; title: string; type: string; completed: number }>(
     `SELECT w.id, w.commitment_id, c.title, c.type, w.completed
      FROM win_entries w
      JOIN commitments c ON c.id = w.commitment_id
-     WHERE w.user_id = ? AND w.date = ? AND c.active = 1 AND w.commitment_id IN (${placeholders})
-     ORDER BY c.type, c.title`
-  ).all(userId, today, ...commitmentIds) as { id: number; commitment_id: number; title: string; type: string; completed: number }[];
+     WHERE w.user_id = $1 AND w.date = $2 AND c.active = 1 AND w.commitment_id IN (${placeholders})
+     ORDER BY c.type, c.title`,
+    [userId, today, ...commitmentIds]
+  );
 
   return wins.map(w => ({
     id: w.id,

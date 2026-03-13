@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { queryOne, execute } from './db';
 
 export interface UserSettings {
   reflection_time: number;
@@ -6,22 +6,17 @@ export interface UserSettings {
   dark_mode: boolean;
 }
 
-export function getUserSettings(userId: number): UserSettings {
-  const db = getDb();
-
-  // Ensure dark_mode column exists (migration for existing DBs)
-  try {
-    db.prepare("SELECT dark_mode FROM user_settings LIMIT 0").run();
-  } catch {
-    try { db.exec("ALTER TABLE user_settings ADD COLUMN dark_mode INTEGER NOT NULL DEFAULT 0"); } catch { /* already exists */ }
-  }
-
-  const row = db.prepare('SELECT * FROM user_settings WHERE user_id = ?').get(userId) as {
-    reflection_time: number; onboarded: number; dark_mode: number;
-  } | undefined;
+export async function getUserSettings(userId: number): Promise<UserSettings> {
+  const row = await queryOne<{ reflection_time: number; onboarded: number; dark_mode: number }>(
+    'SELECT * FROM user_settings WHERE user_id = $1',
+    [userId]
+  );
 
   if (!row) {
-    db.prepare('INSERT OR IGNORE INTO user_settings (user_id) VALUES (?)').run(userId);
+    await execute(
+      'INSERT INTO user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING',
+      [userId]
+    );
     return { reflection_time: 17, onboarded: false, dark_mode: false };
   }
 
@@ -32,17 +27,19 @@ export function getUserSettings(userId: number): UserSettings {
   };
 }
 
-export function updateUserSettings(userId: number, updates: Partial<{ reflection_time: number; onboarded: boolean; dark_mode: boolean }>) {
-  const db = getDb();
-  db.prepare('INSERT OR IGNORE INTO user_settings (user_id) VALUES (?)').run(userId);
+export async function updateUserSettings(userId: number, updates: Partial<{ reflection_time: number; onboarded: boolean; dark_mode: boolean }>) {
+  await execute(
+    'INSERT INTO user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING',
+    [userId]
+  );
 
   if (updates.reflection_time !== undefined) {
-    db.prepare('UPDATE user_settings SET reflection_time = ? WHERE user_id = ?').run(updates.reflection_time, userId);
+    await execute('UPDATE user_settings SET reflection_time = $1 WHERE user_id = $2', [updates.reflection_time, userId]);
   }
   if (updates.onboarded !== undefined) {
-    db.prepare('UPDATE user_settings SET onboarded = ? WHERE user_id = ?').run(updates.onboarded ? 1 : 0, userId);
+    await execute('UPDATE user_settings SET onboarded = $1 WHERE user_id = $2', [updates.onboarded ? 1 : 0, userId]);
   }
   if (updates.dark_mode !== undefined) {
-    db.prepare('UPDATE user_settings SET dark_mode = ? WHERE user_id = ?').run(updates.dark_mode ? 1 : 0, userId);
+    await execute('UPDATE user_settings SET dark_mode = $1 WHERE user_id = $2', [updates.dark_mode ? 1 : 0, userId]);
   }
 }

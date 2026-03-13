@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { queryOne } from './db';
 
 export interface DayStats {
   date: string;
@@ -6,8 +6,7 @@ export interface DayStats {
   completed: number;
 }
 
-export function getClientWinHistory(userId: number, days: number = 14): DayStats[] {
-  const db = getDb();
+export async function getClientWinHistory(userId: number, days: number = 14): Promise<DayStats[]> {
   const results: DayStats[] = [];
 
   for (let i = days - 1; i >= 0; i--) {
@@ -15,15 +14,15 @@ export function getClientWinHistory(userId: number, days: number = 14): DayStats
     d.setDate(d.getDate() - i);
     const date = d.toISOString().split('T')[0];
 
-    const row = db.prepare(
-      `SELECT COUNT(*) as total, SUM(completed) as completed
-       FROM win_entries WHERE user_id = ? AND date = ?`
-    ).get(userId, date) as { total: number; completed: number } | undefined;
+    const row = await queryOne<{ total: string; completed: string }>(
+      'SELECT COUNT(*) as total, COALESCE(SUM(completed), 0) as completed FROM win_entries WHERE user_id = $1 AND date = $2',
+      [userId, date]
+    );
 
     results.push({
       date,
-      total: row?.total || 0,
-      completed: row?.completed || 0,
+      total: parseInt(row?.total || '0'),
+      completed: parseInt(row?.completed || '0'),
     });
   }
 

@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { queryOne } from '@/lib/db';
 import { getUserSettings } from '@/lib/settings';
 import ClientShell from '@/components/layout/ClientShell';
 
@@ -9,19 +9,20 @@ export default async function ClientLayout({ children }: { children: React.React
   let darkMode = false;
 
   if (session) {
-    const settings = getUserSettings(session.userId);
+    const settings = await getUserSettings(session.userId);
     darkMode = settings.dark_mode;
 
-    const db = getDb();
-    const clientInfo = db.prepare(
-      'SELECT coach_id FROM client_info WHERE user_id = ?'
-    ).get(session.userId) as { coach_id: number } | undefined;
+    const clientInfo = await queryOne<{ coach_id: number }>(
+      'SELECT coach_id FROM client_info WHERE user_id = $1',
+      [session.userId]
+    );
 
     if (clientInfo) {
-      const row = db.prepare(
-        'SELECT COUNT(*) as count FROM messages WHERE recipient_id = ? AND sender_id = ? AND read = 0'
-      ).get(session.userId, clientInfo.coach_id) as { count: number };
-      unreadCount = row.count;
+      const row = await queryOne<{ count: string }>(
+        'SELECT COUNT(*) as count FROM messages WHERE recipient_id = $1 AND sender_id = $2 AND read = 0',
+        [session.userId, clientInfo.coach_id]
+      );
+      unreadCount = parseInt(row?.count || '0');
     }
   }
 

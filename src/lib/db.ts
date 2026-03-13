@@ -1,22 +1,39 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
-import { runMigrations } from './schema';
+import { Pool } from 'pg';
 
-const DB_DIR = path.join(process.cwd(), 'data');
-const DB_PATH = path.join(DB_DIR, 'wintheday.db');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+  max: 10,
+});
 
-let db: Database.Database | null = null;
+export async function query<T = Record<string, unknown>>(
+  text: string,
+  params?: unknown[]
+): Promise<T[]> {
+  const result = await pool.query(text, params);
+  return result.rows as T[];
+}
 
-export function getDb(): Database.Database {
-  if (!db) {
-    if (!fs.existsSync(DB_DIR)) {
-      fs.mkdirSync(DB_DIR, { recursive: true });
-    }
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    runMigrations(db);
-  }
-  return db;
+export async function queryOne<T = Record<string, unknown>>(
+  text: string,
+  params?: unknown[]
+): Promise<T | undefined> {
+  const rows = await query<T>(text, params);
+  return rows[0];
+}
+
+export async function execute(
+  text: string,
+  params?: unknown[]
+): Promise<{ rowCount: number }> {
+  const result = await pool.query(text, params);
+  return { rowCount: result.rowCount ?? 0 };
+}
+
+export async function insertReturning<T = { id: number }>(
+  text: string,
+  params?: unknown[]
+): Promise<T> {
+  const result = await pool.query(text, params);
+  return result.rows[0] as T;
 }
