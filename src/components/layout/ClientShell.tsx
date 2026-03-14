@@ -50,10 +50,13 @@ export default function ClientShell({ darkMode: initialDark, unreadCount, childr
   };
 
   return (
-    <div className="min-h-dvh flex justify-center bg-lavender">
+    <div className={`min-h-dvh flex justify-center transition-colors duration-300 ${isDark ? 'dark-mode bg-[#141926]' : 'bg-lavender'}`}>
       <div
-        className={`w-full max-w-[520px] min-h-dvh bg-card shadow-2xl rounded-none sm:rounded-3xl sm:my-4 sm:min-h-0 sm:max-h-[calc(100dvh-2rem)] sm:overflow-y-auto flex flex-col relative transition-colors duration-300 ${isDark ? 'dark-mode' : ''}`}
-        style={{ boxShadow: '0 0 60px 8px rgba(240, 165, 0, 0.15), 0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+        className="w-full max-w-[520px] min-h-dvh bg-card shadow-2xl rounded-none sm:rounded-3xl sm:my-4 sm:min-h-0 sm:max-h-[calc(100dvh-2rem)] sm:overflow-y-auto flex flex-col relative transition-colors duration-300"
+        style={{ boxShadow: isDark
+          ? '0 0 60px 8px rgba(59, 130, 246, 0.08), 0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+          : '0 0 60px 8px rgba(240, 165, 0, 0.15), 0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+        }}
       >
         {/* Top bar */}
         <div className="flex items-center justify-end gap-2 px-5 pt-4 pb-0">

@@ -5,6 +5,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
+import TrophyIcon from '@/components/ui/TrophyIcon';
 
 const DAYS = [
   { key: 'mon', label: 'M' },
@@ -26,6 +27,7 @@ interface WinEntry {
 
 export default function WelcomeFlow({ userName }: { userName: string }) {
   const [step, setStep] = useState(0);
+  const [displayName, setDisplayName] = useState(userName);
   const [wins, setWins] = useState<WinEntry[]>([
     { title: '', type: 'commitment', days: [...ALL_WEEKDAYS] },
   ]);
@@ -59,6 +61,16 @@ export default function WelcomeFlow({ userName }: { userName: string }) {
     setWins(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleSaveName = async () => {
+    if (!displayName.trim()) return;
+    await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: displayName.trim() }),
+    });
+    setStep(1);
+  };
+
   const handleFinish = async () => {
     const valid = wins.filter(w => w.title.trim() && w.days.length > 0);
     if (valid.length === 0) return;
@@ -89,18 +101,43 @@ export default function WelcomeFlow({ userName }: { userName: string }) {
     }
   };
 
-  const canProceedToStep2 = commitments.some(c => c.title.trim() && c.days.length > 0);
-  const canFinish = canProceedToStep2 && practices.some(p => p.title.trim() && p.days.length > 0);
+  const canProceedToStep3 = commitments.some(c => c.title.trim() && c.days.length > 0);
+  const canFinish = canProceedToStep3 && practices.some(p => p.title.trim() && p.days.length > 0);
 
-  // Step 0: Welcome
+  // Step 0: What's your name?
   if (step === 0) {
     return (
-      <div className="flex flex-col items-center text-center pt-8">
-        <div className="text-6xl mb-6">🏆</div>
+      <div className="flex flex-col items-center text-center pt-12">
+        <div className="mb-6"><TrophyIcon size={64} /></div>
         <h1 className="text-3xl font-bold text-navy mb-3">Win the Day</h1>
         <p className="text-navy/60 max-w-xs leading-relaxed mb-8">
-          Welcome, {userName.split(' ')[0]}! This app helps you track your daily
-          commitments and practices so you can build momentum and win each day.
+          Welcome! What should we call you?
+        </p>
+        <div className="w-full max-w-xs mb-6">
+          <Input
+            placeholder="Your first name"
+            value={displayName}
+            onChange={e => setDisplayName(e.target.value)}
+            className="text-center text-lg"
+          />
+        </div>
+        <Button onClick={handleSaveName} disabled={!displayName.trim()} className="w-full max-w-xs">
+          Continue
+        </Button>
+      </div>
+    );
+  }
+
+  // Step 1: Welcome / How it works
+  if (step === 1) {
+    return (
+      <div className="flex flex-col items-center text-center pt-8">
+        <div className="mb-6"><TrophyIcon size={64} /></div>
+        <h1 className="text-3xl font-bold text-navy mb-3">
+          Welcome, {displayName.split(' ')[0]}!
+        </h1>
+        <p className="text-navy/60 max-w-xs leading-relaxed mb-8">
+          This app helps you track your daily commitments and practices so you can build momentum and win each day.
         </p>
         <Card className="w-full text-left mb-6">
           <h3 className="font-semibold text-navy mb-3">How it works</h3>
@@ -119,15 +156,15 @@ export default function WelcomeFlow({ userName }: { userName: string }) {
             </div>
           </div>
         </Card>
-        <Button onClick={() => setStep(1)} className="w-full">
+        <Button onClick={() => setStep(2)} className="w-full">
           Get Started
         </Button>
       </div>
     );
   }
 
-  // Step 1: Commitments
-  if (step === 1) {
+  // Step 2: Commitments
+  if (step === 2) {
     return (
       <div>
         <p className="text-xs text-navy/40 uppercase tracking-wider font-semibold mb-1">Step 1 of 2</p>
@@ -184,9 +221,9 @@ export default function WelcomeFlow({ userName }: { userName: string }) {
             if (practices.length === 0) {
               setWins(prev => [...prev, { title: '', type: 'practice', days: [...ALL_WEEKDAYS] }]);
             }
-            setStep(2);
+            setStep(3);
           }}
-          disabled={!canProceedToStep2}
+          disabled={!canProceedToStep3}
           className="w-full"
         >
           Next
@@ -195,7 +232,7 @@ export default function WelcomeFlow({ userName }: { userName: string }) {
     );
   }
 
-  // Step 2: Practice
+  // Step 3: Practice
   return (
     <div>
       <p className="text-xs text-navy/40 uppercase tracking-wider font-semibold mb-1">Step 2 of 2</p>
@@ -272,7 +309,7 @@ export default function WelcomeFlow({ userName }: { userName: string }) {
       </Card>
 
       <div className="flex gap-3">
-        <Button variant="ghost" onClick={() => setStep(1)} className="flex-1">
+        <Button variant="ghost" onClick={() => setStep(2)} className="flex-1">
           Back
         </Button>
         <Button onClick={handleFinish} disabled={!canFinish || saving} className="flex-1">

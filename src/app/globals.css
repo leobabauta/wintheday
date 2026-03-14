@@ -26,13 +26,17 @@ body {
   min-height: 100dvh;
 }
 
-/* Dark mode overrides */
+/* Dark mode overrides — cool navy-blue tones */
 .dark-mode {
-  --color-card: #1E1A2E;
-  --color-foreground: #E8E4EF;
-  --color-navy: #E8E4EF;
-  --color-navy-light: #C5BFD6;
-  --color-lavender-light: #2A2440;
-  --color-lavender-dark: #3A3455;
-  --color-muted: #9B95B0;
+  --color-background: #141926;
+  --color-card: #1C2333;
+  --color-foreground: #D1D5E0;
+  --color-navy: #D1D5E0;
+  --color-navy-light: #A0A8BF;
+  --color-lavender: #141926;
+  --color-lavender-light: #232B3E;
+  --color-lavender-dark: #2E3750;
+  --color-muted: #8891A5;
+  --color-gold: #F0A500;
+  --color-success: #34D399;
 }

@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
+import TrophyIcon from '@/components/ui/TrophyIcon';
 
 interface WinItem {
   id: number;
@@ -214,7 +215,7 @@ export default function DailyWins({ initialWins, userName, reflectionTime, exist
       {/* All Complete Celebration */}
       {allComplete && (
         <Card className={`mb-4 text-center border-2 border-gold/30 ${celebrating ? 'animate-pulse' : ''}`}>
-          <div className="text-5xl mb-2">🏆</div>
+          <div className="flex justify-center mb-2"><TrophyIcon size={56} /></div>
           <h2 className="text-xl font-extrabold text-navy">You Won the Day!</h2>
           <p className="text-sm text-navy/60 mt-1">Amazing work! Every single win — crushed it.</p>
         </Card>

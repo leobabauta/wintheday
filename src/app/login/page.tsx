@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import TrophyIcon from '@/components/ui/TrophyIcon';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -46,7 +47,7 @@ export default function LoginPage() {
       >
         <Card className="w-full max-w-sm bg-lavender-light/40">
           <div className="text-center mb-8">
-            <div className="text-4xl mb-3">🏆</div>
+            <div className="flex justify-center mb-3"><TrophyIcon size={48} /></div>
             <h1 className="text-2xl font-bold text-navy tracking-tight">Win the Day</h1>
             <p className="text-sm text-navy/50 mt-1">Sign in to your account</p>
           </div>

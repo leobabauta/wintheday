@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import TrophyIcon from '@/components/ui/TrophyIcon';
 
 interface Props {
   userName: string;
@@ -43,7 +44,7 @@ export default function SplashScreen({ userName, children }: Props) {
             <div className="absolute inset-0 rounded-full bg-white/5" />
             <div className="absolute top-4 left-4 w-40 h-40 rounded-full bg-white/5" />
             <div className="absolute top-10 left-10 w-28 h-28 rounded-full bg-white/10 flex items-center justify-center">
-              <span className="text-6xl">🏆</span>
+              <TrophyIcon size={64} />
             </div>
           </div>
 
