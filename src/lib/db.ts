@@ -1,8 +1,10 @@
 import { Pool } from 'pg';
 
+// Supabase pooler uses self-signed certs; disable verification
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
   max: 10,
 });
 
