@@ -15,5 +15,26 @@ export default async function JournalPage() {
     [session.userId]
   );
 
-  return <JournalView entries={allEntries} today={today} />;
+  // Fetch wins for each entry date
+  const entryDates = allEntries.map(e => e.date);
+  let winsMap: Record<string, { title: string; type: string; completed: number }[]> = {};
+
+  if (entryDates.length > 0) {
+    const placeholders = entryDates.map((_, i) => `$${i + 2}`).join(',');
+    const wins = await query<{ date: string; title: string; type: string; completed: number }>(
+      `SELECT w.date, c.title, c.type, w.completed
+       FROM win_entries w
+       JOIN commitments c ON c.id = w.commitment_id
+       WHERE w.user_id = $1 AND w.date IN (${placeholders})
+       ORDER BY c.type, c.title`,
+      [session.userId, ...entryDates]
+    );
+
+    for (const w of wins) {
+      if (!winsMap[w.date]) winsMap[w.date] = [];
+      winsMap[w.date].push({ title: w.title, type: w.type, completed: w.completed });
+    }
+  }
+
+  return <JournalView entries={allEntries} today={today} winsMap={winsMap} />;
 }

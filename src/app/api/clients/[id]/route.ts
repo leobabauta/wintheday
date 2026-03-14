@@ -58,6 +58,11 @@ export async function PUT(
 
     const body = await request.json();
 
+    // Update user name if provided
+    if (body.name !== undefined) {
+      await execute('UPDATE users SET name = $1 WHERE id = $2', [body.name, clientId]);
+    }
+
     const fields = ['sign_on_date', 'closing_date', 'coaching_day', 'coaching_time', 'coaching_frequency'];
     for (const field of fields) {
       if (body[field] !== undefined) {

@@ -11,6 +11,12 @@ interface JournalEntry {
   updated_at: string;
 }
 
+interface WinRecord {
+  title: string;
+  type: string;
+  completed: number;
+}
+
 const PROMPTS = [
   { key: 'well', label: 'What went well today?' },
   { key: 'challenge', label: 'What was challenging?' },
@@ -64,9 +70,10 @@ function formatDateHeader(dateStr: string, todayStr: string) {
 interface Props {
   entries: JournalEntry[];
   today: string;
+  winsMap?: Record<string, WinRecord[]>;
 }
 
-export default function JournalView({ entries, today }: Props) {
+export default function JournalView({ entries, today, winsMap = {} }: Props) {
   const [entryList, setEntryList] = useState(entries);
   const [editing, setEditing] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -192,6 +199,7 @@ export default function JournalView({ entries, today }: Props) {
             const items = displayAnswers(entry.content);
             const isExpanded = expandedId === entry.id;
             const preview = items[0]?.text || '';
+            const dayWins = winsMap[entry.date] || [];
 
             return (
               <div key={entry.id}>
@@ -204,7 +212,7 @@ export default function JournalView({ entries, today }: Props) {
                   <span className="text-[10px] text-navy/30 uppercase ml-auto">{ago}</span>
                 </div>
 
-                {/* Entry card — use div, not button, to avoid nesting issue */}
+                {/* Entry card */}
                 <div
                   onClick={() => setExpandedId(isExpanded ? null : entry.id)}
                   className="w-full text-left cursor-pointer"
@@ -226,6 +234,33 @@ export default function JournalView({ entries, today }: Props) {
                           <p className="text-sm text-navy/70 truncate">{preview}</p>
                         ) : (
                           <div className="space-y-3 mt-2">
+                            {/* Wins for this day */}
+                            {dayWins.length > 0 && (
+                              <div className="border-b border-lavender-dark/10 pb-3 mb-1">
+                                <p className="text-xs font-semibold text-navy/40 mb-2">Wins</p>
+                                <div className="space-y-1.5">
+                                  {dayWins.map((w, i) => (
+                                    <div key={i} className="flex items-center gap-2">
+                                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                                        w.completed === 1
+                                          ? 'bg-gold'
+                                          : 'border border-lavender-dark'
+                                      }`}>
+                                        {w.completed === 1 && (
+                                          <svg width="8" height="8" viewBox="0 0 24 24" fill="white" stroke="none">
+                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                          </svg>
+                                        )}
+                                      </div>
+                                      <span className={`text-xs ${w.completed === 1 ? 'text-navy/40 line-through' : 'text-navy/60'}`}>
+                                        {w.title}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
                             {items.map((item, i) => (
                               <div key={i}>
                                 <p className="text-xs font-semibold text-navy/50">{item.label}</p>

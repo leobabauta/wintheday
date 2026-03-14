@@ -7,6 +7,31 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import MessageThread from '@/components/messages/MessageThread';
+import ClientInfoEditor from '@/components/coach/ClientInfoEditor';
+
+const PROMPTS = [
+  { key: 'well', label: 'What went well today?' },
+  { key: 'challenge', label: 'What was challenging?' },
+  { key: 'learn', label: 'What did you learn or notice?' },
+  { key: 'tomorrow', label: 'What will you focus on tomorrow?' },
+];
+
+function parseContent(content: string): Record<string, string> {
+  try {
+    const parsed = JSON.parse(content);
+    if (typeof parsed === 'object' && parsed !== null) return parsed;
+  } catch {
+    if (content.trim()) return { well: content };
+  }
+  return {};
+}
+
+function displayAnswers(content: string): { label: string; text: string }[] {
+  const answers = parseContent(content);
+  return PROMPTS
+    .filter(p => answers[p.key]?.trim())
+    .map(p => ({ label: p.label, text: answers[p.key] }));
+}
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -41,7 +66,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const winHistory = await getClientWinHistory(clientId, 14);
 
   const journalEntries = await query<{ id: number; date: string; content: string; updated_at: string }>(
-    'SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 14',
+    'SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 2',
     [clientId]
   );
 
@@ -68,7 +93,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     { key: 'thu', label: 'T' }, { key: 'fri', label: 'F' }, { key: 'sat', label: 'S' }, { key: 'sun', label: 'S' },
   ];
 
-  const formatDate = (d: string | null) => d ? new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
+  const today = new Date().toISOString().split('T')[0];
+  const visibleEntries = journalEntries.filter(e => e.content.trim());
 
   return (
     <div>
@@ -81,48 +107,54 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Client Info */}
-        <Card>
-          <h2 className="text-xs font-semibold text-navy/50 uppercase tracking-wider mb-4">Client Info</h2>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-navy/60">Sign-on Date</span>
-              <span className="font-medium text-navy">{formatDate(clientInfo.sign_on_date)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-navy/60">Closing Date</span>
-              <span className="font-medium text-navy">{formatDate(clientInfo.closing_date)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-navy/60">Coaching Spot</span>
-              <span className="font-medium text-navy">
-                {clientInfo.coaching_frequency}, {clientInfo.coaching_day} at {clientInfo.coaching_time}
-              </span>
-            </div>
-          </div>
-        </Card>
+        {/* Client Info — editable */}
+        <ClientInfoEditor
+          clientId={clientId}
+          data={{
+            name: user!.name,
+            email: user!.email,
+            sign_on_date: clientInfo.sign_on_date,
+            closing_date: clientInfo.closing_date,
+            coaching_day: clientInfo.coaching_day,
+            coaching_time: clientInfo.coaching_time,
+            coaching_frequency: clientInfo.coaching_frequency,
+          }}
+        />
 
-        {/* Win History */}
+        {/* Win History — clickable dates */}
         <Card>
-          <h2 className="text-xs font-semibold text-navy/50 uppercase tracking-wider mb-4">Last 14 Days</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xs font-semibold text-navy/50 uppercase tracking-wider">Last 14 Days</h2>
+            <Link href={`/dashboard/clients/${clientId}/wins`} className="text-xs text-navy/40 hover:text-navy">
+              View all
+            </Link>
+          </div>
           <div className="grid grid-cols-7 gap-2">
             {winHistory.map((day, i) => {
               const ratio = day.total > 0 ? day.completed / day.total : -1;
               const d = new Date(day.date + 'T12:00:00');
               const dayLabel = d.toLocaleDateString('en-US', { weekday: 'narrow' });
               const dateLabel = d.getDate().toString();
+              const hasData = day.total > 0;
               return (
-                <div key={i} className="text-center" title={`${day.completed}/${day.total}`}>
+                <div key={i} className="text-center">
                   <div className="text-[10px] text-navy/40">{dayLabel}</div>
-                  <div className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center text-xs font-medium ${
-                    ratio === -1 ? 'bg-lavender-light/50 text-navy/30' :
-                    ratio === 1 ? 'bg-success/20 text-success' :
-                    ratio >= 0.5 ? 'bg-warning/20 text-warning' :
-                    ratio > 0 ? 'bg-orange-100 text-orange-500' :
-                    'bg-lavender-light text-navy/30'
-                  }`}>
-                    {dateLabel}
-                  </div>
+                  {hasData ? (
+                    <Link href={`/dashboard/clients/${clientId}/wins?date=${day.date}`} title={`${day.completed}/${day.total}`}>
+                      <div className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center text-xs font-medium cursor-pointer hover:ring-2 hover:ring-navy/20 transition-all ${
+                        ratio === 1 ? 'bg-success/20 text-success' :
+                        ratio >= 0.5 ? 'bg-warning/20 text-warning' :
+                        ratio > 0 ? 'bg-orange-100 text-orange-500' :
+                        'bg-lavender-light text-navy/30'
+                      }`}>
+                        {dateLabel}
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="w-8 h-8 mx-auto rounded-lg flex items-center justify-center text-xs font-medium bg-lavender-light/50 text-navy/30" title="No data">
+                      {dateLabel}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -170,21 +202,45 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           )}
         </Card>
 
-        {/* Journal Entries */}
+        {/* Journal Entries — last 2, properly parsed */}
         <Card>
-          <h2 className="text-xs font-semibold text-navy/50 uppercase tracking-wider mb-4">Journal Entries</h2>
-          {journalEntries.length === 0 ? (
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xs font-semibold text-navy/50 uppercase tracking-wider">Journal Entries</h2>
+            <Link href={`/dashboard/clients/${clientId}/journal`} className="text-xs text-navy/40 hover:text-navy">
+              View all
+            </Link>
+          </div>
+          {visibleEntries.length === 0 ? (
             <p className="text-sm text-navy/40">No entries yet</p>
           ) : (
-            <div className="space-y-3 max-h-80 overflow-y-auto">
-              {journalEntries.map(entry => (
-                <div key={entry.id} className="border-b border-lavender-dark/10 pb-2">
-                  <div className="text-xs text-navy/50 mb-1">
-                    {new Date(entry.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            <div className="space-y-4">
+              {visibleEntries.map(entry => {
+                const d = new Date(entry.date + 'T12:00:00');
+                const dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const items = displayAnswers(entry.content);
+                const isToday = entry.date === today;
+
+                return (
+                  <div key={entry.id} className="border-b border-lavender-dark/10 pb-3 last:border-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-semibold text-navy/50">{dateLabel}</span>
+                      {isToday && <span className="text-[10px] text-success font-medium">TODAY</span>}
+                    </div>
+                    {items.length === 0 ? (
+                      <p className="text-sm text-navy/40 italic">Empty entry</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {items.map((item, i) => (
+                          <div key={i}>
+                            <p className="text-xs font-semibold text-navy/40">{item.label}</p>
+                            <p className="text-sm text-navy/70 whitespace-pre-wrap line-clamp-2">{item.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-sm text-navy/70 whitespace-pre-wrap line-clamp-3">{entry.content}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Card>
