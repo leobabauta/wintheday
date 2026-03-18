@@ -24,6 +24,8 @@ export default async function DashboardPage() {
     [session.userId]
   );
 
+  const today = new Date().toISOString().split('T')[0];
+
   const enriched = await Promise.all(clients.map(async client => {
     const commitmentCount = await queryOne<{ count: string }>(
       'SELECT COUNT(*) as count FROM commitments WHERE user_id = $1 AND active = 1',
@@ -37,11 +39,23 @@ export default async function DashboardPage() {
       [session.userId, client.id]
     );
 
+    const todayWins = await queryOne<{ count: string }>(
+      'SELECT COUNT(*) as count FROM win_entries WHERE user_id = $1 AND date = $2 AND completed = 1',
+      [client.id, today]
+    );
+
+    const todayJournal = await queryOne<{ id: number }>(
+      "SELECT id FROM journal_entries WHERE user_id = $1 AND date = $2 AND content != ''",
+      [client.id, today]
+    );
+
     return {
       ...client,
       commitmentCount: parseInt(commitmentCount?.count || '0'),
       winHistory,
       unreadMessages: parseInt(unreadMessages?.count || '0'),
+      todayWinsCompleted: parseInt(todayWins?.count || '0'),
+      hasJournalToday: !!todayJournal,
     };
   }));
 

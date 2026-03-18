@@ -21,6 +21,8 @@ interface Client {
   commitmentCount: number;
   winHistory: DayStats[];
   unreadMessages: number;
+  todayWinsCompleted: number;
+  hasJournalToday: boolean;
 }
 
 interface Props {
@@ -69,13 +71,25 @@ export default function ClientTable({ clients }: Props) {
               {clients.map(client => (
                 <tr key={client.id} className="border-b border-lavender-dark/10 hover:bg-lavender-light/30 transition-colors">
                   <td className="py-3 px-2">
-                    <Link href={`/dashboard/clients/${client.id}`} className="font-medium text-navy hover:underline">
-                      {client.name}
-                    </Link>
-                    {client.unreadMessages > 0 && (
-                      <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-danger text-white text-[10px] font-bold">
-                        {client.unreadMessages}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/dashboard/clients/${client.id}`} className="font-medium text-navy hover:underline">
+                        {client.name}
+                      </Link>
+                      {client.unreadMessages > 0 && (
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-danger text-white text-[10px] font-bold">
+                          {client.unreadMessages}
+                        </span>
+                      )}
+                    </div>
+                    {(client.todayWinsCompleted > 0 || client.hasJournalToday) && (
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {client.todayWinsCompleted > 0 && (
+                          <span className="text-[10px] text-success font-medium">{client.todayWinsCompleted} win{client.todayWinsCompleted !== 1 ? 's' : ''} today</span>
+                        )}
+                        {client.hasJournalToday && (
+                          <span className="text-[10px] text-navy/40 font-medium">journaled today</span>
+                        )}
+                      </div>
                     )}
                   </td>
                   <td className="py-3 px-2 text-navy/60">{client.commitmentCount} items</td>
@@ -129,6 +143,16 @@ export default function ClientTable({ clients }: Props) {
               <div className="text-xs text-navy/50">
                 {client.commitmentCount} wins · {client.coaching_day} {client.coaching_time}
               </div>
+              {(client.todayWinsCompleted > 0 || client.hasJournalToday) && (
+                <div className="flex items-center gap-2 mt-1">
+                  {client.todayWinsCompleted > 0 && (
+                    <span className="text-[10px] text-success font-medium">{client.todayWinsCompleted} win{client.todayWinsCompleted !== 1 ? 's' : ''} today</span>
+                  )}
+                  {client.hasJournalToday && (
+                    <span className="text-[10px] text-navy/40 font-medium">journaled today</span>
+                  )}
+                </div>
+              )}
             </Card>
           </Link>
         ))}

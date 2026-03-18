@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS messages (
   content TEXT NOT NULL DEFAULT '',
   parent_id INTEGER REFERENCES messages(id),
   read INTEGER NOT NULL DEFAULT 0,
+  archived INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -75,6 +76,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
 CREATE INDEX IF NOT EXISTS idx_win_entries_user_date ON win_entries(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_commitments_user_active ON commitments(user_id, active);
 CREATE INDEX IF NOT EXISTS idx_messages_recipient_read ON messages(recipient_id, read);
+CREATE INDEX IF NOT EXISTS idx_messages_archived ON messages(recipient_id, archived, read);
 CREATE INDEX IF NOT EXISTS idx_journal_user_date ON journal_entries(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_client_info_coach ON client_info(coach_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_win_entries_unique ON win_entries(user_id, commitment_id, date);

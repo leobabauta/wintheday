@@ -78,11 +78,35 @@ function TypeIcon({ type }: { type: string }) {
   }
 }
 
+const CELEBRATIONS = [
+  "Amazing work today — you showed up and that matters!",
+  "You're building something real here. Keep going!",
+  "Look at you winning the day! So proud of your effort.",
+  "This is what momentum looks like. Well done!",
+  "You crushed it today. Celebrate this!",
+  "Every day you show up, you're proving what's possible.",
+  "Your consistency is inspiring. Keep it up!",
+  "That's the kind of day that changes everything. Nice work!",
+  "You're doing the hard thing, and it's working. Bravo!",
+  "This right here is what growth looks like. Keep going!",
+  "Winning the day, one commitment at a time. Love to see it!",
+  "You showed up for yourself today. That's huge.",
+  "The effort you're putting in is really paying off!",
+  "Another day, another win. You're on a roll!",
+  "This is exactly the kind of progress that compounds. Great job!",
+  "You're proving to yourself what you're capable of. Keep it up!",
+  "Discipline is a superpower, and you've got it. Well done!",
+  "Small wins, big results. You're nailing it!",
+  "Your future self is thanking you right now. Amazing work!",
+  "Look at that commitment paying off. You should be proud!",
+];
+
 export default function MessageThread({ messages, userId, coachId, isCoach = false, clientName }: Props) {
   const [msgList, setMsgList] = useState(messages);
   const [content, setContent] = useState('');
   const [msgType, setMsgType] = useState<'question' | 'flag'>('question');
   const [sending, setSending] = useState(false);
+  const [celebrationDraft, setCelebrationDraft] = useState<string | null>(null);
 
   const handleSend = async () => {
     if (!content.trim()) return;
@@ -120,8 +144,13 @@ export default function MessageThread({ messages, userId, coachId, isCoach = fal
     }
   };
 
-  const handleCelebration = async () => {
-    if (!isCoach) return;
+  const handleCelebrationStart = () => {
+    const msg = CELEBRATIONS[Math.floor(Math.random() * CELEBRATIONS.length)];
+    setCelebrationDraft(msg);
+  };
+
+  const handleCelebrationSend = async () => {
+    if (!isCoach || !celebrationDraft?.trim()) return;
     setSending(true);
 
     try {
@@ -131,7 +160,7 @@ export default function MessageThread({ messages, userId, coachId, isCoach = fal
         body: JSON.stringify({
           recipientId: userId,
           type: 'celebration',
-          content: 'Great job winning the day!',
+          content: celebrationDraft.trim(),
         }),
       });
       const data = await res.json();
@@ -142,11 +171,12 @@ export default function MessageThread({ messages, userId, coachId, isCoach = fal
         recipient_id: userId,
         sender_name: 'Coach',
         type: 'celebration',
-        content: 'Great job winning the day!',
+        content: celebrationDraft.trim(),
         parent_id: null,
         read: 0,
         created_at: new Date().toISOString(),
       }, ...prev]);
+      setCelebrationDraft(null);
     } catch {
       // ignore
     } finally {
@@ -205,9 +235,9 @@ export default function MessageThread({ messages, userId, coachId, isCoach = fal
               {sending ? 'Sending...' : 'Send'}
             </span>
           </Button>
-          {isCoach && (
+          {isCoach && !celebrationDraft && (
             <button
-              onClick={handleCelebration}
+              onClick={handleCelebrationStart}
               disabled={sending}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-warning/10 text-warning hover:bg-warning/20 transition-colors disabled:opacity-50"
             >
@@ -216,6 +246,34 @@ export default function MessageThread({ messages, userId, coachId, isCoach = fal
             </button>
           )}
         </div>
+
+        {celebrationDraft !== null && (
+          <div className="mt-3 p-3 rounded-xl bg-warning/5 border border-warning/20">
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-warning"><CelebrationIcon size={14} /></span>
+              <span className="text-xs font-medium text-warning">Celebration Message</span>
+            </div>
+            <textarea
+              value={celebrationDraft}
+              onChange={e => setCelebrationDraft(e.target.value)}
+              className="w-full h-20 bg-white rounded-xl p-3 text-sm text-navy outline-none resize-none focus:ring-1 focus:ring-warning/30 mb-2"
+            />
+            <div className="flex gap-2">
+              <Button onClick={handleCelebrationSend} size="sm" disabled={!celebrationDraft.trim() || sending}>
+                <span className="flex items-center gap-1.5">
+                  <SendIcon size={14} />
+                  {sending ? 'Sending...' : 'Send Celebration'}
+                </span>
+              </Button>
+              <button
+                onClick={() => setCelebrationDraft(null)}
+                className="px-3 py-1.5 rounded-xl text-xs font-medium text-navy/50 hover:text-navy transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Message list */}
