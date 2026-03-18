@@ -63,12 +63,37 @@ export async function PUT(
       await execute('UPDATE users SET name = $1 WHERE id = $2', [body.name, clientId]);
     }
 
-    const fields = ['sign_on_date', 'closing_date', 'coaching_day', 'coaching_time', 'coaching_frequency'];
+    const fields = ['sign_on_date', 'closing_date', 'coaching_day', 'coaching_time', 'coaching_frequency', 'payment_amount', 'payment_frequency', 'renewal_day'];
     for (const field of fields) {
       if (body[field] !== undefined) {
         await execute(`UPDATE client_info SET ${field} = $1 WHERE user_id = $2`, [body[field], clientId]);
       }
     }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return handleAuthError(error);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = requireAuth(request, 'coach');
+    const { id } = await params;
+    const clientId = parseInt(id);
+    await requireCoachOwnsClient(auth.userId, clientId);
+
+    // Delete in order respecting foreign keys
+    await execute('DELETE FROM win_entries WHERE user_id = $1', [clientId]);
+    await execute('DELETE FROM commitments WHERE user_id = $1', [clientId]);
+    await execute('DELETE FROM journal_entries WHERE user_id = $1', [clientId]);
+    await execute('DELETE FROM messages WHERE sender_id = $1 OR recipient_id = $1', [clientId]);
+    await execute('DELETE FROM user_settings WHERE user_id = $1', [clientId]);
+    await execute('DELETE FROM client_info WHERE user_id = $1', [clientId]);
+    await execute('DELETE FROM users WHERE id = $1', [clientId]);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

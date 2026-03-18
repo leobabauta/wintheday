@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS client_info (
   coaching_day TEXT,
   coaching_time TEXT,
   coaching_frequency TEXT DEFAULT 'Every 2 weeks',
+  payment_amount NUMERIC,
+  payment_frequency TEXT CHECK(payment_frequency IN ('monthly','yearly')),
+  renewal_day INTEGER,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

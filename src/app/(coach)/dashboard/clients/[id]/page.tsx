@@ -44,6 +44,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const clientInfo = await queryOne<{
     sign_on_date: string; closing_date: string | null;
     coaching_day: string; coaching_time: string; coaching_frequency: string;
+    payment_amount: number | null; payment_frequency: string | null; renewal_day: number | null;
   }>(
     'SELECT * FROM client_info WHERE user_id = $1 AND coach_id = $2',
     [clientId, session.userId]
@@ -118,6 +119,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             coaching_day: clientInfo.coaching_day,
             coaching_time: clientInfo.coaching_time,
             coaching_frequency: clientInfo.coaching_frequency,
+            payment_amount: clientInfo.payment_amount,
+            payment_frequency: clientInfo.payment_frequency,
+            renewal_day: clientInfo.renewal_day,
           }}
         />
 
@@ -255,6 +259,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             clientName={user!.name}
           />
         </div>
+
       </div>
     </div>
   );
