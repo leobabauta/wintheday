@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import TrophyIcon from '@/components/ui/TrophyIcon';
+import ReflectionModal from '@/components/journal/ReflectionModal';
 
 interface WinItem {
   id: number;
@@ -20,6 +21,8 @@ interface DailyWinsProps {
   reflectionTime: number;
   existingReflection: string;
   date: string;
+  reflectionSnoozedUntil: string | null;
+  reflectionSkippedDate: string | null;
 }
 
 function StarCircle({ completed, animating }: { completed: boolean; animating: boolean }) {
@@ -40,15 +43,17 @@ function StarCircle({ completed, animating }: { completed: boolean; animating: b
   );
 }
 
-export default function DailyWins({ initialWins, userName, reflectionTime, existingReflection, date }: DailyWinsProps) {
+export default function DailyWins({ initialWins, userName, reflectionTime, existingReflection, date, reflectionSnoozedUntil, reflectionSkippedDate }: DailyWinsProps) {
   const [wins, setWins] = useState(initialWins);
   const [allComplete, setAllComplete] = useState(initialWins.every(w => w.completed) && initialWins.length > 0);
   const [celebrating, setCelebrating] = useState(false);
   const [animatingId, setAnimatingId] = useState<number | null>(null);
   const [showReflection, setShowReflection] = useState(false);
   const [reflection, setReflection] = useState(existingReflection);
-  const [reflectionSaved, setReflectionSaved] = useState(true);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [snoozedUntil, setSnoozedUntil] = useState(reflectionSnoozedUntil);
+  const [skippedDate, setSkippedDate] = useState(reflectionSkippedDate);
 
   const commitments = wins.filter(w => w.type === 'commitment');
   const practices = wins.filter(w => w.type === 'practice');
@@ -59,12 +64,43 @@ export default function DailyWins({ initialWins, userName, reflectionTime, exist
 
   useEffect(() => {
     const checkTime = () => {
-      setShowReflection(new Date().getHours() >= reflectionTime);
+      const now = new Date();
+      const isTime = now.getHours() >= reflectionTime;
+      setShowReflection(isTime);
+
+      // Show prompt popup if it's time and not snoozed/skipped
+      if (isTime && skippedDate !== date) {
+        const isSnoozed = snoozedUntil && new Date(snoozedUntil) > now;
+        if (!isSnoozed) {
+          setShowPrompt(true);
+        }
+      }
     };
     checkTime();
     const interval = setInterval(checkTime, 60000);
     return () => clearInterval(interval);
-  }, [reflectionTime]);
+  }, [reflectionTime, date, snoozedUntil, skippedDate]);
+
+  const handleSnooze = async () => {
+    const until = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    setSnoozedUntil(until);
+    setShowPrompt(false);
+    await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reflection_snoozed_until: until }),
+    });
+  };
+
+  const handleSkip = async () => {
+    setSkippedDate(date);
+    setShowPrompt(false);
+    await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reflection_skipped_date: date }),
+    });
+  };
 
   const fireSmallConfetti = useCallback(() => {
     confetti({
@@ -129,31 +165,14 @@ export default function DailyWins({ initialWins, userName, reflectionTime, exist
     }
   };
 
-  const saveReflection = useCallback(async (text: string) => {
+  const hasReflection = (() => {
     try {
-      await fetch('/api/journal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, content: text }),
-      });
-      setReflectionSaved(true);
-    } catch { /* retry on next change */ }
-  }, [date]);
-
-  const handleReflectionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const text = e.target.value;
-    setReflection(text);
-    setReflectionSaved(false);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => saveReflection(text), 2000);
-  };
-
-  const handleReflectionBlur = () => {
-    if (!reflectionSaved) {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      saveReflection(reflection);
+      const parsed = JSON.parse(reflection);
+      return typeof parsed === 'object' && parsed !== null && Object.values(parsed).some((v: unknown) => typeof v === 'string' && v.trim());
+    } catch {
+      return !!reflection.trim();
     }
-  };
+  })();
 
   const greeting = () => {
     const hour = new Date().getHours();
@@ -276,26 +295,80 @@ export default function DailyWins({ initialWins, userName, reflectionTime, exist
 
       {/* Daily Reflection (time-gated) */}
       {showReflection && (
-        <Card className="mt-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xs font-bold text-navy/50 uppercase tracking-wider">Daily Reflection</h2>
-            <span className={`text-[10px] ${reflectionSaved ? 'text-success' : 'text-warning'}`}>
-              {reflectionSaved ? (reflection ? 'Saved' : '') : 'Saving...'}
-            </span>
+        <button
+          onClick={() => setShowModal(true)}
+          className="w-full mt-4"
+        >
+          <Card className="hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-navy/5 flex items-center justify-center shrink-0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-navy/40">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+              </div>
+              <div className="text-left">
+                <h2 className="text-sm font-semibold text-navy">Daily Reflection Time</h2>
+                <p className="text-xs text-navy/40">
+                  {hasReflection ? 'Tap to view or edit your reflection' : 'Tap to start your reflection'}
+                </p>
+              </div>
+              {hasReflection && (
+                <span className="ml-auto text-[10px] text-success font-medium">Done</span>
+              )}
+            </div>
+          </Card>
+        </button>
+      )}
+
+      {/* Reflection prompt popup */}
+      {showPrompt && !showModal && !hasReflection && (
+        <div className="fixed bottom-24 left-0 right-0 flex justify-center z-40 px-4">
+          <div className="w-full max-w-[480px] bg-card rounded-2xl shadow-lg border border-lavender-dark/20 p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center shrink-0 mt-0.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-gold">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-navy">Time for your daily reflection</p>
+                <p className="text-xs text-navy/40 mt-0.5">Take a moment to reflect on your day</p>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => { setShowPrompt(false); setShowModal(true); }}
+                    className="px-3 py-1.5 rounded-xl text-xs font-medium bg-navy text-white hover:bg-navy-light transition-colors"
+                  >
+                    Start Reflection
+                  </button>
+                  <button
+                    onClick={handleSnooze}
+                    className="px-3 py-1.5 rounded-xl text-xs font-medium text-navy/50 hover:bg-lavender-light/40 transition-colors"
+                  >
+                    Snooze 30 min
+                  </button>
+                  <button
+                    onClick={handleSkip}
+                    className="px-3 py-1.5 rounded-xl text-xs font-medium text-navy/30 hover:text-navy/50 transition-colors"
+                  >
+                    Skip
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="mb-3 space-y-0.5">
-            <p className="text-xs text-navy/40 italic">What went well today?</p>
-            <p className="text-xs text-navy/40 italic">What was challenging?</p>
-            <p className="text-xs text-navy/40 italic">What will you focus on tomorrow?</p>
-          </div>
-          <textarea
-            value={reflection}
-            onChange={handleReflectionChange}
-            onBlur={handleReflectionBlur}
-            placeholder="Write your reflection here..."
-            className="w-full h-32 bg-lavender-light/40 rounded-xl p-4 text-sm text-navy outline-none resize-none focus:ring-1 focus:ring-navy/20 transition-colors"
-          />
-        </Card>
+        </div>
+      )}
+
+      {/* Reflection modal */}
+      {showModal && (
+        <ReflectionModal
+          date={date}
+          existingReflection={reflection}
+          onClose={() => setShowModal(false)}
+          onSaved={(content) => setReflection(content)}
+        />
       )}
     </div>
   );

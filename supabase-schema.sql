@@ -70,7 +70,9 @@ CREATE TABLE IF NOT EXISTS user_settings (
   user_id INTEGER NOT NULL UNIQUE REFERENCES users(id),
   reflection_time INTEGER NOT NULL DEFAULT 17,
   onboarded INTEGER NOT NULL DEFAULT 0,
-  dark_mode INTEGER NOT NULL DEFAULT 0
+  dark_mode INTEGER NOT NULL DEFAULT 0,
+  reflection_snoozed_until TIMESTAMPTZ,
+  reflection_skipped_date TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_win_entries_user_date ON win_entries(user_id, date);
