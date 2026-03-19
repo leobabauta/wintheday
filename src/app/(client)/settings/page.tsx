@@ -6,6 +6,7 @@ import CommitmentEditor from '@/components/wins/CommitmentEditor';
 import ReflectionTimeSetting from '@/components/layout/ReflectionTimeSetting';
 import DarkModeSetting from '@/components/layout/DarkModeSetting';
 import NameSetting from '@/components/layout/NameSetting';
+import EmailSetting from '@/components/layout/EmailSetting';
 import RatingLabelSetting from '@/components/layout/RatingLabelSetting';
 import LogoutButton from '@/components/layout/LogoutButton';
 
@@ -13,7 +14,7 @@ export default async function SettingsPage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
-  const user = await queryOne<{ name: string }>('SELECT name FROM users WHERE id = $1', [session.userId]);
+  const user = await queryOne<{ name: string; email: string }>('SELECT name, email FROM users WHERE id = $1', [session.userId]);
 
   const commitments = await query<{
     id: number; title: string; type: string; days_of_week: string; active: number;
@@ -32,6 +33,7 @@ export default async function SettingsPage() {
       </div>
       <div className="space-y-4 mb-6">
         <NameSetting initialName={user?.name || ''} />
+        <EmailSetting initialEmail={user?.email || ''} />
       </div>
       <CommitmentEditor initialCommitments={commitments} />
       <div className="mt-6 space-y-4">

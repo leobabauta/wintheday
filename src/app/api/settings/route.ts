@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { execute } from '@/lib/db';
+import { execute, queryOne } from '@/lib/db';
 import { requireAuth, handleAuthError } from '@/lib/api-auth';
 import { getUserSettings, updateUserSettings } from '@/lib/settings';
 
@@ -21,6 +21,15 @@ export async function PUT(request: NextRequest) {
     // Handle name update separately (stored in users table)
     if (body.name !== undefined) {
       await execute('UPDATE users SET name = $1 WHERE id = $2', [body.name, auth.userId]);
+    }
+
+    // Handle email update (stored in users table)
+    if (body.email !== undefined) {
+      const existing = await queryOne('SELECT id FROM users WHERE email = $1 AND id != $2', [body.email, auth.userId]);
+      if (existing) {
+        return NextResponse.json({ error: 'Email already in use' }, { status: 400 });
+      }
+      await execute('UPDATE users SET email = $1 WHERE id = $2', [body.email, auth.userId]);
     }
 
     // Handle other settings
