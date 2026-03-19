@@ -77,6 +77,9 @@ export default function LoginPage() {
             <Button type="submit" disabled={loading} className="w-full mt-2">
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
+            <a href="/reset-password" className="text-sm text-navy/40 hover:text-navy text-center block mt-2">
+              Forgot password?
+            </a>
           </form>
         </Card>
       </div>

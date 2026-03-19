@@ -8,6 +8,7 @@ import DarkModeSetting from '@/components/layout/DarkModeSetting';
 import NameSetting from '@/components/layout/NameSetting';
 import EmailSetting from '@/components/layout/EmailSetting';
 import RatingLabelSetting from '@/components/layout/RatingLabelSetting';
+import PasswordSetting from '@/components/layout/PasswordSetting';
 import LogoutButton from '@/components/layout/LogoutButton';
 
 export default async function SettingsPage() {
@@ -40,6 +41,7 @@ export default async function SettingsPage() {
         <RatingLabelSetting initialLabel={settings.rating_label} />
         <ReflectionTimeSetting initialTime={settings.reflection_time} />
         <DarkModeSetting initialDark={settings.dark_mode} />
+        <PasswordSetting />
       </div>
     </div>
   );

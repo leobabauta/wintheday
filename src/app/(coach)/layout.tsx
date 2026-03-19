@@ -31,6 +31,9 @@ export default async function CoachLayout({ children }: { children: React.ReactN
                 </span>
               )}
             </Link>
+            <Link href="/dashboard/settings" className="text-sm text-navy/60 hover:text-navy transition-colors">
+              Settings
+            </Link>
             <LogoutButton />
           </div>
         </div>
