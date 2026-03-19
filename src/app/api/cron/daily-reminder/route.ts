@@ -10,23 +10,42 @@ export async function GET(request: NextRequest) {
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const today = new Date().toISOString().split('T')[0];
+  const nowUtc = new Date();
 
-  // Find all clients who haven't checked off any wins or written a journal entry today
+  // Find all clients with their timezone
   const clients = await query<{
     id: number;
     name: string;
     email: string;
+    timezone: string | null;
   }>(
-    `SELECT u.id, u.name, u.email
+    `SELECT u.id, u.name, u.email, COALESCE(us.timezone, 'Pacific/Honolulu') as timezone
      FROM users u
      JOIN client_info ci ON ci.user_id = u.id
+     LEFT JOIN user_settings us ON us.user_id = u.id
      WHERE u.role = 'client'`
   );
 
   let sent = 0;
 
   for (const client of clients) {
+    // Check if it's 6 PM (hour 18) in the client's timezone
+    const tz = client.timezone || 'Pacific/Honolulu';
+    let clientHour: number;
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: tz });
+      clientHour = parseInt(formatter.format(nowUtc));
+    } catch {
+      // Invalid timezone, skip
+      continue;
+    }
+
+    if (clientHour !== 18) continue;
+
+    // Get today's date in the client's timezone
+    const dateFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: tz }); // en-CA gives YYYY-MM-DD
+    const today = dateFormatter.format(nowUtc);
+
     // Check if they have any completed wins today
     const wins = await queryOne<{ count: string }>(
       'SELECT COUNT(*) as count FROM win_entries WHERE user_id = $1 AND date = $2 AND completed = 1',
@@ -57,7 +76,7 @@ export async function GET(request: NextRequest) {
 
     try {
       await resend.emails.send({
-        from: process.env.REMINDER_FROM_EMAIL || 'Win the Day <noreply@wintheday.work>',
+        from: process.env.REMINDER_FROM_EMAIL || 'Win the Day <onboarding@resend.dev>',
         to: client.email,
         subject: `${client.name.split(' ')[0]}, don't forget to check in today!`,
         html: `
