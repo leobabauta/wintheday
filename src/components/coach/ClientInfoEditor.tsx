@@ -33,12 +33,12 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
 
   const handleSave = async () => {
     setSaving(true);
-    // Update user name
-    if (form.name !== data.name) {
+    // Update user name and email
+    if (form.name !== data.name || form.email !== data.email) {
       await fetch(`/api/clients/${clientId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name }),
+        body: JSON.stringify({ name: form.name, email: form.email }),
       });
     }
     // Update client info fields
@@ -129,6 +129,7 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
       <h2 className="text-xs font-semibold text-navy/50 uppercase tracking-wider mb-4">Edit Client Info</h2>
       <div className="space-y-3">
         <Input label="Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+        <Input label="Email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
         <Input label="Sign-on Date" type="date" value={form.sign_on_date || ''} onChange={e => setForm({ ...form, sign_on_date: e.target.value })} />
         <Input label="Closing Date" type="date" value={form.closing_date || ''} onChange={e => setForm({ ...form, closing_date: e.target.value })} />
         <Input label="Coaching Day" value={form.coaching_day || ''} onChange={e => setForm({ ...form, coaching_day: e.target.value })} placeholder="e.g., Wednesday" />

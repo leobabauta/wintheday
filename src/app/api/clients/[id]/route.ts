@@ -64,6 +64,11 @@ export async function PUT(
       await execute('UPDATE users SET name = $1 WHERE id = $2', [body.name, clientId]);
     }
 
+    // Update email if provided
+    if (body.email !== undefined) {
+      await execute('UPDATE users SET email = $1 WHERE id = $2', [body.email, clientId]);
+    }
+
     const fields = ['sign_on_date', 'closing_date', 'coaching_day', 'coaching_time', 'coaching_frequency', 'payment_amount', 'payment_frequency', 'renewal_day'];
     for (const field of fields) {
       if (body[field] !== undefined) {
