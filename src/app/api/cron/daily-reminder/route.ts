@@ -29,22 +29,15 @@ export async function GET(request: NextRequest) {
   let sent = 0;
 
   for (const client of clients) {
-    // Check if it's 6 PM (hour 18) in the client's timezone
-    const tz = client.timezone || 'Pacific/Honolulu';
-    let clientHour: number;
-    try {
-      const formatter = new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: tz });
-      clientHour = parseInt(formatter.format(nowUtc));
-    } catch {
-      // Invalid timezone, skip
-      continue;
-    }
-
-    if (clientHour !== 18) continue;
-
     // Get today's date in the client's timezone
-    const dateFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: tz }); // en-CA gives YYYY-MM-DD
-    const today = dateFormatter.format(nowUtc);
+    const tz = client.timezone || 'Pacific/Honolulu';
+    let today: string;
+    try {
+      const dateFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: tz }); // en-CA gives YYYY-MM-DD
+      today = dateFormatter.format(nowUtc);
+    } catch {
+      today = nowUtc.toISOString().split('T')[0];
+    }
 
     // Check if they have any completed wins today
     const wins = await queryOne<{ count: string }>(
