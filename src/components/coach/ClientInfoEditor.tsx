@@ -23,6 +23,7 @@ interface ClientInfoData {
 export default function ClientInfoEditor({ clientId, data }: { clientId: number; data: ClientInfoData }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(data);
+  const [newPassword, setNewPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
@@ -54,10 +55,12 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
         payment_frequency: form.payment_frequency || null,
         renewal_day: form.renewal_day || null,
         rating_label: form.rating_label || 'inner peace',
+        ...(newPassword.length >= 6 ? { password: newPassword } : {}),
       }),
     });
     setSaving(false);
     setEditing(false);
+    setNewPassword('');
     router.refresh();
   };
 
@@ -153,6 +156,13 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
           </div>
         </div>
         <Input label="Daily Quality Label" value={form.rating_label || ''} onChange={e => setForm({ ...form, rating_label: e.target.value })} placeholder="e.g., inner peace, confidence" />
+        <div className="border-t border-lavender-dark/10 pt-3 mt-1">
+          <h3 className="text-xs font-semibold text-navy/50 uppercase tracking-wider mb-3">Password</h3>
+          <Input label="Set New Password" type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Leave blank to keep current" />
+          {newPassword && newPassword.length < 6 && (
+            <p className="text-xs text-warning mt-1">Must be at least 6 characters</p>
+          )}
+        </div>
         <div className="flex gap-2 pt-2">
           <Button variant="ghost" size="sm" onClick={() => { setForm(data); setEditing(false); }}>Cancel</Button>
           <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>

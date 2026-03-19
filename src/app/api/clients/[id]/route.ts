@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne, execute } from '@/lib/db';
 import { requireAuth, requireCoachOwnsClient, handleAuthError } from '@/lib/api-auth';
 import { getClientWinHistory } from '@/lib/client-stats';
+import { hashPassword } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
@@ -68,6 +69,11 @@ export async function PUT(
       if (body[field] !== undefined) {
         await execute(`UPDATE client_info SET ${field} = $1 WHERE user_id = $2`, [body[field], clientId]);
       }
+    }
+
+    // Update password if provided
+    if (body.password && body.password.length >= 6) {
+      await execute('UPDATE users SET password_hash = $1 WHERE id = $2', [hashPassword(body.password), clientId]);
     }
 
     // Update client settings (rating_label)
