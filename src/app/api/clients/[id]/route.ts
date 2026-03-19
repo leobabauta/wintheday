@@ -70,6 +70,15 @@ export async function PUT(
       }
     }
 
+    // Update client settings (rating_label)
+    if (body.rating_label !== undefined) {
+      await execute(
+        'INSERT INTO user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING',
+        [clientId]
+      );
+      await execute('UPDATE user_settings SET rating_label = $1 WHERE user_id = $2', [body.rating_label, clientId]);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     return handleAuthError(error);

@@ -3,11 +3,13 @@
 import { useState, useRef, useCallback } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import StarRating from '@/components/ui/StarRating';
 
 interface JournalEntry {
   id: number;
   date: string;
   content: string;
+  rating: number | null;
   updated_at: string;
 }
 
@@ -71,9 +73,10 @@ interface Props {
   entries: JournalEntry[];
   today: string;
   winsMap?: Record<string, WinRecord[]>;
+  ratingLabel?: string;
 }
 
-export default function JournalView({ entries, today, winsMap = {} }: Props) {
+export default function JournalView({ entries, today, winsMap = {}, ratingLabel = 'inner peace' }: Props) {
   const [entryList, setEntryList] = useState(entries);
   const [editing, setEditing] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -129,7 +132,7 @@ export default function JournalView({ entries, today, winsMap = {} }: Props) {
       if (exists) {
         return prev.map(e => e.date === date ? { ...e, content } : e);
       }
-      return [{ id: Date.now(), date, content, updated_at: new Date().toISOString() }, ...prev];
+      return [{ id: Date.now(), date, content, rating: null, updated_at: new Date().toISOString() }, ...prev];
     });
     setEditing(null);
   };
@@ -261,6 +264,11 @@ export default function JournalView({ entries, today, winsMap = {} }: Props) {
                               </div>
                             )}
 
+                            {entry.rating != null && entry.rating > 0 && (
+                              <div className="mb-2">
+                                <StarRating value={Number(entry.rating)} onChange={() => {}} label={ratingLabel} readonly size={18} />
+                              </div>
+                            )}
                             {items.map((item, i) => (
                               <div key={i}>
                                 <p className="text-xs font-semibold text-navy/50">{item.label}</p>

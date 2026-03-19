@@ -6,6 +6,7 @@ import CommitmentEditor from '@/components/wins/CommitmentEditor';
 import ReflectionTimeSetting from '@/components/layout/ReflectionTimeSetting';
 import DarkModeSetting from '@/components/layout/DarkModeSetting';
 import NameSetting from '@/components/layout/NameSetting';
+import RatingLabelSetting from '@/components/layout/RatingLabelSetting';
 import LogoutButton from '@/components/layout/LogoutButton';
 
 export default async function SettingsPage() {
@@ -34,6 +35,7 @@ export default async function SettingsPage() {
       </div>
       <CommitmentEditor initialCommitments={commitments} />
       <div className="mt-6 space-y-4">
+        <RatingLabelSetting initialLabel={settings.rating_label} />
         <ReflectionTimeSetting initialTime={settings.reflection_time} />
         <DarkModeSetting initialDark={settings.dark_mode} />
       </div>

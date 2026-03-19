@@ -23,6 +23,9 @@ interface DailyWinsProps {
   date: string;
   reflectionSnoozedUntil: string | null;
   reflectionSkippedDate: string | null;
+  ratingLabel: string;
+  existingRating: number;
+  onRatingChange: (rating: number) => void;
 }
 
 function StarCircle({ completed, animating }: { completed: boolean; animating: boolean }) {
@@ -43,7 +46,7 @@ function StarCircle({ completed, animating }: { completed: boolean; animating: b
   );
 }
 
-export default function DailyWins({ initialWins, userName, reflectionTime, existingReflection, date, reflectionSnoozedUntil, reflectionSkippedDate }: DailyWinsProps) {
+export default function DailyWins({ initialWins, userName, reflectionTime, existingReflection, date, reflectionSnoozedUntil, reflectionSkippedDate, ratingLabel, existingRating, onRatingChange }: DailyWinsProps) {
   const [wins, setWins] = useState(initialWins);
   const [allComplete, setAllComplete] = useState(initialWins.every(w => w.completed) && initialWins.length > 0);
   const [celebrating, setCelebrating] = useState(false);
@@ -366,8 +369,10 @@ export default function DailyWins({ initialWins, userName, reflectionTime, exist
         <ReflectionModal
           date={date}
           existingReflection={reflection}
+          existingRating={existingRating}
+          ratingLabel={ratingLabel}
           onClose={() => setShowModal(false)}
-          onSaved={(content) => setReflection(content)}
+          onSaved={(content, rating) => { setReflection(content); onRatingChange(rating); }}
         />
       )}
     </div>

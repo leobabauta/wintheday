@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS journal_entries (
   user_id INTEGER NOT NULL REFERENCES users(id),
   date TEXT NOT NULL,
   content TEXT NOT NULL DEFAULT '',
+  rating NUMERIC,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -72,7 +73,8 @@ CREATE TABLE IF NOT EXISTS user_settings (
   onboarded INTEGER NOT NULL DEFAULT 0,
   dark_mode INTEGER NOT NULL DEFAULT 0,
   reflection_snoozed_until TIMESTAMPTZ,
-  reflection_skipped_date TEXT
+  reflection_skipped_date TEXT,
+  rating_label TEXT DEFAULT 'inner peace'
 );
 
 CREATE INDEX IF NOT EXISTS idx_win_entries_user_date ON win_entries(user_id, date);

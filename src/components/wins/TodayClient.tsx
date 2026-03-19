@@ -8,6 +8,7 @@ interface Props {
   reflectionTime: number;
   reflectionSnoozedUntil: string | null;
   reflectionSkippedDate: string | null;
+  ratingLabel: string;
 }
 
 function getLocalDate(): string {
@@ -23,10 +24,11 @@ interface WinItem {
   completed: boolean;
 }
 
-export default function TodayClient({ userName, reflectionTime, reflectionSnoozedUntil, reflectionSkippedDate }: Props) {
+export default function TodayClient({ userName, reflectionTime, reflectionSnoozedUntil, reflectionSkippedDate, ratingLabel }: Props) {
   const [date] = useState(getLocalDate);
   const [wins, setWins] = useState<WinItem[] | null>(null);
   const [reflection, setReflection] = useState('');
+  const [rating, setRating] = useState(0);
 
   useEffect(() => {
     async function load() {
@@ -38,6 +40,7 @@ export default function TodayClient({ userName, reflectionTime, reflectionSnooze
       const journalData = await journalRes.json();
       setWins(winsData);
       setReflection(journalData?.content || '');
+      setRating(journalData?.rating ? Number(journalData.rating) : 0);
     }
     load();
   }, [date]);
@@ -59,6 +62,9 @@ export default function TodayClient({ userName, reflectionTime, reflectionSnooze
       date={date}
       reflectionSnoozedUntil={reflectionSnoozedUntil}
       reflectionSkippedDate={reflectionSkippedDate}
+      ratingLabel={ratingLabel}
+      existingRating={rating}
+      onRatingChange={setRating}
     />
   );
 }

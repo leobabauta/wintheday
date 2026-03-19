@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import StarRating from '@/components/ui/StarRating';
 
 const PROMPTS = [
   { key: 'well', label: 'What went well today?' },
@@ -14,8 +14,10 @@ const PROMPTS = [
 interface Props {
   date: string;
   existingReflection: string;
+  existingRating: number;
+  ratingLabel: string;
   onClose: () => void;
-  onSaved: (content: string) => void;
+  onSaved: (content: string, rating: number) => void;
 }
 
 function MicIcon({ size = 16 }: { size?: number }) {
@@ -39,8 +41,9 @@ function parseContent(content: string): Record<string, string> {
   return {};
 }
 
-export default function ReflectionModal({ date, existingReflection, onClose, onSaved }: Props) {
+export default function ReflectionModal({ date, existingReflection, existingRating, ratingLabel, onClose, onSaved }: Props) {
   const [answers, setAnswers] = useState<Record<string, string>>(() => parseContent(existingReflection));
+  const [rating, setRating] = useState(existingRating);
   const [saved, setSaved] = useState(true);
   const [recording, setRecording] = useState(false);
   const [recordingFor, setRecordingFor] = useState<string | null>(null);
@@ -55,18 +58,18 @@ export default function ReflectionModal({ date, existingReflection, onClose, onS
     setSpeechSupported(supported);
   }, []);
 
-  const save = useCallback(async (data: Record<string, string>) => {
+  const save = useCallback(async (data: Record<string, string>, ratingVal?: number) => {
     try {
       const content = JSON.stringify(data);
       await fetch('/api/journal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, content }),
+        body: JSON.stringify({ date, content, rating: ratingVal ?? rating }),
       });
       setSaved(true);
-      onSaved(content);
+      onSaved(content, ratingVal ?? rating);
     } catch { /* retry */ }
-  }, [date, onSaved]);
+  }, [date, onSaved, rating]);
 
   const handleChange = (key: string, value: string) => {
     const updated = { ...answers, [key]: value };
@@ -74,6 +77,13 @@ export default function ReflectionModal({ date, existingReflection, onClose, onS
     setSaved(false);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => save(updated), 2000);
+  };
+
+  const handleRatingChange = (val: number) => {
+    setRating(val);
+    setSaved(false);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => save(answers, val), 2000);
   };
 
   const handleBlur = () => {
@@ -163,6 +173,15 @@ export default function ReflectionModal({ date, existingReflection, onClose, onS
               </span>
               <button onClick={handleDone} className="text-navy/40 hover:text-navy text-lg">x</button>
             </div>
+          </div>
+
+          <div className="mb-5">
+            <StarRating
+              value={rating}
+              onChange={handleRatingChange}
+              label={`How much did you experience ${ratingLabel} today?`}
+              size={28}
+            />
           </div>
 
           <div className="space-y-4">

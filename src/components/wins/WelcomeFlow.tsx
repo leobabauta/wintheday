@@ -32,6 +32,7 @@ export default function WelcomeFlow({ userName }: { userName: string }) {
     { title: '', type: 'commitment', days: [...ALL_WEEKDAYS] },
   ]);
   const [saving, setSaving] = useState(false);
+  const [ratingLabel, setRatingLabel] = useState('inner peace');
 
   const commitments = wins.filter(w => w.type === 'commitment');
   const practices = wins.filter(w => w.type === 'practice');
@@ -92,7 +93,7 @@ export default function WelcomeFlow({ userName }: { userName: string }) {
       await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ onboarded: true }),
+        body: JSON.stringify({ onboarded: true, rating_label: ratingLabel.trim() || 'inner peace' }),
       });
 
       window.location.href = '/today';
@@ -292,6 +293,20 @@ export default function WelcomeFlow({ userName }: { userName: string }) {
           + Add another practice
         </button>
       )}
+
+      {/* Daily Rating */}
+      <Card className="mb-6">
+        <h3 className="text-xs font-semibold text-navy/50 uppercase tracking-wider mb-3">Daily Rating</h3>
+        <p className="text-sm text-navy/60 mb-3">
+          Each day in your reflection, you&apos;ll rate how much you experienced something. What would you like to track?
+        </p>
+        <Input
+          placeholder="e.g., inner peace, confidence, joy"
+          value={ratingLabel}
+          onChange={e => setRatingLabel(e.target.value)}
+        />
+        <p className="text-xs text-navy/30 mt-1">Preview: &quot;How much did you experience <strong>{ratingLabel || '...'}</strong> today?&quot;</p>
+      </Card>
 
       {/* Summary */}
       <Card className="mb-6">

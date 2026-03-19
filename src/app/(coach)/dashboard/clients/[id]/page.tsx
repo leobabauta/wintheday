@@ -52,6 +52,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   if (!clientInfo) notFound();
 
+  const clientSettings = await queryOne<{ rating_label: string }>(
+    'SELECT rating_label FROM user_settings WHERE user_id = $1',
+    [clientId]
+  );
+
   const user = await queryOne<{ id: number; name: string; email: string; created_at: string }>(
     'SELECT * FROM users WHERE id = $1',
     [clientId]
@@ -122,6 +127,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             payment_amount: clientInfo.payment_amount,
             payment_frequency: clientInfo.payment_frequency,
             renewal_day: clientInfo.renewal_day,
+            rating_label: clientSettings?.rating_label || 'inner peace',
           }}
         />
 

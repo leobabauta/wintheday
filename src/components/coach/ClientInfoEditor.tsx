@@ -17,6 +17,7 @@ interface ClientInfoData {
   payment_amount: number | null;
   payment_frequency: string | null;
   renewal_day: number | null;
+  rating_label: string;
 }
 
 export default function ClientInfoEditor({ clientId, data }: { clientId: number; data: ClientInfoData }) {
@@ -52,6 +53,7 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
         payment_amount: form.payment_amount || null,
         payment_frequency: form.payment_frequency || null,
         renewal_day: form.renewal_day || null,
+        rating_label: form.rating_label || 'inner peace',
       }),
     });
     setSaving(false);
@@ -97,6 +99,10 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
               </span>
             </div>
           )}
+          <div className="flex justify-between">
+            <span className="text-navy/60">Daily Rating</span>
+            <span className="font-medium text-navy">{data.rating_label}</span>
+          </div>
         </div>
         <div className="border-t border-lavender-dark/10 mt-4 pt-4">
           <button
@@ -142,6 +148,7 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
             )}
           </div>
         </div>
+        <Input label="Daily Rating Label" value={form.rating_label || ''} onChange={e => setForm({ ...form, rating_label: e.target.value })} placeholder="e.g., inner peace, confidence" />
         <div className="flex gap-2 pt-2">
           <Button variant="ghost" size="sm" onClick={() => { setForm(data); setEditing(false); }}>Cancel</Button>
           <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>

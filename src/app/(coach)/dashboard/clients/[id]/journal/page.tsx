@@ -3,6 +3,7 @@ import { query, queryOne } from '@/lib/db';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
+import StarRating from '@/components/ui/StarRating';
 
 const PROMPTS = [
   { key: 'well', label: 'What went well today?' },
@@ -43,8 +44,13 @@ export default async function ClientJournalPage({ params }: { params: Promise<{ 
 
   const user = await queryOne<{ name: string }>('SELECT name FROM users WHERE id = $1', [clientId]);
 
-  const entries = await query<{ id: number; date: string; content: string; updated_at: string }>(
+  const entries = await query<{ id: number; date: string; content: string; rating: number | null; updated_at: string }>(
     'SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 30',
+    [clientId]
+  );
+
+  const ratingLabel = await queryOne<{ rating_label: string }>(
+    'SELECT rating_label FROM user_settings WHERE user_id = $1',
     [clientId]
   );
 
@@ -90,6 +96,17 @@ export default async function ClientJournalPage({ params }: { params: Promise<{ 
                   <span className="text-[10px] text-navy/30 uppercase ml-auto">{ago}</span>
                 </div>
                 <Card>
+                  {entry.rating != null && entry.rating > 0 && (
+                    <div className="mb-3 pb-3 border-b border-lavender-dark/10">
+                      <StarRating
+                        value={Number(entry.rating)}
+                        onChange={() => {}}
+                        label={ratingLabel?.rating_label || 'inner peace'}
+                        readonly
+                        size={20}
+                      />
+                    </div>
+                  )}
                   {items.length === 0 ? (
                     <p className="text-sm text-navy/50 italic">Empty entry</p>
                   ) : (

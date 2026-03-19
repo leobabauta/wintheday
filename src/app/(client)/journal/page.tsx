@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { getDateString } from '@/lib/wins';
+import { getUserSettings } from '@/lib/settings';
 import { redirect } from 'next/navigation';
 import JournalView from '@/components/journal/JournalView';
 
@@ -9,8 +10,9 @@ export default async function JournalPage() {
   if (!session) redirect('/login');
 
   const today = getDateString();
+  const settings = await getUserSettings(session.userId);
 
-  const allEntries = await query<{ id: number; date: string; content: string; updated_at: string }>(
+  const allEntries = await query<{ id: number; date: string; content: string; rating: number | null; updated_at: string }>(
     'SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 30',
     [session.userId]
   );
@@ -36,5 +38,5 @@ export default async function JournalPage() {
     }
   }
 
-  return <JournalView entries={allEntries} today={today} winsMap={winsMap} />;
+  return <JournalView entries={allEntries} today={today} winsMap={winsMap} ratingLabel={settings.rating_label} />;
 }

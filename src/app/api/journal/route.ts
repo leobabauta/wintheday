@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const auth = requireAuth(request);
-    const { date, content } = await request.json();
+    const { date, content, rating } = await request.json();
 
     if (!date) {
       return NextResponse.json({ error: 'Date required' }, { status: 400 });
@@ -47,14 +47,21 @@ export async function POST(request: NextRequest) {
     );
 
     if (existing) {
-      await execute(
-        'UPDATE journal_entries SET content = $1, updated_at = now() WHERE user_id = $2 AND date = $3',
-        [content || '', auth.userId, date]
-      );
+      if (rating !== undefined) {
+        await execute(
+          'UPDATE journal_entries SET content = $1, rating = $2, updated_at = now() WHERE user_id = $3 AND date = $4',
+          [content || '', rating, auth.userId, date]
+        );
+      } else {
+        await execute(
+          'UPDATE journal_entries SET content = $1, updated_at = now() WHERE user_id = $2 AND date = $3',
+          [content || '', auth.userId, date]
+        );
+      }
     } else {
       await execute(
-        'INSERT INTO journal_entries (user_id, date, content) VALUES ($1, $2, $3)',
-        [auth.userId, date, content || '']
+        'INSERT INTO journal_entries (user_id, date, content, rating) VALUES ($1, $2, $3, $4)',
+        [auth.userId, date, content || '', rating ?? null]
       );
     }
 

@@ -6,6 +6,7 @@ export interface UserSettings {
   dark_mode: boolean;
   reflection_snoozed_until: string | null;
   reflection_skipped_date: string | null;
+  rating_label: string;
 }
 
 export async function getUserSettings(userId: number): Promise<UserSettings> {
@@ -19,7 +20,7 @@ export async function getUserSettings(userId: number): Promise<UserSettings> {
       'INSERT INTO user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING',
       [userId]
     );
-    return { reflection_time: 17, onboarded: false, dark_mode: false, reflection_snoozed_until: null, reflection_skipped_date: null };
+    return { reflection_time: 17, onboarded: false, dark_mode: false, reflection_snoozed_until: null, reflection_skipped_date: null, rating_label: 'inner peace' };
   }
 
   return {
@@ -28,6 +29,7 @@ export async function getUserSettings(userId: number): Promise<UserSettings> {
     dark_mode: (row.dark_mode ?? 0) === 1,
     reflection_snoozed_until: (row as Record<string, unknown>).reflection_snoozed_until as string | null,
     reflection_skipped_date: (row as Record<string, unknown>).reflection_skipped_date as string | null,
+    rating_label: ((row as Record<string, unknown>).rating_label as string) || 'inner peace',
   };
 }
 
@@ -37,6 +39,7 @@ export async function updateUserSettings(userId: number, updates: Partial<{
   dark_mode: boolean;
   reflection_snoozed_until: string | null;
   reflection_skipped_date: string | null;
+  rating_label: string;
 }>) {
   await execute(
     'INSERT INTO user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING',
@@ -57,5 +60,8 @@ export async function updateUserSettings(userId: number, updates: Partial<{
   }
   if (updates.reflection_skipped_date !== undefined) {
     await execute('UPDATE user_settings SET reflection_skipped_date = $1 WHERE user_id = $2', [updates.reflection_skipped_date, userId]);
+  }
+  if (updates.rating_label !== undefined) {
+    await execute('UPDATE user_settings SET rating_label = $1 WHERE user_id = $2', [updates.rating_label, userId]);
   }
 }
