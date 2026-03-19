@@ -210,6 +210,12 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               })}
             </div>
           )}
+          <div className="border-t border-lavender-dark/10 mt-4 pt-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-navy/60">Daily Quality</span>
+              <span className="font-medium text-navy">{clientSettings?.rating_label || 'inner peace'}</span>
+            </div>
+          </div>
         </Card>
 
         {/* Journal Entries — last 2, properly parsed */}

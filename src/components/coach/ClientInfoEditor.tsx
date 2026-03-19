@@ -77,6 +77,14 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
         </div>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
+            <span className="text-navy/60">Name</span>
+            <span className="font-medium text-navy">{data.name}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-navy/60">Email</span>
+            <span className="font-medium text-navy">{data.email}</span>
+          </div>
+          <div className="flex justify-between">
             <span className="text-navy/60">Sign-on Date</span>
             <span className="font-medium text-navy">{formatDate(data.sign_on_date)}</span>
           </div>
@@ -99,10 +107,6 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
               </span>
             </div>
           )}
-          <div className="flex justify-between">
-            <span className="text-navy/60">Daily Rating</span>
-            <span className="font-medium text-navy">{data.rating_label}</span>
-          </div>
         </div>
         <div className="border-t border-lavender-dark/10 mt-4 pt-4">
           <button
@@ -148,7 +152,7 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
             )}
           </div>
         </div>
-        <Input label="Daily Rating Label" value={form.rating_label || ''} onChange={e => setForm({ ...form, rating_label: e.target.value })} placeholder="e.g., inner peace, confidence" />
+        <Input label="Daily Quality Label" value={form.rating_label || ''} onChange={e => setForm({ ...form, rating_label: e.target.value })} placeholder="e.g., inner peace, confidence" />
         <div className="flex gap-2 pt-2">
           <Button variant="ghost" size="sm" onClick={() => { setForm(data); setEditing(false); }}>Cancel</Button>
           <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
