@@ -144,7 +144,7 @@ export default function WelcomeFlow({ userName }: { userName: string }) {
           <div className="space-y-3 text-sm text-navy/70">
             <div className="flex gap-3">
               <span className="shrink-0 w-6 h-6 rounded-full bg-navy text-white text-xs flex items-center justify-center">1</span>
-              <p>Set 1–3 <strong>commitments</strong> — the things you&apos;re committed to doing each day.</p>
+              <p>Set 1–3 <strong>commitments</strong> — the things you&apos;re committed to doing, and what days you&apos;ll do them.</p>
             </div>
             <div className="flex gap-3">
               <span className="shrink-0 w-6 h-6 rounded-full bg-navy text-white text-xs flex items-center justify-center">2</span>
