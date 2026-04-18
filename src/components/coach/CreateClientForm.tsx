@@ -90,11 +90,11 @@ export default function CreateClientForm() {
           onChange={e => update('closingDate', e.target.value)}
         />
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-navy/70">Coaching Day</label>
+          <label className="text-sm font-medium text-text-secondary">Coaching Day</label>
           <select
             value={form.coachingDay}
             onChange={e => update('coachingDay', e.target.value)}
-            className="rounded-xl border border-lavender-dark bg-white px-4 py-2.5 text-navy outline-none focus:border-navy focus:ring-1 focus:ring-navy transition-colors"
+            className="rounded-[12px] border border-border bg-bg px-4 py-2.5 text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
           >
             {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
@@ -106,11 +106,11 @@ export default function CreateClientForm() {
           placeholder="e.g., 4:00 PM"
         />
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-navy/70">Frequency</label>
+          <label className="text-sm font-medium text-text-secondary">Frequency</label>
           <select
             value={form.coachingFrequency}
             onChange={e => update('coachingFrequency', e.target.value)}
-            className="rounded-xl border border-lavender-dark bg-white px-4 py-2.5 text-navy outline-none focus:border-navy focus:ring-1 focus:ring-navy transition-colors"
+            className="rounded-[12px] border border-border bg-bg px-4 py-2.5 text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
           >
             <option value="Weekly">Weekly</option>
             <option value="Every 2 weeks">Every 2 weeks</option>
@@ -118,7 +118,7 @@ export default function CreateClientForm() {
           </select>
         </div>
 
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
         <Button type="submit" disabled={loading} className="w-full">
           {loading ? 'Creating...' : 'Create Client'}

@@ -2,7 +2,7 @@ import { getSession } from '@/lib/auth';
 import { queryOne } from '@/lib/db';
 import { getUserSettings } from '@/lib/settings';
 import { redirect } from 'next/navigation';
-import WelcomeFlow from '@/components/wins/WelcomeFlow';
+import WelcomeFlowWrapper from '@/components/wins/WelcomeFlowWrapper';
 
 export default async function WelcomePage() {
   const session = await getSession();
@@ -13,5 +13,5 @@ export default async function WelcomePage() {
 
   const user = await queryOne<{ name: string }>('SELECT name FROM users WHERE id = $1', [session.userId]);
 
-  return <WelcomeFlow userName={user!.name} />;
+  return <WelcomeFlowWrapper userName={user!.name} />;
 }

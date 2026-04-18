@@ -59,13 +59,13 @@ export default async function ClientJournalPage({ params }: { params: Promise<{ 
 
   return (
     <div>
-      <Link href={`/dashboard/clients/${clientId}`} className="text-sm text-navy/50 hover:text-navy mb-1 block">
+      <Link href={`/dashboard/clients/${clientId}`} className="text-sm text-text-muted hover:text-text mb-1 block">
         ← Back to {user!.name}
       </Link>
-      <h1 className="text-2xl font-bold text-navy mb-6">Journal — {user!.name}</h1>
+      <h1 className="font-display text-[28px] leading-[1.15] text-text mb-6">Journal — {user!.name}</h1>
 
       {visibleEntries.length === 0 ? (
-        <Card><p className="text-sm text-navy/40">No journal entries yet</p></Card>
+        <Card><p className="text-sm text-text-muted">No journal entries yet</p></Card>
       ) : (
         <div className="space-y-5">
           {visibleEntries.map(entry => {
@@ -90,14 +90,14 @@ export default async function ClientJournalPage({ params }: { params: Promise<{ 
               <div key={entry.id}>
                 <div className="flex items-end gap-3 mb-2">
                   <div>
-                    <span className="text-2xl font-extrabold text-navy leading-none">{day}</span>
-                    <span className="text-[10px] text-navy/40 uppercase ml-1">{month}</span>
+                    <span className="font-display text-[24px] text-text leading-none">{day}</span>
+                    <span className="text-[10px] text-text-muted uppercase ml-1">{month}</span>
                   </div>
-                  <span className="text-[10px] text-navy/30 uppercase ml-auto">{ago}</span>
+                  <span className="text-[10px] text-text/30 uppercase ml-auto">{ago}</span>
                 </div>
                 <Card>
                   {entry.rating != null && entry.rating > 0 && (
-                    <div className="mb-3 pb-3 border-b border-lavender-dark/10">
+                    <div className="mb-3 pb-3 border-b border-border">
                       <StarRating
                         value={Number(entry.rating)}
                         onChange={() => {}}
@@ -108,13 +108,13 @@ export default async function ClientJournalPage({ params }: { params: Promise<{ 
                     </div>
                   )}
                   {items.length === 0 ? (
-                    <p className="text-sm text-navy/50 italic">Empty entry</p>
+                    <p className="text-sm text-text-muted italic">Empty entry</p>
                   ) : (
                     <div className="space-y-3">
                       {items.map((item, i) => (
                         <div key={i}>
-                          <p className="text-xs font-semibold text-navy/50">{item.label}</p>
-                          <p className="text-sm text-navy/80 whitespace-pre-wrap mt-0.5">{item.text}</p>
+                          <p className="text-xs font-semibold text-text-muted">{item.label}</p>
+                          <p className="text-sm text-text/80 whitespace-pre-wrap mt-0.5">{item.text}</p>
                         </div>
                       ))}
                     </div>

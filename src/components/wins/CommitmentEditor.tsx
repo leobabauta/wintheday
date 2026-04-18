@@ -117,9 +117,9 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
 
   const renderList = (items: Commitment[], label: string) => (
     <Card className="mb-4">
-      <h2 className="text-xs font-semibold text-navy/50 uppercase tracking-wider mb-4">{label}</h2>
+      <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">{label}</h2>
       {items.length === 0 ? (
-        <p className="text-sm text-navy/40">None yet</p>
+        <p className="text-sm text-text-muted">None yet</p>
       ) : (
         <div className="space-y-3">
           {items.map(c => {
@@ -127,7 +127,7 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
             return (
               <div key={c.id} className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm font-medium text-navy">{c.title}</p>
+                  <p className="text-sm font-medium text-text">{c.title}</p>
                   <div className="flex gap-1 mt-1">
                     {DAYS.map(d => (
                       <Badge
@@ -143,13 +143,13 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
                 <div className="flex gap-1 shrink-0">
                   <button
                     onClick={() => startEdit(c)}
-                    className="text-xs text-navy/50 hover:text-navy px-2 py-1"
+                    className="text-xs text-text-muted hover:text-text px-2 py-1"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDeactivate(c.id)}
-                    className="text-xs text-danger/50 hover:text-danger px-2 py-1"
+                    className="text-xs text-destructive/50 hover:text-destructive px-2 py-1"
                   >
                     Remove
                   </button>
@@ -169,7 +169,7 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
 
       {adding ? (
         <Card className="mb-4">
-          <h3 className="text-sm font-semibold text-navy mb-4">
+          <h3 className="text-sm font-semibold text-text mb-4">
             {editing ? 'Edit' : 'Add'} Win
           </h3>
           <div className="space-y-4">
@@ -180,20 +180,20 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
               placeholder="e.g., Morning meditation (10 min)"
             />
             <div>
-              <label className="text-sm font-medium text-navy/70 block mb-1.5">Type</label>
+              <label className="text-sm font-medium text-text-secondary block mb-1.5">Type</label>
               <div className="flex gap-2">
                 <button
                   onClick={() => setForm(prev => ({ ...prev, type: 'commitment' }))}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    form.type === 'commitment' ? 'bg-navy text-white' : 'bg-lavender-light text-navy/60'
+                  className={`px-4 py-2 rounded-[12px] text-sm font-medium transition-colors ${
+                    form.type === 'commitment' ? 'bg-text text-white' : 'bg-surface text-text-secondary'
                   }`}
                 >
                   Commitment
                 </button>
                 <button
                   onClick={() => setForm(prev => ({ ...prev, type: 'practice' }))}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    form.type === 'practice' ? 'bg-navy text-white' : 'bg-lavender-light text-navy/60'
+                  className={`px-4 py-2 rounded-[12px] text-sm font-medium transition-colors ${
+                    form.type === 'practice' ? 'bg-text text-white' : 'bg-surface text-text-secondary'
                   }`}
                 >
                   Practice
@@ -201,14 +201,14 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-navy/70 block mb-1.5">Days</label>
+              <label className="text-sm font-medium text-text-secondary block mb-1.5">Days</label>
               <div className="flex gap-2">
                 {DAYS.map(d => (
                   <button
                     key={d.key}
                     onClick={() => toggleDay(d.key)}
-                    className={`w-9 h-9 rounded-xl text-sm font-medium transition-colors ${
-                      form.days.includes(d.key) ? 'bg-navy text-white' : 'bg-lavender-light text-navy/60'
+                    className={`w-9 h-9 rounded-[12px] text-sm font-medium transition-colors ${
+                      form.days.includes(d.key) ? 'bg-text text-white' : 'bg-surface text-text-secondary'
                     }`}
                   >
                     {d.label}
@@ -220,7 +220,7 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
               <Button onClick={handleSave} size="sm" disabled={!form.title.trim() || form.days.length === 0}>
                 {editing ? 'Update' : 'Add'}
               </Button>
-              <Button onClick={resetForm} variant="ghost" size="sm">Cancel</Button>
+              <Button onClick={resetForm} variant="text" size="sm">Cancel</Button>
             </div>
           </div>
         </Card>

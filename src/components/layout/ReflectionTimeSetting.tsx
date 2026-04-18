@@ -33,19 +33,19 @@ export default function ReflectionTimeSetting({ initialTime }: { initialTime: nu
   return (
     <Card>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xs font-semibold text-navy/50 uppercase tracking-wider">Daily Reflection Time</h2>
-        <span className={`text-[10px] ${saved ? 'text-success' : 'text-warning'}`}>
+        <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Daily Reflection Time</h2>
+        <span className={`text-[10px] ${saved ? 'text-success' : 'text-accent'}`}>
           {saved ? 'Saved' : 'Saving...'}
         </span>
       </div>
-      <p className="text-xs text-navy/50 mb-3">When should the daily reflection prompt appear?</p>
+      <p className="text-xs text-text-muted mb-3">When should the daily reflection prompt appear?</p>
       <div className="flex flex-wrap gap-2">
         {TIMES.map(t => (
           <button
             key={t.value}
             onClick={() => handleChange(t.value)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-              time === t.value ? 'bg-navy text-white' : 'bg-lavender-light text-navy/60 hover:bg-lavender-dark'
+            className={`px-3 py-1.5 rounded-[12px] text-xs font-medium transition-colors ${
+              time === t.value ? 'bg-text text-white' : 'bg-surface text-text-secondary hover:bg-surface'
             }`}
           >
             {t.label}

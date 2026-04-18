@@ -28,10 +28,10 @@ export default async function EditClientCommitmentsPage({ params }: { params: Pr
 
   return (
     <div>
-      <Link href={`/dashboard/clients/${clientId}`} className="text-sm text-navy/50 hover:text-navy mb-1 block">
+      <Link href={`/dashboard/clients/${clientId}`} className="text-sm text-text-muted hover:text-text mb-1 block">
         ← Back to {clientInfo.name}
       </Link>
-      <h1 className="text-2xl font-bold text-navy mb-6">
+      <h1 className="font-display text-[28px] leading-[1.15] text-text mb-6">
         Edit Wins for {clientInfo.name}
       </h1>
       <div className="max-w-lg">

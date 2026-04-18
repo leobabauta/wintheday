@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import TrophyIcon from '@/components/ui/TrophyIcon';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -40,16 +39,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-dvh flex justify-center bg-lavender">
-      <div
-        className="w-full max-w-[520px] min-h-dvh bg-card shadow-2xl rounded-none sm:rounded-3xl sm:my-4 sm:min-h-0 flex items-center justify-center px-6"
-        style={{ boxShadow: '0 0 60px 8px rgba(240, 165, 0, 0.15), 0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
-      >
-        <Card className="w-full max-w-sm bg-lavender-light/40">
+    <div className="min-h-dvh flex justify-center bg-bg">
+      <div className="w-full max-w-[520px] min-h-dvh bg-bg rounded-none sm:rounded-[28px] sm:my-6 sm:min-h-0 sm:border sm:border-border flex items-center justify-center px-6">
+        <Card className="w-full max-w-sm bg-surface">
           <div className="text-center mb-8">
-            <div className="flex justify-center mb-3"><TrophyIcon size={48} /></div>
-            <h1 className="text-2xl font-bold text-navy tracking-tight">Win the Day</h1>
-            <p className="text-sm text-navy/50 mt-1">Sign in to your account</p>
+            <div className="text-accent text-3xl mb-3" aria-hidden>✦</div>
+            <h1 className="font-display text-[28px] leading-[1.15]">Win the Day</h1>
+            <p className="text-sm text-text-muted mt-1">Sign in to your account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -71,13 +67,13 @@ export default function LoginPage() {
             />
 
             {error && (
-              <p className="text-sm text-danger text-center">{error}</p>
+              <p className="text-sm text-destructive text-center">{error}</p>
             )}
 
             <Button type="submit" disabled={loading} className="w-full mt-2">
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
-            <a href="/reset-password" className="text-sm text-navy/40 hover:text-navy text-center block mt-2">
+            <a href="/reset-password" className="text-sm text-text-muted hover:text-text text-center block mt-2">
               Forgot password?
             </a>
           </form>

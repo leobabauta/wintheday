@@ -45,8 +45,8 @@ export default function PasswordSetting() {
     return (
       <Card>
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold text-navy/50 uppercase tracking-wider">Password</h2>
-          <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>Change</Button>
+          <h2 className="text-xs font-bold text-text-muted uppercase tracking-wider">Password</h2>
+          <Button variant="text" size="sm" onClick={() => setOpen(true)}>Change</Button>
         </div>
       </Card>
     );
@@ -54,15 +54,15 @@ export default function PasswordSetting() {
 
   return (
     <Card>
-      <h2 className="text-xs font-bold text-navy/50 uppercase tracking-wider mb-3">Change Password</h2>
+      <h2 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-3">Change Password</h2>
       <div className="space-y-3">
         <Input label="Current Password" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
         <Input label="New Password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="At least 6 characters" />
         <Input label="Confirm New Password" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} />
-        {error && <p className="text-xs text-danger">{error}</p>}
+        {error && <p className="text-xs text-destructive">{error}</p>}
         {success && <p className="text-xs text-success">Password updated!</p>}
         <div className="flex gap-2 pt-1">
-          <Button variant="ghost" size="sm" onClick={() => { setOpen(false); setError(''); }}>Cancel</Button>
+          <Button variant="text" size="sm" onClick={() => { setOpen(false); setError(''); }}>Cancel</Button>
           <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Update Password'}</Button>
         </div>
       </div>

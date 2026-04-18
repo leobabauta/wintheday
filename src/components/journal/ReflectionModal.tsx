@@ -161,17 +161,17 @@ export default function ReflectionModal({ date, existingReflection, existingRati
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={handleDone}>
       <div
-        className="w-full max-w-lg mx-4 max-h-[85vh] overflow-y-auto bg-card rounded-2xl shadow-xl"
+        className="w-full max-w-lg mx-4 max-h-[85vh] overflow-y-auto bg-bg rounded-2xl "
         onClick={e => e.stopPropagation()}
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold text-navy">Daily Reflection</h2>
+            <h2 className="text-lg font-bold text-text">Daily Reflection</h2>
             <div className="flex items-center gap-3">
-              <span className={`text-[10px] ${saved ? 'text-success' : 'text-warning'}`}>
+              <span className={`text-[10px] ${saved ? 'text-success' : 'text-accent'}`}>
                 {saved ? (Object.values(answers).some(v => v.trim()) ? 'Saved' : '') : 'Saving...'}
               </span>
-              <button onClick={handleDone} className="text-navy/40 hover:text-navy text-lg">x</button>
+              <button onClick={handleDone} className="text-text-muted hover:text-text text-lg">x</button>
             </div>
           </div>
 
@@ -188,15 +188,15 @@ export default function ReflectionModal({ date, existingReflection, existingRati
             {PROMPTS.map(prompt => (
               <div key={prompt.key}>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm font-semibold text-navy/70">{prompt.label}</label>
+                  <label className="text-sm font-semibold text-text-secondary">{prompt.label}</label>
                   {speechSupported && (
                     <button
                       onClick={() => recording && recordingFor === prompt.key ? stopRecording() : startRecording(prompt.key)}
                       disabled={recording && recordingFor !== prompt.key}
                       className={`p-1.5 rounded-lg transition-colors ${
                         recording && recordingFor === prompt.key
-                          ? 'bg-danger/10 text-danger animate-pulse'
-                          : 'text-navy/30 hover:text-navy/60 hover:bg-lavender-light/40'
+                          ? 'bg-destructive/10 text-destructive animate-pulse'
+                          : 'text-text/30 hover:text-text-secondary hover:bg-surface'
                       } disabled:opacity-30`}
                       title={recording && recordingFor === prompt.key ? 'Stop recording' : 'Record audio'}
                     >
@@ -209,7 +209,7 @@ export default function ReflectionModal({ date, existingReflection, existingRati
                   onChange={e => handleChange(prompt.key, e.target.value)}
                   onBlur={handleBlur}
                   placeholder="Write your thoughts..."
-                  className="w-full h-20 bg-lavender-light/30 rounded-xl p-3 text-sm text-navy outline-none resize-none focus:ring-1 focus:ring-navy/20 transition-colors"
+                  className="w-full h-20 bg-surface/30 rounded-[12px] p-3 text-sm text-text outline-none resize-none focus:ring-1 focus:ring-accent/20 transition-colors"
                 />
               </div>
             ))}

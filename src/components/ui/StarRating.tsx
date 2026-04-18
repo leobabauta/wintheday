@@ -67,7 +67,7 @@ export default function StarRating({ value, onChange, label, readonly = false, s
 
   return (
     <div>
-      {label && <label className="text-sm font-semibold text-navy/70 block mb-2">{label}</label>}
+      {label && <label className="text-sm font-semibold text-text-secondary block mb-2">{label}</label>}
       <div className="flex items-center gap-1" onMouseLeave={() => setHover(null)}>
         {[0, 1, 2, 3, 4].map(i => {
           const starValue = i + 1;
@@ -93,7 +93,7 @@ export default function StarRating({ value, onChange, label, readonly = false, s
           );
         })}
         {value > 0 && (
-          <span className="text-xs text-navy/40 ml-1">{value}</span>
+          <span className="text-xs text-text-muted ml-1">{value}</span>
         )}
       </div>
     </div>

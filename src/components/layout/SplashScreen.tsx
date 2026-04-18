@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import TrophyIcon from '@/components/ui/TrophyIcon';
 
 interface Props {
   userName: string;
@@ -38,17 +37,17 @@ export default function SplashScreen({ userName, children }: Props) {
         className={`fixed inset-0 z-[100] flex justify-center transition-opacity duration-500 ${fadeOut ? 'opacity-0' : 'opacity-100'}`}
         onClick={() => { setFadeOut(true); setTimeout(() => { setShowSplash(false); setDone(true); }, 300); }}
       >
-        <div className="w-full max-w-[520px] min-h-dvh bg-navy flex flex-col items-center justify-center text-center px-8 sm:rounded-3xl sm:my-4 sm:min-h-0 sm:max-h-[calc(100dvh-2rem)]">
+        <div className="w-full max-w-[520px] min-h-dvh bg-text flex flex-col items-center justify-center text-center px-8 sm:rounded-3xl sm:my-4 sm:min-h-0 sm:max-h-[calc(100dvh-2rem)]">
           {/* Abstract decorative shape */}
           <div className="relative mb-12 w-48 h-48">
             <div className="absolute inset-0 rounded-full bg-white/5" />
             <div className="absolute top-4 left-4 w-40 h-40 rounded-full bg-white/5" />
             <div className="absolute top-10 left-10 w-28 h-28 rounded-full bg-white/10 flex items-center justify-center">
-              <TrophyIcon size={64} />
+              <span className="text-white text-5xl leading-none" aria-hidden>✦</span>
             </div>
           </div>
 
-          <h1 className="text-3xl font-extrabold text-white tracking-wide uppercase mb-4">
+          <h1 className="font-display text-[34px] text-white mb-4 leading-[1.15]">
             Win the Day
           </h1>
           <p className="text-white/60 text-base leading-relaxed max-w-xs">

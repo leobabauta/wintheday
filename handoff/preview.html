@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Win the Day × ZHD — Before / After</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="stylesheet" href="../styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root { --before-bg: #1A1225; --before-card: #ffffff; --before-navy: #1B1F3B; --before-navy-light: #2D3258;
+          --before-lav-light: #E8E4EF; --before-lav-dark: #D4CFE0; --before-gold: #F0A500; --before-muted: #4A5068; }
+
+  body { padding: 0; background: var(--bg); }
+
+  /* Preview shell */
+  .prev-hero {
+    padding: 60px 48px 32px; max-width: 1280px; margin: 0 auto;
+    border-bottom: 1px solid var(--border);
+  }
+  .prev-eyebrow {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--text-muted); margin: 0 0 8px;
+  }
+  .prev-title {
+    font-family: var(--font-alt); font-size: 40px; font-weight: 300;
+    letter-spacing: -0.02em; line-height: 1.1; margin: 0 0 12px;
+  }
+  .prev-sub {
+    font-family: var(--font-alt); font-style: italic; font-weight: 300;
+    font-size: 17px; line-height: 1.55; color: var(--text-secondary);
+    max-width: 620px; margin: 0;
+  }
+
+  .prev-grid {
+    max-width: 1280px; margin: 0 auto; padding: 48px;
+    display: flex; flex-direction: column; gap: 80px;
+  }
+
+  .pair { display: grid; grid-template-columns: 1fr; gap: 24px; }
+  .pair-head {
+    display: grid; grid-template-columns: 240px 1fr 1fr; gap: 32px; align-items: baseline;
+    padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  }
+  .pair-title {
+    font-family: var(--font-alt); font-size: 22px; font-weight: 300;
+    letter-spacing: -0.01em; margin: 0;
+  }
+  .pair-what {
+    font-size: 13px; color: var(--text-secondary); line-height: 1.55; margin: 0;
+  }
+  .pair-col-label {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .pair-col-label.after { color: var(--accent); }
+
+  .pair-frames {
+    display: grid; grid-template-columns: 240px minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: flex-start;
+  }
+  .pair.wide .pair-head,
+  .pair.wide .pair-frames { grid-template-columns: 240px minmax(0, 1fr); }
+  .pair-notes {
+    padding-right: 16px;
+  }
+  .pair-notes ul { margin: 10px 0 0; padding-left: 0; list-style: none; }
+  .pair-notes li {
+    font-size: 12px; line-height: 1.5; color: var(--text-secondary);
+    padding: 6px 0 6px 14px; position: relative;
+  }
+  .pair-notes li::before {
+    content: ''; position: absolute; left: 0; top: 13px;
+    width: 6px; height: 1px; background: var(--accent);
+  }
+
+  /* Device frame — shared shape for both sides */
+  .device {
+    width: 100%; max-width: 400px; margin: 0 auto;
+    aspect-ratio: 380 / 760;
+    border-radius: 32px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 12px 32px -12px rgba(26,23,20,0.14);
+  }
+  .device.before { background: var(--before-bg); }
+  .device.after { background: var(--bg); border: none; box-shadow: none; }
+  .device.desktop { aspect-ratio: 16 / 10; max-width: 100%; border-radius: 12px; }
+  .device.after.mobile { aspect-ratio: 432 / 869; max-width: 400px; border-radius: 32px; }
+  .device.after.desktop { aspect-ratio: 1008 / 869; max-width: 100%; border-radius: 12px; box-shadow: 0 8px 24px -10px rgba(26,23,20,0.14); }
+
+  .device.after img {
+    width: 100%; height: 100%; display: block; object-fit: cover; object-position: top;
+  }
+
+  /* BEFORE — accurate recreation of the current WTD */
+  .bfr {
+    font-family: 'Nunito', sans-serif;
+    color: var(--before-lav-light);
+    width: 100%; height: 100%;
+    padding: 24px 16px 72px;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .bfr h1 { font-size: 22px; font-weight: 700; color: var(--before-lav-light); margin: 0 0 4px; letter-spacing: -0.01em; }
+  .bfr .date-str { font-size: 12px; color: rgba(232,228,239,0.5); margin: 0 0 16px; font-weight: 500; }
+  .bfr-card {
+    background: var(--before-card);
+    border-radius: 16px;
+    padding: 16px 14px;
+    color: var(--before-navy);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    margin-bottom: 12px;
+  }
+  .bfr-section { font-size: 11px; color: rgba(232,228,239,0.6); text-transform: uppercase; letter-spacing: 0.08em; margin: 14px 0 8px; font-weight: 600; }
+  .bfr-win {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 10px;
+    background: var(--before-lav-light);
+    color: var(--before-navy);
+    font-size: 13px; font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .bfr-win.done { background: #E7F5EE; color: #155C3B; }
+  .bfr-win .ck {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--before-navy);
+    color: white; font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .bfr-win .ck.done { background: #22C55E; }
+  .bfr-win .ck.empty { background: transparent; border: 1.5px solid rgba(27,31,59,0.25); }
+
+  .bfr-btn {
+    display: inline-block;
+    padding: 10px 18px;
+    background: var(--before-navy);
+    color: white;
+    border-radius: 12px;
+    font-size: 14px; font-weight: 600;
+  }
+  .bfr-btn.gold { background: var(--before-gold); color: var(--before-navy); }
+
+  .bfr-tabbar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 56px; background: var(--before-card);
+    border-top: 1px solid rgba(0,0,0,0.05);
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 6px 0 0;
+  }
+  .bfr-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9px; font-weight: 600; color: rgba(27,31,59,0.4); }
+  .bfr-tab.active { color: var(--before-navy); }
+  .bfr-tab svg { opacity: 0.6; }
+  .bfr-tab.active svg { opacity: 1; }
+
+  .bfr-chip {
+    display: inline-block; padding: 4px 10px;
+    background: var(--before-gold); color: var(--before-navy);
+    border-radius: 100px; font-size: 11px; font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .bfr-hero {
+    background: linear-gradient(135deg, #2D3258, #1B1F3B);
+    color: white; padding: 20px 16px; border-radius: 16px;
+    margin-bottom: 14px;
+  }
+  .bfr-hero h2 { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
+  .bfr-hero p { font-size: 12px; opacity: 0.8; margin: 0; }
+
+  .bfr-msg { display: flex; gap: 8px; margin-bottom: 10px; }
+  .bfr-msg-bubble { padding: 10px 14px; border-radius: 16px; font-size: 13px; line-height: 1.4; max-width: 80%; }
+  .bfr-msg.coach .bfr-msg-bubble { background: var(--before-lav-light); color: var(--before-navy); border-bottom-left-radius: 4px; }
+  .bfr-msg.you { justify-content: flex-end; }
+  .bfr-msg.you .bfr-msg-bubble { background: var(--before-navy); color: white; border-bottom-right-radius: 4px; }
+
+  .bfr-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--before-gold); color: var(--before-navy); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+
+  /* Coach desktop — before */
+  .bfr-desktop { width: 100%; height: 100%; background: var(--before-bg); color: var(--before-lav-light); padding: 20px 24px; box-sizing: border-box; font-family: 'Nunito', sans-serif; display: flex; flex-direction: column; }
+  .bfr-desktop h1 { font-size: 22px; margin: 0 0 4px; font-weight: 700; }
+  .bfr-desktop .topbar { display: flex; align-items: center; gap: 16px; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid rgba(232,228,239,0.1); }
+  .bfr-desktop .topbar .logo { font-size: 16px; font-weight: 700; color: var(--before-gold); }
+  .bfr-desktop .topbar a { font-size: 12px; color: rgba(232,228,239,0.6); }
+  .bfr-desktop .topbar a.active { color: var(--before-lav-light); }
+
+  .bfr-client-card { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 12px; display: grid; grid-template-columns: 32px 1fr auto; gap: 10px; align-items: center; margin-bottom: 8px; }
+  .bfr-client-card .name { font-size: 13px; font-weight: 600; }
+  .bfr-client-card .meta { font-size: 10px; color: rgba(232,228,239,0.5); margin-top: 2px; }
+  .bfr-client-card .chip { padding: 3px 8px; border-radius: 100px; font-size: 10px; font-weight: 600; }
+  .bfr-client-card .chip.green { background: #22C55E; color: white; }
+  .bfr-client-card .chip.yellow { background: var(--before-gold); color: var(--before-navy); }
+  .bfr-client-card .chip.red { background: #EF4444; color: white; }
+
+  /* Frame label overlay */
+  .frame-caption {
+    margin-top: 10px; text-align: center;
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .frame-caption.after { color: var(--accent); }
+
+  /* Summary band */
+  .summary {
+    max-width: 1280px; margin: 0 auto; padding: 48px;
+    border-top: 1px solid var(--border);
+  }
+  .summary h2 {
+    font-family: var(--font-alt); font-size: 28px; font-weight: 300;
+    margin: 0 0 24px; letter-spacing: -0.01em;
+  }
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;
+  }
+  .summary-card {
+    padding: 20px; border: 1px solid var(--border); border-radius: 14px;
+  }
+  .summary-card h3 {
+    font-family: var(--font-alt); font-size: 17px; font-weight: 400;
+    margin: 0 0 12px; color: var(--accent);
+  }
+  .summary-card p {
+    font-size: 13px; line-height: 1.6; color: var(--text-secondary);
+    margin: 0 0 10px;
+  }
+
+  .token-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 12px; font-family: var(--font-mono); }
+  .token-swatch { width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0; }
+  .arrow { font-family: var(--font-alt); color: var(--text-muted); }
+
+  @media (max-width: 900px) {
+    .pair-head, .pair-frames { grid-template-columns: 1fr; }
+    .prev-grid { padding: 24px; }
+    .summary-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body data-accent="clay" data-density="compact" data-font="alt" data-wins="warm">
+
+<header class="prev-hero">
+  <p class="prev-eyebrow">Win the Day × Zen Habits Daily</p>
+  <h1 class="prev-title">Before &amp; after</h1>
+  <p class="prev-sub">The current app is a busy navy-and-gold card UI built for productivity. The redesign is a quieter, editorial daily practice — fewer decorations, more breath, with every surface honoring the core promise: a small enough day to win.</p>
+</header>
+
+<div class="prev-grid">
+
+  <!-- 1. Today / Daily Wins -->
+  <section class="pair">
+    <div class="pair-head">
+      <h2 class="pair-title">Today · Daily wins</h2>
+      <p class="pair-col-label">Current · navy cards, gold chips</p>
+      <p class="pair-col-label after">New · rhythm · fraunces + clay</p>
+    </div>
+    <div class="pair-frames">
+      <div class="pair-notes">
+        <p class="pair-what">The most-seen screen in the app. Where someone lands every morning and checks in every night.</p>
+        <ul>
+          <li>Dark background → quiet off-white</li>
+          <li>Filled pill buttons → understated text + subtle fills</li>
+          <li>Decorative "streak" chip removed in favor of the practice being central</li>
+          <li>Reflection becomes a first-class card rather than a buried button</li>
+          <li>Commitments can be added inline — previously required Settings</li>
+        </ul>
+      </div>
+      <div>
+        <div class="device before">
+          <div class="bfr">
+            <p class="date-str">THURSDAY · APRIL 17</p>
+            <h1>Morning, Adrian ☀️</h1>
+            <div class="bfr-chip">🔥 4 day streak</div>
+
+            <div class="bfr-section">Today's commitments</div>
+            <div class="bfr-win done">
+              <span class="ck done">✓</span>
+              <span>Morning meditation (10 min)</span>
+            </div>
+            <div class="bfr-win">
+              <span class="ck empty"></span>
+              <span>30 minute walk, no phone</span>
+            </div>
+
+            <div class="bfr-section">Practice</div>
+            <div class="bfr-card" style="font-size: 14px; font-weight: 600;">
+              Being present
+            </div>
+
+            <div style="text-align: center; margin-top: 14px;">
+              <span class="bfr-btn gold">✍️ Reflect on today</span>
+            </div>
+          </div>
+          <div class="bfr-tabbar">
+            <span class="bfr-tab active">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Today
+            </span>
+            <span class="bfr-tab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              Journal
+            </span>
+            <span class="bfr-tab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Messages
+            </span>
+            <span class="bfr-tab">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+              Settings
+            </span>
+          </div>
+        </div>
+        <p class="frame-caption">Current · /today</p>
+      </div>
+      <div>
+        <div class="device after mobile">
+          <img src="after/mobile-today.png?v=1776547837803" alt="New today screen" />
+        </div>
+        <p class="frame-caption after">New · /today (rhythm)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Journal -->
+  <section class="pair">
+    <div class="pair-head">
+      <h2 class="pair-title">Journal</h2>
+      <p class="pair-col-label">Current · card list with ratings &amp; emoji</p>
+      <p class="pair-col-label after">New · timeline · weekday + quiet text</p>
+    </div>
+    <div class="pair-frames">
+      <div class="pair-notes">
+        <p class="pair-what">Where reflections accumulate. The old UI treats entries as data to be managed; the new one treats them as pages of a journal.</p>
+        <ul>
+          <li>Cards → hairline dividers between days</li>
+          <li>Rating emoji + stars → a subtle wins fraction, muted</li>
+          <li>Serif italic for the reflection text itself</li>
+          <li>Day-of-week becomes the primary label, date becomes meta</li>
+        </ul>
+      </div>
+      <div>
+        <div class="device before">
+          <div class="bfr">
+            <h1>Journal</h1>
+            <p class="date-str">14 ENTRIES · THIS MONTH</p>
+
+            <div class="bfr-card" style="margin-bottom: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <strong style="font-size: 13px;">Apr 17 · Wed</strong>
+                <span style="font-size: 16px;">😌</span>
+              </div>
+              <div style="font-size: 12px; color: var(--before-muted); margin-bottom: 8px;">Rating: ★★★★☆ · 2/2 wins</div>
+              <p style="font-size: 13px; color: var(--before-navy); margin: 0; line-height: 1.5;">Kept it small. Walked, read, slept early. Feels like the week is finding its rhythm.</p>
+            </div>
+
+            <div class="bfr-card" style="margin-bottom: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <strong style="font-size: 13px;">Apr 16 · Tue</strong>
+                <span style="font-size: 16px;">😐</span>
+              </div>
+              <div style="font-size: 12px; color: var(--before-muted); margin-bottom: 8px;">Rating: ★★★☆☆ · 1/2 wins</div>
+              <p style="font-size: 13px; color: var(--before-navy); margin: 0; line-height: 1.5;">Fell into email before the walk. Felt the pull of wanting to feel productive.</p>
+            </div>
+
+            <div class="bfr-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <strong style="font-size: 13px;">Apr 15 · Mon</strong>
+                <span style="font-size: 16px;">😊</span>
+              </div>
+              <div style="font-size: 12px; color: var(--before-muted); margin-bottom: 8px;">Rating: ★★★★☆ · 2/2 wins</div>
+              <p style="font-size: 13px; color: var(--before-navy); margin: 0; line-height: 1.5;">The walk. Been skipping it and it shows…</p>
+            </div>
+          </div>
+          <div class="bfr-tabbar">
+            <span class="bfr-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Today</span>
+            <span class="bfr-tab active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Journal</span>
+            <span class="bfr-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Messages</span>
+            <span class="bfr-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>Settings</span>
+          </div>
+        </div>
+        <p class="frame-caption">Current · /journal</p>
+      </div>
+      <div>
+        <div class="device after mobile">
+          <img src="after/mobile-journal.png?v=1776547837803" alt="New journal screen" />
+        </div>
+        <p class="frame-caption after">New · /journal (timeline)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Messages -->
+  <section class="pair">
+    <div class="pair-head">
+      <h2 class="pair-title">Messages · client ↔ coach</h2>
+      <p class="pair-col-label">Current · chat bubbles in navy</p>
+      <p class="pair-col-label after">New · quiet thread · clay accents · reflection attachments</p>
+    </div>
+    <div class="pair-frames">
+      <div class="pair-notes">
+        <p class="pair-what">The coaching relationship's main surface. Generic chat UI today; the redesign makes the thread feel like personal correspondence.</p>
+        <ul>
+          <li>Navy bubbles → client messages in clay, coach in quiet surface</li>
+          <li>Coach can attach a reflection to any reply (new)</li>
+          <li>Day dividers instead of crowded timestamps</li>
+          <li>Coach identified by initial + role ("Your coach")</li>
+        </ul>
+      </div>
+      <div>
+        <div class="device before">
+          <div class="bfr">
+            <h1 style="margin-bottom: 12px;">Messages</h1>
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(255,255,255,0.06); border-radius: 12px; margin-bottom: 16px;">
+              <div class="bfr-avatar">L</div>
+              <div>
+                <div style="font-size: 13px; font-weight: 700;">Leo · your coach</div>
+                <div style="font-size: 11px; color: rgba(232,228,239,0.5);">Online · last seen 2h ago</div>
+              </div>
+            </div>
+
+            <div style="text-align: center; font-size: 10px; color: rgba(232,228,239,0.4); margin: 10px 0; letter-spacing: 0.08em;">YESTERDAY</div>
+
+            <div class="bfr-msg coach">
+              <div class="bfr-avatar" style="width: 26px; height: 26px; font-size: 10px;">L</div>
+              <div class="bfr-msg-bubble">Morning. What's one small thing you want to win today?</div>
+            </div>
+            <div class="bfr-msg you">
+              <div class="bfr-msg-bubble">The walk. Been skipping it.</div>
+            </div>
+            <div class="bfr-msg coach">
+              <div class="bfr-avatar" style="width: 26px; height: 26px; font-size: 10px;">L</div>
+              <div class="bfr-msg-bubble">Good. Just the walk today. 🚶</div>
+            </div>
+
+            <div style="position: absolute; bottom: 70px; left: 16px; right: 16px;">
+              <div style="background: white; border-radius: 20px; padding: 8px 14px; display: flex; align-items: center; gap: 8px;">
+                <span style="flex: 1; color: rgba(27,31,59,0.4); font-size: 13px;">Type a message…</span>
+                <span style="width: 28px; height: 28px; border-radius: 50%; background: var(--before-navy); color: white; display: flex; align-items: center; justify-content: center; font-size: 14px;">→</span>
+              </div>
+            </div>
+          </div>
+          <div class="bfr-tabbar">
+            <span class="bfr-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Today</span>
+            <span class="bfr-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Journal</span>
+            <span class="bfr-tab active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Messages</span>
+            <span class="bfr-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>Settings</span>
+          </div>
+        </div>
+        <p class="frame-caption">Current · /messages</p>
+      </div>
+      <div>
+        <div class="device after mobile">
+          <img src="after/mobile-messages.png?v=1776547837803" alt="New messages screen" />
+        </div>
+        <p class="frame-caption after">New · /messages</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Onboarding -->
+  <section class="pair">
+    <div class="pair-head">
+      <h2 class="pair-title">Onboarding</h2>
+      <p class="pair-col-label">Current · single form, one commitment</p>
+      <p class="pair-col-label after">New · guided 6-step, multi-commitment</p>
+    </div>
+    <div class="pair-frames">
+      <div class="pair-notes">
+        <p class="pair-what">First impression. First promise. The old flow asks a form; the new flow asks a few honest questions, one at a time.</p>
+        <ul>
+          <li>Single form with heavy UI → one question per screen</li>
+          <li>1 commitment limit → add as many as makes sense, with per-day scheduling</li>
+          <li>Opinionated copy: "A small enough day to win."</li>
+          <li>Progress bar at top; gentle forward motion, no overwhelm</li>
+        </ul>
+      </div>
+      <div>
+        <div class="device before">
+          <div class="bfr">
+            <p class="date-str">WELCOME</p>
+            <h1 style="font-size: 24px;">Let's set up your day</h1>
+            <p style="font-size: 13px; color: rgba(232,228,239,0.6); margin: 6px 0 20px;">3 quick steps</p>
+
+            <div class="bfr-card" style="margin-bottom: 14px;">
+              <label style="font-size: 11px; text-transform: uppercase; color: var(--before-muted); letter-spacing: 0.05em; font-weight: 700;">YOUR NAME</label>
+              <div style="border-bottom: 1px solid var(--before-lav-dark); padding: 6px 0; font-size: 15px; font-weight: 600; margin-top: 4px;">Adrian Reyes</div>
+            </div>
+
+            <div class="bfr-card" style="margin-bottom: 14px;">
+              <label style="font-size: 11px; text-transform: uppercase; color: var(--before-muted); letter-spacing: 0.05em; font-weight: 700;">DAILY COMMITMENT</label>
+              <div style="border-bottom: 1px solid var(--before-lav-dark); padding: 6px 0; font-size: 14px; margin-top: 4px;">Morning meditation (10 min)</div>
+              <div style="font-size: 11px; color: var(--before-muted); margin-top: 6px;">You can only have one commitment at a time.</div>
+            </div>
+
+            <div class="bfr-card">
+              <label style="font-size: 11px; text-transform: uppercase; color: var(--before-muted); letter-spacing: 0.05em; font-weight: 700;">PRACTICE</label>
+              <div style="border-bottom: 1px solid var(--before-lav-dark); padding: 6px 0; font-size: 14px; margin-top: 4px;">Being present</div>
+            </div>
+
+            <div style="text-align: center; margin-top: 18px;">
+              <span class="bfr-btn gold">Get started →</span>
+            </div>
+          </div>
+        </div>
+        <p class="frame-caption">Current · /onboarding</p>
+      </div>
+      <div>
+        <div class="device after mobile">
+          <img src="after/mobile-onb.png?v=1776547837803" alt="New onboarding flow" />
+        </div>
+        <p class="frame-caption after">New · /onboarding (guided)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Settings / Me -->
+  <section class="pair">
+    <div class="pair-head">
+      <h2 class="pair-title">Settings · commitments &amp; nudges</h2>
+      <p class="pair-col-label">Current · forms, no nudge controls</p>
+      <p class="pair-col-label after">New · me · inline commitments + daily nudge scheduler</p>
+    </div>
+    <div class="pair-frames">
+      <div class="pair-notes">
+        <p class="pair-what">Every coaching app lives or dies on whether clients show up. The new Me screen makes showing up easier.</p>
+        <ul>
+          <li>New: daily nudges with per-slot time, days, tone</li>
+          <li>Commitments editable inline with day scheduling</li>
+          <li>Removes the gold "Save" button pattern — changes save immediately</li>
+          <li>Account and accent color switcher live here too</li>
+        </ul>
+      </div>
+      <div>
+        <div class="device before">
+          <div class="bfr">
+            <h1>Settings</h1>
+            <p class="date-str">ACCOUNT</p>
+
+            <div class="bfr-card" style="margin-bottom: 10px;">
+              <div style="font-size: 11px; color: var(--before-muted); font-weight: 700; text-transform: uppercase;">NAME</div>
+              <div style="font-size: 14px; font-weight: 600; margin-top: 4px;">Adrian Reyes</div>
+            </div>
+            <div class="bfr-card" style="margin-bottom: 10px;">
+              <div style="font-size: 11px; color: var(--before-muted); font-weight: 700; text-transform: uppercase;">EMAIL</div>
+              <div style="font-size: 13px; margin-top: 4px;">adrian.reyes@gmail.com</div>
+            </div>
+            <div class="bfr-card" style="margin-bottom: 10px;">
+              <div style="font-size: 11px; color: var(--before-muted); font-weight: 700; text-transform: uppercase;">DAILY COMMITMENT</div>
+              <div style="font-size: 14px; margin-top: 4px;">Morning meditation (10 min)</div>
+            </div>
+            <div class="bfr-card" style="margin-bottom: 10px;">
+              <div style="font-size: 11px; color: var(--before-muted); font-weight: 700; text-transform: uppercase;">PRACTICE</div>
+              <div style="font-size: 14px; margin-top: 4px;">Being present</div>
+            </div>
+            <div class="bfr-card" style="margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 13px; font-weight: 600;">Dark mode</div>
+              <div style="width: 36px; height: 20px; border-radius: 100px; background: var(--before-navy); position: relative;">
+                <span style="position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; border-radius: 50%; background: white;"></span>
+              </div>
+            </div>
+
+            <div style="text-align: center;">
+              <span style="font-size: 12px; color: var(--before-gold); font-weight: 700;">Sign out</span>
+            </div>
+          </div>
+          <div class="bfr-tabbar">
+            <span class="bfr-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Today</span>
+            <span class="bfr-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Journal</span>
+            <span class="bfr-tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Messages</span>
+            <span class="bfr-tab active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>Settings</span>
+          </div>
+        </div>
+        <p class="frame-caption">Current · /settings</p>
+      </div>
+      <div>
+        <div class="device after mobile">
+          <img src="after/mobile-me.png?v=1776547837803" alt="New me screen" />
+        </div>
+        <p class="frame-caption after">New · /me (with nudges)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Coach Dashboard -->
+  <section class="pair">
+    <div class="pair-head">
+      <h2 class="pair-title">Coach · dashboard</h2>
+      <p class="pair-col-label">Current · card grid on dark</p>
+      <p class="pair-col-label after">New · quiet table + editorial option</p>
+    </div>
+    <div class="pair-frames">
+      <div class="pair-notes">
+        <p class="pair-what">Where coaches start their day. The old grid makes clients look like inventory; the new view puts the human first.</p>
+        <ul>
+          <li>Dark gradient tiles → off-white table with subtle status</li>
+          <li>Big "streak" numerals → a 14-day quality sparkline</li>
+          <li>New: top row of filters ("Needs you · 4", "Struggling · 1")</li>
+          <li>Editorial dashboard variant leads with each client's last reflection</li>
+        </ul>
+      </div>
+      <div>
+        <div class="device before desktop">
+          <div class="bfr-desktop">
+            <div class="topbar">
+              <span class="logo">✦ Win the Day · Coach</span>
+              <a href="#" class="active">Dashboard</a>
+              <a href="#">Inbox</a>
+              <span style="margin-left: auto; font-size: 11px; color: rgba(232,228,239,0.5);">Leo</span>
+            </div>
+            <h1>My clients</h1>
+            <p style="font-size: 12px; color: rgba(232,228,239,0.5); margin: 0 0 16px;">6 active · 3 need attention</p>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+              <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 12px;">
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                  <span style="width: 28px; height: 28px; border-radius: 50%; background: var(--before-gold); color: var(--before-navy); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">AR</span>
+                  <strong style="font-size: 12px;">Adrian Reyes</strong>
+                </div>
+                <div style="font-size: 24px; font-weight: 700; color: var(--before-gold);">🔥 4</div>
+                <div style="font-size: 10px; color: rgba(232,228,239,0.5);">day streak</div>
+                <div style="margin-top: 8px; font-size: 10px;">11/14 wins · 2h ago</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 12px;">
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                  <span style="width: 28px; height: 28px; border-radius: 50%; background: var(--before-gold); color: var(--before-navy); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">MO</span>
+                  <strong style="font-size: 12px;">Maya Okafor</strong>
+                </div>
+                <div style="font-size: 24px; font-weight: 700; color: var(--before-gold);">🔥 12</div>
+                <div style="font-size: 10px; color: rgba(232,228,239,0.5);">day streak</div>
+                <div style="margin-top: 8px; font-size: 10px;">6/7 wins · yesterday</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; border: 1px solid rgba(239,68,68,0.3);">
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                  <span style="width: 28px; height: 28px; border-radius: 50%; background: var(--before-gold); color: var(--before-navy); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">JP</span>
+                  <strong style="font-size: 12px;">Jonah Park</strong>
+                  <span class="chip red" style="margin-left: auto; padding: 2px 6px; border-radius: 100px; background: #EF4444; color: white; font-size: 9px; font-weight: 700;">⚠</span>
+                </div>
+                <div style="font-size: 24px; font-weight: 700; color: #EF4444;">—</div>
+                <div style="font-size: 10px; color: rgba(232,228,239,0.5);">no streak</div>
+                <div style="margin-top: 8px; font-size: 10px;">2/14 wins · 4 days ago</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 12px;">
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                  <span style="width: 28px; height: 28px; border-radius: 50%; background: var(--before-gold); color: var(--before-navy); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">SL</span>
+                  <strong style="font-size: 12px;">Sara Lindqvist</strong>
+                </div>
+                <div style="font-size: 24px; font-weight: 700; color: var(--before-gold);">🔥 23</div>
+                <div style="font-size: 10px; color: rgba(232,228,239,0.5);">day streak</div>
+                <div style="margin-top: 8px; font-size: 10px;">13/14 wins · 5h ago</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 12px;">
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                  <span style="width: 28px; height: 28px; border-radius: 50%; background: var(--before-gold); color: var(--before-navy); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">OH</span>
+                  <strong style="font-size: 12px;">Omar Haddad</strong>
+                </div>
+                <div style="font-size: 24px; font-weight: 700; color: var(--before-gold);">🔥 6</div>
+                <div style="font-size: 10px; color: rgba(232,228,239,0.5);">day streak</div>
+                <div style="margin-top: 8px; font-size: 10px;">9/14 wins · yesterday</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 12px;">
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                  <span style="width: 28px; height: 28px; border-radius: 50%; background: var(--before-gold); color: var(--before-navy); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">KN</span>
+                  <strong style="font-size: 12px;">Kiki Nakamura</strong>
+                </div>
+                <div style="font-size: 24px; font-weight: 700; color: var(--before-gold);">🔥 1</div>
+                <div style="font-size: 10px; color: rgba(232,228,239,0.5);">day streak</div>
+                <div style="margin-top: 8px; font-size: 10px;">7/14 wins · 3 days ago</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="frame-caption">Current · /dashboard</p>
+      </div>
+      <div>
+        <div class="device after desktop">
+          <img src="after/desktop-dashboard.png?v=1776547837803" alt="New coach dashboard" />
+        </div>
+        <p class="frame-caption after">New · /dashboard</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Coach Inbox -->
+  <section class="pair">
+    <div class="pair-head">
+      <h2 class="pair-title">Coach · inbox</h2>
+      <p class="pair-col-label">Current · notification list, generic</p>
+      <p class="pair-col-label after">New · triage queue with reflection previews</p>
+    </div>
+    <div class="pair-frames">
+      <div class="pair-notes">
+        <p class="pair-what">The single most important surface for a coach: what needs my attention today. Made actionable.</p>
+        <ul>
+          <li>Groups: Reflection · Message · Gone quiet</li>
+          <li>Shows reflection excerpts inline — no need to click through</li>
+          <li>Mark-attended clears the row without leaving the queue</li>
+          <li>Empty state is a reward: "All clear."</li>
+        </ul>
+      </div>
+      <div>
+        <div class="device before desktop">
+          <div class="bfr-desktop">
+            <div class="topbar">
+              <span class="logo">✦ Win the Day · Coach</span>
+              <a href="#">Dashboard</a>
+              <a href="#" class="active">Inbox <span style="background: #EF4444; color: white; padding: 1px 6px; border-radius: 100px; font-size: 9px; margin-left: 4px;">5</span></a>
+              <span style="margin-left: auto; font-size: 11px; color: rgba(232,228,239,0.5);">Leo</span>
+            </div>
+            <h1>Notifications</h1>
+            <p style="font-size: 12px; color: rgba(232,228,239,0.5); margin: 0 0 16px;">5 unread</p>
+
+            <div class="bfr-client-card">
+              <span class="bfr-avatar" style="width: 30px; height: 30px; font-size: 11px;">AR</span>
+              <div>
+                <div class="name">Adrian Reyes · new reflection</div>
+                <div class="meta">Rated today 3/5 · 2h ago</div>
+              </div>
+              <span class="chip yellow">New</span>
+            </div>
+            <div class="bfr-client-card">
+              <span class="bfr-avatar" style="width: 30px; height: 30px; font-size: 11px;">OH</span>
+              <div>
+                <div class="name">Omar Haddad · new reflection</div>
+                <div class="meta">Rated today 4/5 · 5h ago</div>
+              </div>
+              <span class="chip yellow">New</span>
+            </div>
+            <div class="bfr-client-card">
+              <span class="bfr-avatar" style="width: 30px; height: 30px; font-size: 11px;">MO</span>
+              <div>
+                <div class="name">Maya Okafor · sent a message</div>
+                <div class="meta">Yesterday at 3:14 PM</div>
+              </div>
+              <span class="chip yellow">New</span>
+            </div>
+            <div class="bfr-client-card" style="border-left: 3px solid #EF4444;">
+              <span class="bfr-avatar" style="width: 30px; height: 30px; font-size: 11px;">JP</span>
+              <div>
+                <div class="name">Jonah Park · missed 4 days</div>
+                <div class="meta">No reflection since Apr 13</div>
+              </div>
+              <span class="chip red">Alert</span>
+            </div>
+            <div class="bfr-client-card" style="border-left: 3px solid #EF4444;">
+              <span class="bfr-avatar" style="width: 30px; height: 30px; font-size: 11px;">KN</span>
+              <div>
+                <div class="name">Kiki Nakamura · pattern</div>
+                <div class="meta">Missed meditation 2 days</div>
+              </div>
+              <span class="chip red">Alert</span>
+            </div>
+          </div>
+        </div>
+        <p class="frame-caption">Current · /inbox</p>
+      </div>
+      <div>
+        <div class="device after desktop">
+          <img src="after/desktop-inbox.png?v=1776547837803" alt="New coach inbox" />
+        </div>
+        <p class="frame-caption after">New · /inbox</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Coach Client Detail -->
+  <section class="pair">
+    <div class="pair-head">
+      <h2 class="pair-title">Coach · client detail</h2>
+      <p class="pair-col-label">Current · single stat page</p>
+      <p class="pair-col-label after">New · About tab with profile, billing, goals, notes</p>
+    </div>
+    <div class="pair-frames">
+      <div class="pair-notes">
+        <p class="pair-what">Your feedback asked for more: when they started, what they're paying, context for the human. Added — without losing the at-a-glance view.</p>
+        <ul>
+          <li>New About tab (default landing) with contact, billing, tenure</li>
+          <li>Goals as a first-class list</li>
+          <li>Private coach notes in serif italic</li>
+          <li>Sessions held + next session time + plan status</li>
+          <li>All existing Journal/Wins/Messages tabs kept</li>
+        </ul>
+      </div>
+      <div>
+        <div class="device before desktop">
+          <div class="bfr-desktop">
+            <div class="topbar">
+              <span class="logo">✦ Win the Day · Coach</span>
+              <a href="#">Dashboard</a>
+              <a href="#">Inbox</a>
+              <span style="margin-left: auto; font-size: 11px; color: rgba(232,228,239,0.5);">Leo</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+              <span class="bfr-avatar" style="width: 44px; height: 44px; font-size: 14px;">AR</span>
+              <div>
+                <h1 style="margin: 0;">Adrian Reyes</h1>
+                <div style="font-size: 12px; color: rgba(232,228,239,0.5);">On track · 4-day streak</div>
+              </div>
+              <span style="margin-left: auto;" class="bfr-btn" style="padding: 8px 14px; font-size: 12px;">Message</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;">
+              <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 14px;">
+                <div style="font-size: 10px; color: rgba(232,228,239,0.5); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;">7-day wins</div>
+                <div style="font-size: 22px; font-weight: 700; color: var(--before-gold); margin-top: 4px;">11/14</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 14px;">
+                <div style="font-size: 10px; color: rgba(232,228,239,0.5); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;">Streak</div>
+                <div style="font-size: 22px; font-weight: 700; color: var(--before-gold); margin-top: 4px;">🔥 4</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 14px;">
+                <div style="font-size: 10px; color: rgba(232,228,239,0.5); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;">Avg rating</div>
+                <div style="font-size: 22px; font-weight: 700; color: var(--before-gold); margin-top: 4px;">3.2 ★</div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 16px; font-size: 12px; margin-bottom: 12px; border-bottom: 1px solid rgba(232,228,239,0.1); padding-bottom: 8px;">
+              <span style="color: var(--before-gold); font-weight: 700;">Journal</span>
+              <span style="color: rgba(232,228,239,0.5);">Wins</span>
+              <span style="color: rgba(232,228,239,0.5);">Messages</span>
+            </div>
+
+            <div class="bfr-card" style="margin-bottom: 8px;">
+              <strong style="font-size: 12px;">Apr 17 · Wed · ★★★★☆</strong>
+              <p style="font-size: 12px; margin: 4px 0 0; color: var(--before-navy);">Kept it small. Walked, read, slept early…</p>
+            </div>
+            <div class="bfr-card">
+              <strong style="font-size: 12px;">Apr 16 · Tue · ★★★☆☆</strong>
+              <p style="font-size: 12px; margin: 4px 0 0; color: var(--before-navy);">Fell into email before the walk. Felt the pull…</p>
+            </div>
+          </div>
+        </div>
+        <p class="frame-caption">Current · /clients/[id]</p>
+      </div>
+      <div>
+        <div class="device after desktop">
+          <img src="after/desktop-client.png?v=1776547837803" alt="New coach client detail" />
+        </div>
+        <p class="frame-caption after">New · /clients/[id]</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<section class="summary">
+  <h2>What shifted</h2>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h3>Language</h3>
+      <p>Nunito bold sans → Jost + Fraunces pairing. Fraunces italic for reflections, muted JetBrains Mono for metadata labels. Headings breathe.</p>
+      <div class="token-row"><span style="font-family: 'Nunito', sans-serif; font-weight: 700;">Nunito Bold</span><span class="arrow">→</span><span style="font-family: var(--font-alt); font-style: italic; font-weight: 300;">Fraunces italic</span></div>
+    </div>
+    <div class="summary-card">
+      <h3>Palette</h3>
+      <p>Dark navy #1B1F3B + gold #F0A500 → warm off-white #FCFBF9 with a clay accent #B5705A. Users can switch to sage or cobalt from the Me screen.</p>
+      <div class="token-row"><span class="token-swatch" style="background: #1A1225;"></span>#1A1225<span class="arrow">→</span><span class="token-swatch" style="background: #FCFBF9; border: 1px solid var(--border);"></span>#FCFBF9</div>
+      <div class="token-row"><span class="token-swatch" style="background: #F0A500;"></span>#F0A500<span class="arrow">→</span><span class="token-swatch" style="background: #B5705A;"></span>#B5705A</div>
+    </div>
+    <div class="summary-card">
+      <h3>Structure</h3>
+      <p>Heavy shadow-rounded cards on every surface → hairline dividers between sections, cards only where they earn their weight. Emoji stripped from the core UI.</p>
+      <p style="color: var(--text-muted); font-size: 12px;">Density setting ("Tight / Default / Airy") lets the user pick their rhythm.</p>
+    </div>
+  </div>
+</section>
+
+<footer style="padding: 40px 48px; max-width: 1280px; margin: 0 auto; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 12px; font-family: var(--font-mono); letter-spacing: 0.06em;">
+  Interactive mockup at <a href="../index.html" style="color: var(--accent);">index.html</a> · Source files in <a href="HANDOFF.md" style="color: var(--accent);">HANDOFF.md</a>
+</footer>
+
+</body>
+</html>

@@ -6,7 +6,8 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import MessageThread from '@/components/messages/MessageThread';
+import MutedMono from '@/components/ui/MutedMono';
+import MessageThreadCoach from '@/components/messages/MessageThreadCoach';
 import ClientInfoEditor from '@/components/coach/ClientInfoEditor';
 
 const PROMPTS = [
@@ -40,7 +41,6 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const clientId = parseInt(id);
 
-  // Verify coach owns this client
   const clientInfo = await queryOne<{
     sign_on_date: string; closing_date: string | null;
     coaching_day: string; coaching_time: string; coaching_frequency: string;
@@ -88,7 +88,6 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     [clientId, session.userId]
   );
 
-  // Mark messages from this client as read
   await execute(
     'UPDATE messages SET read = 1 WHERE recipient_id = $1 AND sender_id = $2 AND read = 0',
     [session.userId, clientId]
@@ -104,16 +103,13 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <Link href="/dashboard" className="text-sm text-navy/50 hover:text-navy mb-1 block">← Back</Link>
-          <h1 className="text-2xl font-bold text-navy">{user!.name}</h1>
-          <p className="text-sm text-navy/50">{user!.email}</p>
-        </div>
+      <div className="mb-6">
+        <Link href="/dashboard" className="text-[13px] text-text-secondary hover:text-text block mb-3.5">← Clients</Link>
+        <h1 className="font-display text-[30px]">{user!.name}</h1>
+        <p className="text-[13px] text-text-muted mt-1">{user!.email}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Client Info — editable */}
         <ClientInfoEditor
           clientId={clientId}
           data={{
@@ -131,11 +127,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           }}
         />
 
-        {/* Win History — clickable dates */}
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold text-navy/50 uppercase tracking-wider">Last 14 Days</h2>
-            <Link href={`/dashboard/clients/${clientId}/wins`} className="text-xs text-navy/40 hover:text-navy">
+            <MutedMono>Last 14 Days</MutedMono>
+            <Link href={`/dashboard/clients/${clientId}/wins`} className="text-[11px] text-text-muted hover:text-text">
               View all
             </Link>
           </div>
@@ -148,20 +143,20 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               const hasData = day.total > 0;
               return (
                 <div key={i} className="text-center">
-                  <div className="text-[10px] text-navy/40">{dayLabel}</div>
+                  <div className="text-[10px] text-text-muted mb-1">{dayLabel}</div>
                   {hasData ? (
                     <Link href={`/dashboard/clients/${clientId}/wins?date=${day.date}`} title={`${day.completed}/${day.total}`}>
-                      <div className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center text-xs font-medium cursor-pointer hover:ring-2 hover:ring-navy/20 transition-all ${
-                        ratio === 1 ? 'bg-success/20 text-success' :
-                        ratio >= 0.5 ? 'bg-warning/20 text-warning' :
-                        ratio > 0 ? 'bg-orange-100 text-orange-500' :
-                        'bg-lavender-light text-navy/30'
+                      <div className={`w-8 h-8 mx-auto rounded-[10px] flex items-center justify-center text-xs font-medium cursor-pointer hover:ring-2 hover:ring-accent/30 transition-all ${
+                        ratio === 1 ? 'bg-accent text-bg' :
+                        ratio >= 0.5 ? 'bg-accent-light text-accent' :
+                        ratio > 0 ? 'bg-surface text-text-secondary' :
+                        'bg-surface text-text-muted'
                       }`}>
                         {dateLabel}
                       </div>
                     </Link>
                   ) : (
-                    <div className="w-8 h-8 mx-auto rounded-lg flex items-center justify-center text-xs font-medium bg-lavender-light/50 text-navy/30" title="No data">
+                    <div className="w-8 h-8 mx-auto rounded-[10px] flex items-center justify-center text-xs font-medium bg-surface/60 text-text-muted" title="No data">
                       {dateLabel}
                     </div>
                   )}
@@ -171,16 +166,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </div>
         </Card>
 
-        {/* Commitments */}
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold text-navy/50 uppercase tracking-wider">Commitments & Practices</h2>
+            <MutedMono>Commitments & Practices</MutedMono>
             <Link href={`/dashboard/clients/${clientId}/edit`}>
-              <Button variant="ghost" size="sm">Edit</Button>
+              <Button variant="text" size="sm">Edit</Button>
             </Link>
           </div>
           {commitments.length === 0 ? (
-            <p className="text-sm text-navy/40">None set up yet</p>
+            <p className="text-[13px] text-text-muted">None set up yet</p>
           ) : (
             <div className="space-y-3">
               {commitments.map(c => {
@@ -191,14 +185,14 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                       <Badge variant={c.type === 'commitment' ? 'default' : 'success'} className="text-[10px]">
                         {c.type}
                       </Badge>
-                      <span className="text-sm font-medium text-navy">{c.title}</span>
+                      <span className="text-[14px] text-text">{c.title}</span>
                     </div>
                     <div className="flex gap-1 mt-1 ml-14">
                       {DAYS.map(d => (
                         <span
                           key={d.key}
                           className={`w-5 h-5 flex items-center justify-center rounded text-[9px] font-medium ${
-                            days.includes(d.key) ? 'bg-navy text-white' : 'bg-lavender-light/50 text-navy/30'
+                            days.includes(d.key) ? 'bg-accent text-bg' : 'bg-surface text-text-muted'
                           }`}
                         >
                           {d.label}
@@ -210,24 +204,23 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               })}
             </div>
           )}
-          <div className="border-t border-lavender-dark/10 mt-4 pt-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-navy/60">Daily Quality</span>
-              <span className="font-medium text-navy">{clientSettings?.rating_label || 'inner peace'}</span>
+          <div className="border-t border-border mt-4 pt-3">
+            <div className="flex justify-between text-[13px]">
+              <span className="text-text-secondary">Daily Quality</span>
+              <span className="text-text">{clientSettings?.rating_label || 'inner peace'}</span>
             </div>
           </div>
         </Card>
 
-        {/* Journal Entries — last 2, properly parsed */}
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold text-navy/50 uppercase tracking-wider">Journal Entries</h2>
-            <Link href={`/dashboard/clients/${clientId}/journal`} className="text-xs text-navy/40 hover:text-navy">
+            <MutedMono>Journal Entries</MutedMono>
+            <Link href={`/dashboard/clients/${clientId}/journal`} className="text-[11px] text-text-muted hover:text-text">
               View all
             </Link>
           </div>
           {visibleEntries.length === 0 ? (
-            <p className="text-sm text-navy/40">No entries yet</p>
+            <p className="text-[13px] text-text-muted">No entries yet</p>
           ) : (
             <div className="space-y-4">
               {visibleEntries.map(entry => {
@@ -237,19 +230,19 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 const isToday = entry.date === today;
 
                 return (
-                  <div key={entry.id} className="border-b border-lavender-dark/10 pb-3 last:border-0">
+                  <div key={entry.id} className="border-b border-border pb-3 last:border-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-semibold text-navy/50">{dateLabel}</span>
-                      {isToday && <span className="text-[10px] text-success font-medium">TODAY</span>}
+                      <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">{dateLabel}</span>
+                      {isToday && <span className="text-[10px] text-accent font-medium">TODAY</span>}
                     </div>
                     {items.length === 0 ? (
-                      <p className="text-sm text-navy/40 italic">Empty entry</p>
+                      <p className="text-[13px] text-text-muted italic">Empty entry</p>
                     ) : (
                       <div className="space-y-2">
                         {items.map((item, i) => (
                           <div key={i}>
-                            <p className="text-xs font-semibold text-navy/40">{item.label}</p>
-                            <p className="text-sm text-navy/70 whitespace-pre-wrap line-clamp-2">{item.text}</p>
+                            <MutedMono className="block">{item.label}</MutedMono>
+                            <p className="text-[14px] text-text-secondary whitespace-pre-wrap line-clamp-2 reflection-text">{item.text}</p>
                           </div>
                         ))}
                       </div>
@@ -261,13 +254,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           )}
         </Card>
 
-        {/* Messages - full width */}
         <div className="md:col-span-2">
-          <MessageThread
-            messages={messages}
-            userId={clientId}
-            coachId={session.userId}
-            isCoach={true}
+          <MessageThreadCoach
+            initial={messages}
+            coachUserId={session.userId}
+            clientUserId={clientId}
             clientName={user!.name}
           />
         </div>

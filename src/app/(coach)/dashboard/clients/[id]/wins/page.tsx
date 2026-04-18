@@ -38,13 +38,13 @@ export default async function ClientWinsPage({
 
     return (
       <div>
-        <Link href={`/dashboard/clients/${clientId}`} className="text-sm text-navy/50 hover:text-navy mb-1 block">
+        <Link href={`/dashboard/clients/${clientId}`} className="text-sm text-text-muted hover:text-text mb-1 block">
           ← Back to {user!.name}
         </Link>
-        <h1 className="text-2xl font-bold text-navy mb-6">Win Log — {user!.name}</h1>
+        <h1 className="font-display text-[28px] leading-[1.15] text-text mb-6">Win Log — {user!.name}</h1>
 
         {days.length === 0 ? (
-          <Card><p className="text-sm text-navy/40">No entries yet</p></Card>
+          <Card><p className="text-sm text-text-muted">No entries yet</p></Card>
         ) : (
           <div className="space-y-2">
             {days.map(day => {
@@ -55,11 +55,11 @@ export default async function ClientWinsPage({
               const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
               return (
                 <Link key={day.date} href={`/dashboard/clients/${clientId}/wins?date=${day.date}`}>
-                  <Card className="hover:shadow-md transition-shadow">
+                  <Card className="">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-navy">{label}</span>
+                      <span className="text-sm font-medium text-text">{label}</span>
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-bold ${ratio === 1 ? 'text-success' : ratio >= 0.5 ? 'text-warning' : 'text-navy/40'}`}>
+                        <span className={`text-sm font-bold ${ratio === 1 ? 'text-success' : ratio >= 0.5 ? 'text-accent' : 'text-text-muted'}`}>
                           {completed}/{total}
                         </span>
                         {ratio === 1 && <span className="text-xs text-success font-medium">Won!</span>}
@@ -92,14 +92,14 @@ export default async function ClientWinsPage({
 
   return (
     <div>
-      <Link href={`/dashboard/clients/${clientId}`} className="text-sm text-navy/50 hover:text-navy mb-1 block">
+      <Link href={`/dashboard/clients/${clientId}`} className="text-sm text-text-muted hover:text-text mb-1 block">
         ← Back to {user!.name}
       </Link>
-      <h1 className="text-2xl font-bold text-navy mb-1">{dateLabel}</h1>
-      <p className="text-sm text-navy/50 mb-6">{user!.name} — {completed}/{total} completed</p>
+      <h1 className="font-display text-[28px] leading-[1.15] text-text mb-1">{dateLabel}</h1>
+      <p className="text-sm text-text-muted mb-6">{user!.name} — {completed}/{total} completed</p>
 
       {wins.length === 0 ? (
-        <Card><p className="text-sm text-navy/40">No wins tracked this day</p></Card>
+        <Card><p className="text-sm text-text-muted">No wins tracked this day</p></Card>
       ) : (
         <div className="space-y-3">
           {['commitment', 'practice'].map(type => {
@@ -107,7 +107,7 @@ export default async function ClientWinsPage({
             if (items.length === 0) return null;
             return (
               <Card key={type}>
-                <h2 className="text-xs font-bold text-navy/50 uppercase tracking-wider mb-3">
+                <h2 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-3">
                   {type === 'commitment' ? (items.length === 1 ? 'Commitment' : 'Commitments') : (items.length === 1 ? 'Practice' : 'Practices')}
                 </h2>
                 <div className="space-y-2">
@@ -115,8 +115,8 @@ export default async function ClientWinsPage({
                     <div key={i} className="flex items-center gap-3">
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
                         w.completed === 1
-                          ? 'bg-gold shadow-sm shadow-gold/30'
-                          : 'border-[1.5px] border-lavender-dark'
+                          ? 'bg-accent'
+                          : 'border-[1.5px] border-border'
                       }`}>
                         {w.completed === 1 && (
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="white" stroke="none">
@@ -124,7 +124,7 @@ export default async function ClientWinsPage({
                           </svg>
                         )}
                       </div>
-                      <span className={`text-sm ${w.completed === 1 ? 'text-navy/40 line-through' : 'text-navy font-semibold'}`}>
+                      <span className={`text-sm ${w.completed === 1 ? 'text-text-muted line-through' : 'text-text font-semibold'}`}>
                         {w.title}
                       </span>
                     </div>

@@ -7,12 +7,10 @@ import TimezoneSync from '@/components/layout/TimezoneSync';
 export default async function ClientLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   let unreadCount = 0;
-  let darkMode = false;
   let timezone = 'Pacific/Honolulu';
 
   if (session) {
     const settings = await getUserSettings(session.userId);
-    darkMode = settings.dark_mode;
     timezone = settings.timezone;
 
     const clientInfo = await queryOne<{ coach_id: number }>(
@@ -30,7 +28,7 @@ export default async function ClientLayout({ children }: { children: React.React
   }
 
   return (
-    <ClientShell darkMode={darkMode} unreadCount={unreadCount}>
+    <ClientShell unreadCount={unreadCount}>
       <TimezoneSync currentTimezone={timezone} />
       {children}
     </ClientShell>

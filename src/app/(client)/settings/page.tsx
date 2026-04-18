@@ -4,11 +4,11 @@ import { getUserSettings } from '@/lib/settings';
 import { redirect } from 'next/navigation';
 import CommitmentEditor from '@/components/wins/CommitmentEditor';
 import ReflectionTimeSetting from '@/components/layout/ReflectionTimeSetting';
-import DarkModeSetting from '@/components/layout/DarkModeSetting';
 import NameSetting from '@/components/layout/NameSetting';
 import EmailSetting from '@/components/layout/EmailSetting';
 import RatingLabelSetting from '@/components/layout/RatingLabelSetting';
 import PasswordSetting from '@/components/layout/PasswordSetting';
+import NudgeSettingsCard from '@/components/layout/NudgeSettingsCard';
 import LogoutButton from '@/components/layout/LogoutButton';
 
 export default async function SettingsPage() {
@@ -29,7 +29,7 @@ export default async function SettingsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-extrabold text-navy">Set Up Your Wins</h1>
+        <h1 className="font-display text-[30px]">Set Up Your Wins</h1>
         <LogoutButton />
       </div>
       <div className="space-y-4 mb-6">
@@ -40,7 +40,7 @@ export default async function SettingsPage() {
       <div className="mt-6 space-y-4">
         <RatingLabelSetting initialLabel={settings.rating_label} />
         <ReflectionTimeSetting initialTime={settings.reflection_time} />
-        <DarkModeSetting initialDark={settings.dark_mode} />
+        <NudgeSettingsCard />
         <PasswordSetting />
       </div>
     </div>

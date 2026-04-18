@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import TrophyIcon from '@/components/ui/TrophyIcon';
 import { Suspense } from 'react';
 
 function ResetForm() {
@@ -37,24 +36,24 @@ function ResetForm() {
     return (
       <>
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-3"><TrophyIcon size={48} /></div>
-          <h1 className="text-2xl font-bold text-navy tracking-tight">Reset Password</h1>
-          <p className="text-sm text-navy/50 mt-1">Enter your email and we'll send you a reset link</p>
+          <div className="text-accent text-3xl mb-3" aria-hidden>✦</div>
+          <h1 className="font-display text-[28px] leading-[1.15]">Reset Password</h1>
+          <p className="text-sm text-text-muted mt-1">Enter your email and we'll send you a reset link</p>
         </div>
 
         {success ? (
           <div className="text-center">
             <p className="text-sm text-success mb-4">{success}</p>
-            <a href="/login" className="text-sm text-navy/60 hover:text-navy">Back to login</a>
+            <a href="/login" className="text-sm text-text-secondary hover:text-text">Back to login</a>
           </div>
         ) : (
           <form onSubmit={handleRequest} className="flex flex-col gap-4">
             <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
-            {error && <p className="text-sm text-danger text-center">{error}</p>}
+            {error && <p className="text-sm text-destructive text-center">{error}</p>}
             <Button type="submit" disabled={loading} className="w-full mt-2">
               {loading ? 'Sending...' : 'Send Reset Link'}
             </Button>
-            <a href="/login" className="text-sm text-navy/50 hover:text-navy text-center">Back to login</a>
+            <a href="/login" className="text-sm text-text-muted hover:text-text text-center">Back to login</a>
           </form>
         )}
       </>
@@ -90,8 +89,8 @@ function ResetForm() {
   return (
     <>
       <div className="text-center mb-8">
-        <div className="flex justify-center mb-3"><TrophyIcon size={48} /></div>
-        <h1 className="text-2xl font-bold text-navy tracking-tight">Set New Password</h1>
+        <div className="text-accent text-3xl mb-3" aria-hidden>✦</div>
+        <h1 className="font-display text-[28px] leading-[1.15]">Set New Password</h1>
       </div>
 
       {success ? (
@@ -100,7 +99,7 @@ function ResetForm() {
         <form onSubmit={handleReset} className="flex flex-col gap-4">
           <Input label="New Password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="At least 6 characters" required />
           <Input label="Confirm Password" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required />
-          {error && <p className="text-sm text-danger text-center">{error}</p>}
+          {error && <p className="text-sm text-destructive text-center">{error}</p>}
           <Button type="submit" disabled={loading} className="w-full mt-2">
             {loading ? 'Resetting...' : 'Reset Password'}
           </Button>
@@ -112,13 +111,10 @@ function ResetForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-dvh flex justify-center bg-lavender">
-      <div
-        className="w-full max-w-[520px] min-h-dvh bg-card shadow-2xl rounded-none sm:rounded-3xl sm:my-4 sm:min-h-0 flex items-center justify-center px-6"
-        style={{ boxShadow: '0 0 60px 8px rgba(240, 165, 0, 0.15), 0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
-      >
-        <Card className="w-full max-w-sm bg-lavender-light/40">
-          <Suspense fallback={<div className="text-center text-navy/40">Loading...</div>}>
+    <div className="min-h-dvh flex justify-center bg-bg">
+      <div className="w-full max-w-[520px] min-h-dvh bg-bg rounded-none sm:rounded-[28px] sm:my-6 sm:min-h-0 sm:border sm:border-border flex items-center justify-center px-6">
+        <Card className="w-full max-w-sm bg-surface">
+          <Suspense fallback={<div className="text-center text-text-muted">Loading...</div>}>
             <ResetForm />
           </Suspense>
         </Card>

@@ -21,9 +21,6 @@ export default async function TodayPage() {
     <SplashScreen userName={user!.name}>
       <TodayClient
         userName={user!.name}
-        reflectionTime={settings.reflection_time}
-        reflectionSnoozedUntil={settings.reflection_snoozed_until}
-        reflectionSkippedDate={settings.reflection_skipped_date}
         ratingLabel={settings.rating_label}
       />
     </SplashScreen>

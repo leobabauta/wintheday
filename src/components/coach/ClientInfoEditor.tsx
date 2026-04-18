@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import MutedMono from '@/components/ui/MutedMono';
 
 interface ClientInfoData {
   name: string;
@@ -33,7 +34,6 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
 
   const handleSave = async () => {
     setSaving(true);
-    // Update user name and email
     if (form.name !== data.name || form.email !== data.email) {
       await fetch(`/api/clients/${clientId}`, {
         method: 'PUT',
@@ -41,7 +41,6 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
         body: JSON.stringify({ name: form.name, email: form.email }),
       });
     }
-    // Update client info fields
     await fetch(`/api/clients/${clientId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -75,47 +74,47 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
     return (
       <Card>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xs font-semibold text-navy/50 uppercase tracking-wider">Client Info</h2>
-          <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>Edit</Button>
+          <MutedMono>Client Info</MutedMono>
+          <Button variant="text" size="sm" onClick={() => setEditing(true)}>Edit</Button>
         </div>
-        <div className="space-y-2 text-sm">
+        <div className="space-y-2 text-[13px]">
           <div className="flex justify-between">
-            <span className="text-navy/60">Name</span>
-            <span className="font-medium text-navy">{data.name}</span>
+            <span className="text-text-secondary">Name</span>
+            <span className="text-text">{data.name}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-navy/60">Email</span>
-            <span className="font-medium text-navy">{data.email}</span>
+            <span className="text-text-secondary">Email</span>
+            <span className="text-text">{data.email}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-navy/60">Sign-on Date</span>
-            <span className="font-medium text-navy">{formatDate(data.sign_on_date)}</span>
+            <span className="text-text-secondary">Sign-on Date</span>
+            <span className="text-text">{formatDate(data.sign_on_date)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-navy/60">Closing Date</span>
-            <span className="font-medium text-navy">{formatDate(data.closing_date)}</span>
+            <span className="text-text-secondary">Closing Date</span>
+            <span className="text-text">{formatDate(data.closing_date)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-navy/60">Coaching Spot</span>
-            <span className="font-medium text-navy">
+            <span className="text-text-secondary">Coaching Spot</span>
+            <span className="text-text">
               {data.coaching_frequency}, {data.coaching_day} at {data.coaching_time}
             </span>
           </div>
           {data.payment_amount && (
             <div className="flex justify-between">
-              <span className="text-navy/60">Payment</span>
-              <span className="font-medium text-navy">
+              <span className="text-text-secondary">Payment</span>
+              <span className="text-text">
                 ${Number(data.payment_amount).toFixed(2)}/{data.payment_frequency === 'yearly' ? 'year' : 'month'}
                 {data.payment_frequency === 'monthly' && data.renewal_day && ` (renews on the ${data.renewal_day}${data.renewal_day === 1 ? 'st' : data.renewal_day === 2 ? 'nd' : data.renewal_day === 3 ? 'rd' : 'th'})`}
               </span>
             </div>
           )}
         </div>
-        <div className="border-t border-lavender-dark/10 mt-4 pt-4">
+        <div className="border-t border-border mt-4 pt-4">
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="text-xs text-red-400 hover:text-red-600 transition-colors"
+            className="text-[11px] text-destructive hover:opacity-80 transition-opacity"
           >
             {deleting ? 'Deleting...' : 'Delete this client'}
           </button>
@@ -126,7 +125,7 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
 
   return (
     <Card>
-      <h2 className="text-xs font-semibold text-navy/50 uppercase tracking-wider mb-4">Edit Client Info</h2>
+      <MutedMono className="block mb-4">Edit Client Info</MutedMono>
       <div className="space-y-3">
         <Input label="Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
         <Input label="Email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
@@ -135,14 +134,14 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
         <Input label="Coaching Day" value={form.coaching_day || ''} onChange={e => setForm({ ...form, coaching_day: e.target.value })} placeholder="e.g., Wednesday" />
         <Input label="Coaching Time" value={form.coaching_time || ''} onChange={e => setForm({ ...form, coaching_time: e.target.value })} placeholder="e.g., 4:00 PM" />
         <Input label="Coaching Frequency" value={form.coaching_frequency || ''} onChange={e => setForm({ ...form, coaching_frequency: e.target.value })} placeholder="e.g., Every 2 weeks" />
-        <div className="border-t border-lavender-dark/10 pt-3 mt-1">
-          <h3 className="text-xs font-semibold text-navy/50 uppercase tracking-wider mb-3">Payment</h3>
+        <div className="border-t border-border pt-3 mt-1">
+          <MutedMono className="block mb-3">Payment</MutedMono>
           <div className="space-y-3">
             <Input label="Amount ($)" type="number" step="0.01" value={form.payment_amount ?? ''} onChange={e => setForm({ ...form, payment_amount: e.target.value ? parseFloat(e.target.value) : null })} placeholder="e.g., 200" />
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-navy/70">Frequency</label>
+              <label className="text-[13px] text-text-secondary">Frequency</label>
               <select
-                className="rounded-xl border border-lavender-dark bg-white px-4 py-2.5 text-navy outline-none focus:border-navy focus:ring-1 focus:ring-navy transition-colors"
+                className="rounded-[12px] border border-border bg-bg px-4 py-2.5 text-text outline-none focus:border-accent transition-colors"
                 value={form.payment_frequency || ''}
                 onChange={e => setForm({ ...form, payment_frequency: e.target.value || null })}
               >
@@ -157,15 +156,15 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
           </div>
         </div>
         <Input label="Daily Quality Label" value={form.rating_label || ''} onChange={e => setForm({ ...form, rating_label: e.target.value })} placeholder="e.g., inner peace, confidence" />
-        <div className="border-t border-lavender-dark/10 pt-3 mt-1">
-          <h3 className="text-xs font-semibold text-navy/50 uppercase tracking-wider mb-3">Password</h3>
+        <div className="border-t border-border pt-3 mt-1">
+          <MutedMono className="block mb-3">Password</MutedMono>
           <Input label="Set New Password" type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Leave blank to keep current" />
           {newPassword && newPassword.length < 6 && (
-            <p className="text-xs text-warning mt-1">Must be at least 6 characters</p>
+            <p className="text-[11px] text-destructive mt-1">Must be at least 6 characters</p>
           )}
         </div>
         <div className="flex gap-2 pt-2">
-          <Button variant="ghost" size="sm" onClick={() => { setForm(data); setEditing(false); }}>Cancel</Button>
+          <Button variant="text" size="sm" onClick={() => { setForm(data); setEditing(false); }}>Cancel</Button>
           <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
         </div>
       </div>

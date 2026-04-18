@@ -116,10 +116,10 @@ export default function JournalEditor({ todayEntry, pastEntries, date }: Props) 
       {editing ? (
         <Card className="mb-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-bold text-navy/50 uppercase tracking-wider">
+            <h2 className="text-xs font-bold text-text-muted uppercase tracking-wider">
               Today&apos;s Reflection
             </h2>
-            <span className={`text-[10px] ${saved ? 'text-success' : 'text-warning'}`}>
+            <span className={`text-[10px] ${saved ? 'text-success' : 'text-accent'}`}>
               {saved ? 'Saved' : 'Saving...'}
             </span>
           </div>
@@ -127,7 +127,7 @@ export default function JournalEditor({ todayEntry, pastEntries, date }: Props) 
           <div className="space-y-4">
             {PROMPTS.map(prompt => (
               <div key={prompt.key}>
-                <label className="text-sm font-semibold text-navy/70 block mb-1.5">
+                <label className="text-sm font-semibold text-text-secondary block mb-1.5">
                   {prompt.label}
                 </label>
                 <textarea
@@ -135,14 +135,14 @@ export default function JournalEditor({ todayEntry, pastEntries, date }: Props) 
                   onChange={e => handleChange(prompt.key, e.target.value)}
                   onBlur={handleBlur}
                   placeholder="Write your thoughts..."
-                  className="w-full h-20 bg-lavender-light/30 rounded-xl p-3 text-sm text-navy outline-none resize-none focus:ring-1 focus:ring-navy/20 transition-colors"
+                  className="w-full h-20 bg-surface/30 rounded-[12px] p-3 text-sm text-text outline-none resize-none focus:ring-1 focus:ring-accent/20 transition-colors"
                 />
               </div>
             ))}
           </div>
 
           <div className="mt-4">
-            <Button onClick={handleDone} size="sm" variant="ghost">
+            <Button onClick={handleDone} size="sm" variant="text">
               Done
             </Button>
           </div>
@@ -158,13 +158,13 @@ export default function JournalEditor({ todayEntry, pastEntries, date }: Props) 
       {/* Past entries */}
       {allEntries.length === 0 && !editing ? (
         <Card>
-          <p className="text-sm text-navy/40 text-center py-6">
+          <p className="text-sm text-text-muted text-center py-6">
             No journal entries yet. Start your first reflection above.
           </p>
         </Card>
       ) : (
         <Card>
-          <h2 className="text-xs font-bold text-navy/50 uppercase tracking-wider mb-4">
+          <h2 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-4">
             Journal Entries
           </h2>
           <div className="space-y-2">
@@ -174,14 +174,14 @@ export default function JournalEditor({ todayEntry, pastEntries, date }: Props) 
                 onClick={() => setExpandedEntry(expandedEntry === entry.id ? null : entry.id)}
                 className="w-full text-left"
               >
-                <div className="flex items-center justify-between py-2 border-b border-lavender-dark/20">
-                  <span className="text-sm font-semibold text-navy">{formatDate(entry.date)}</span>
-                  <span className="text-xs text-navy/40">
+                <div className="flex items-center justify-between py-2 border-b border-border/20">
+                  <span className="text-sm font-semibold text-text">{formatDate(entry.date)}</span>
+                  <span className="text-xs text-text-muted">
                     {expandedEntry === entry.id ? '▲' : '▼'}
                   </span>
                 </div>
                 {expandedEntry === entry.id && (
-                  <p className="text-sm text-navy/70 py-3 whitespace-pre-wrap">
+                  <p className="text-sm text-text-secondary py-3 whitespace-pre-wrap">
                     {displayContent(entry.content)}
                   </p>
                 )}

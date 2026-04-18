@@ -1,7 +1,7 @@
 import { getSession } from '@/lib/auth';
 import { query, queryOne, execute } from '@/lib/db';
 import { redirect } from 'next/navigation';
-import MessageThread from '@/components/messages/MessageThread';
+import MessageThreadClient from '@/components/messages/MessageThreadClient';
 
 export default async function MessagesPage() {
   const session = await getSession();
@@ -15,17 +15,23 @@ export default async function MessagesPage() {
   if (!clientInfo) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-navy mb-6">Messages</h1>
-        <p className="text-navy/50">No coach assigned yet.</p>
+        <h1 className="font-display text-[28px] mb-4">Messages</h1>
+        <p className="text-[13px] text-text-muted">No coach assigned yet.</p>
       </div>
     );
   }
 
+  const coach = await queryOne<{ name: string }>(
+    'SELECT name FROM users WHERE id = $1',
+    [clientInfo.coach_id]
+  );
+
   const messages = await query<{
     id: number; sender_id: number; recipient_id: number; sender_name: string;
-    type: string; content: string; parent_id: number | null; read: number; created_at: string;
+    content: string; created_at: string;
   }>(
-    `SELECT m.*, u.name as sender_name FROM messages m
+    `SELECT m.id, m.sender_id, m.recipient_id, u.name as sender_name, m.content, m.created_at
+     FROM messages m
      JOIN users u ON u.id = m.sender_id
      WHERE (m.sender_id = $1 OR m.recipient_id = $1)
        AND (m.sender_id = $2 OR m.recipient_id = $2)
@@ -33,20 +39,17 @@ export default async function MessagesPage() {
     [session.userId, clientInfo.coach_id]
   );
 
-  // Mark unread messages from coach as read
   await execute(
     'UPDATE messages SET read = 1 WHERE recipient_id = $1 AND sender_id = $2 AND read = 0',
     [session.userId, clientInfo.coach_id]
   );
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-navy mb-6">Messages</h1>
-      <MessageThread
-        messages={messages}
-        userId={session.userId}
-        coachId={clientInfo.coach_id}
-      />
-    </div>
+    <MessageThreadClient
+      initial={messages}
+      clientUserId={session.userId}
+      coachUserId={clientInfo.coach_id}
+      coachName={coach?.name || 'Your coach'}
+    />
   );
 }

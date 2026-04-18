@@ -2,18 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import DailyWins from './DailyWins';
+import ReflectionModal from '@/components/journal/ReflectionModal';
 
 interface Props {
   userName: string;
-  reflectionTime: number;
-  reflectionSnoozedUntil: string | null;
-  reflectionSkippedDate: string | null;
   ratingLabel: string;
-}
-
-function getLocalDate(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 interface WinItem {
@@ -24,11 +17,17 @@ interface WinItem {
   completed: boolean;
 }
 
-export default function TodayClient({ userName, reflectionTime, reflectionSnoozedUntil, reflectionSkippedDate, ratingLabel }: Props) {
+function getLocalDate(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export default function TodayClient({ userName, ratingLabel }: Props) {
   const [date] = useState(getLocalDate);
   const [wins, setWins] = useState<WinItem[] | null>(null);
   const [reflection, setReflection] = useState('');
   const [rating, setRating] = useState(0);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -45,26 +44,81 @@ export default function TodayClient({ userName, reflectionTime, reflectionSnooze
     load();
   }, [date]);
 
+  const reload = async () => {
+    const winsRes = await fetch(`/api/wins?date=${date}`);
+    setWins(await winsRes.json());
+  };
+
+  const onToggle = async (id: string) => {
+    if (!wins) return;
+    const win = wins.find(w => String(w.id) === id);
+    if (!win) return;
+    const newCompleted = !win.completed;
+    setWins(wins.map(w => w.id === win.id ? { ...w, completed: newCompleted } : w));
+    await fetch('/api/wins', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: win.id, completed: newCompleted }),
+    });
+  };
+
+  const onAddCommitment = async (title: string) => {
+    await fetch('/api/commitments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        type: 'commitment',
+        days_of_week: ['mon','tue','wed','thu','fri','sat','sun'],
+      }),
+    });
+    await reload();
+  };
+
   if (wins === null) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-sm text-navy/40">Loading...</div>
+        <div className="text-[13px] text-text-muted">Loading...</div>
       </div>
     );
   }
 
+  const practice = wins.find(w => w.type === 'practice')?.title;
+  const commitments = wins
+    .filter(w => w.type !== 'practice')
+    .map(w => ({
+      id: String(w.id),
+      title: w.title,
+      completed: w.completed,
+      type: w.type as 'commitment' | 'practice',
+    }));
+
   return (
-    <DailyWins
-      initialWins={wins}
-      userName={userName}
-      reflectionTime={reflectionTime}
-      existingReflection={reflection}
-      date={date}
-      reflectionSnoozedUntil={reflectionSnoozedUntil}
-      reflectionSkippedDate={reflectionSkippedDate}
-      ratingLabel={ratingLabel}
-      existingRating={rating}
-      onRatingChange={setRating}
-    />
+    <>
+      <DailyWins
+        userName={userName}
+        commitments={commitments}
+        practice={practice}
+        reflection={reflection}
+        onToggle={onToggle}
+        onAddCommitment={onAddCommitment}
+        onOpenReflection={() => setModalOpen(true)}
+        rating={ratingLabel}
+      />
+      {modalOpen && (
+        <ReflectionModal
+          date={date}
+          existingReflection={reflection}
+          existingRating={rating}
+          ratingLabel={ratingLabel}
+          onClose={() => setModalOpen(false)}
+          onSaved={(content, r) => {
+            setReflection(content);
+            setRating(r);
+            setModalOpen(false);
+          }}
+        />
+      )}
+    </>
   );
 }

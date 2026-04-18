@@ -37,8 +37,8 @@ export default function EmailSetting({ initialEmail }: { initialEmail: string })
   return (
     <Card>
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xs font-bold text-navy/50 uppercase tracking-wider">Your Email</h2>
-        {!saved && <span className="text-[10px] text-warning">Saving...</span>}
+        <h2 className="text-xs font-bold text-text-muted uppercase tracking-wider">Your Email</h2>
+        {!saved && <span className="text-[10px] text-accent">Saving...</span>}
       </div>
       <Input
         type="email"
@@ -47,7 +47,7 @@ export default function EmailSetting({ initialEmail }: { initialEmail: string })
         onBlur={save}
         placeholder="your@email.com"
       />
-      {error && <p className="text-xs text-danger mt-1">{error}</p>}
+      {error && <p className="text-xs text-destructive mt-1">{error}</p>}
     </Card>
   );
 }

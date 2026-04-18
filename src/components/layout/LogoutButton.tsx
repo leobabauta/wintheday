@@ -13,7 +13,7 @@ export default function LogoutButton() {
   };
 
   return (
-    <Button variant="ghost" size="sm" onClick={handleLogout}>
+    <Button variant="text" size="sm" onClick={handleLogout}>
       Sign Out
     </Button>
   );

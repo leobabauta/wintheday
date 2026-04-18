@@ -5,10 +5,10 @@ interface BadgeProps {
 }
 
 const variants = {
-  default: 'bg-lavender-light text-navy/70',
+  default: 'bg-surface text-text-secondary',
   success: 'bg-green-100 text-green-700',
   warning: 'bg-amber-100 text-amber-700',
-  active: 'bg-navy text-white',
+  active: 'bg-text text-white',
 };
 
 export default function Badge({ children, variant = 'default', className = '' }: BadgeProps) {

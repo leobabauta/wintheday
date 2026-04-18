@@ -25,8 +25,8 @@ export default function NameSetting({ initialName }: { initialName: string }) {
   return (
     <Card>
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xs font-bold text-navy/50 uppercase tracking-wider">Your Name</h2>
-        {!saved && <span className="text-[10px] text-warning">Saving...</span>}
+        <h2 className="text-xs font-bold text-text-muted uppercase tracking-wider">Your Name</h2>
+        {!saved && <span className="text-[10px] text-accent">Saving...</span>}
       </div>
       <Input
         value={name}
