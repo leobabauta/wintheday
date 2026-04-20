@@ -121,7 +121,7 @@ function CommitBuilder({
           <div key={c.id} className="py-3 border-b border-border">
             <div className="flex items-center gap-2">
               <span className="flex-1 text-[14px]">{c.title}</span>
-              <button onClick={() => remove(c.id)} className="font-mono text-[10px] tracking-[0.12em] uppercase text-destructive">Remove</button>
+              <button onClick={() => remove(c.id)} className="font-mono text-[10px] tracking-[0.22em] uppercase text-destructive">Remove</button>
             </div>
             <div className="flex gap-1.5 mt-2">
               {DAYS.map(d => (
