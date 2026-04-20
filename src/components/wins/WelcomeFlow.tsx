@@ -77,7 +77,7 @@ function Intro({ name, onNext }: { name: string; onNext: () => void }) {
         A small enough day<br/><em>to win.</em>
       </h1>
       <p className="reflection-text text-text-secondary text-[16px] mt-6 text-pretty">
-        A handful of commitments, a practice you want to keep alive, a nightly reflection. That&apos;s the whole app.
+        A couple commitments, a practice you want to keep alive, a nightly reflection, connection to your coach. That&apos;s the whole app.
       </p>
       <Button variant="filled" size="lg" className="mt-10" onClick={onNext}>Begin</Button>
     </div>

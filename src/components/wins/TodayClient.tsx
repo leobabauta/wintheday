@@ -83,22 +83,18 @@ export default function TodayClient({ userName, ratingLabel }: Props) {
     );
   }
 
-  const practice = wins.find(w => w.type === 'practice')?.title;
-  const commitments = wins
-    .filter(w => w.type !== 'practice')
-    .map(w => ({
-      id: String(w.id),
-      title: w.title,
-      completed: w.completed,
-      type: w.type as 'commitment' | 'practice',
-    }));
+  const commitments = wins.map(w => ({
+    id: String(w.id),
+    title: w.title,
+    completed: w.completed,
+    type: w.type as 'commitment' | 'practice',
+  }));
 
   return (
     <>
       <DailyWins
         userName={userName}
         commitments={commitments}
-        practice={practice}
         reflection={reflection}
         onToggle={onToggle}
         onAddCommitment={onAddCommitment}

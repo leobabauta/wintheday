@@ -14,7 +14,6 @@ interface Commitment {
 interface Props {
   userName: string;
   commitments: Commitment[];
-  practice?: string;
   reflection?: string;
   onToggle: (id: string) => Promise<void>;
   onAddCommitment: (title: string) => Promise<void>;
@@ -66,7 +65,7 @@ function WinRow({ c, onToggle }: { c: Commitment; onToggle: (id: string) => void
 const CARD = 'rounded-[14px] border border-border bg-bg p-[22px] mb-3';
 
 export default function DailyWins({
-  userName, commitments, practice, reflection, onToggle, onAddCommitment, onOpenReflection, rating = 'inner peace',
+  userName, commitments, reflection, onToggle, onAddCommitment, onOpenReflection, rating = 'inner peace',
 }: Props) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
