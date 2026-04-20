@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const tabs = [
   { href: '/today',    label: 'Today' },
+  { href: '/meetings', label: 'Sessions' },
   { href: '/journal',  label: 'Journal' },
   { href: '/messages', label: 'Messages' },
   { href: '/settings', label: 'Me' },
@@ -17,6 +18,14 @@ function TabIcon({ href, active }: { href: string; active: boolean }) {
   if (href === '/today') return (
     <svg width="20" height="20" viewBox="0 0 24 24" {...common}>
       <circle cx="12" cy="12" r="9" />
+    </svg>
+  );
+  if (href === '/meetings') return (
+    <svg width="20" height="20" viewBox="0 0 24 24" {...common}>
+      <rect x="4" y="5" width="16" height="15" rx="2" />
+      <line x1="4" y1="10" x2="20" y2="10" />
+      <line x1="9" y1="3" x2="9" y2="6" />
+      <line x1="15" y1="3" x2="15" y2="6" />
     </svg>
   );
   if (href === '/journal') return (

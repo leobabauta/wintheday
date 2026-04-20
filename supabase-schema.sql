@@ -78,7 +78,50 @@ CREATE TABLE IF NOT EXISTS user_settings (
   timezone TEXT DEFAULT 'Pacific/Honolulu'
 );
 
+CREATE TABLE IF NOT EXISTS coach_integrations (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL UNIQUE REFERENCES users(id),
+  google_refresh_token TEXT,
+  google_calendar_email TEXT,
+  cal_com_reschedule_url TEXT,
+  last_synced_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS meetings (
+  id SERIAL PRIMARY KEY,
+  coach_id INTEGER NOT NULL REFERENCES users(id),
+  client_id INTEGER NOT NULL REFERENCES users(id),
+  starts_at TIMESTAMPTZ NOT NULL,
+  ends_at TIMESTAMPTZ NOT NULL,
+  google_event_id TEXT UNIQUE,
+  status TEXT NOT NULL DEFAULT 'scheduled' CHECK(status IN ('scheduled','cancelled','completed')),
+  reschedule_requested_at TIMESTAMPTZ,
+  reschedule_requested_by INTEGER REFERENCES users(id),
+  day_before_reminder_sent_at TIMESTAMPTZ,
+  day_of_reminder_sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_win_entries_user_date ON win_entries(user_id, date);
+CREATE TABLE IF NOT EXISTS pre_coaching_logs (
+  id SERIAL PRIMARY KEY,
+  meeting_id INTEGER NOT NULL UNIQUE REFERENCES meetings(id) ON DELETE CASCADE,
+  client_id INTEGER NOT NULL REFERENCES users(id),
+  coach_id INTEGER NOT NULL REFERENCES users(id),
+  responses JSONB NOT NULL DEFAULT '{}',
+  submitted_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pre_coaching_client ON pre_coaching_logs(client_id);
+CREATE INDEX IF NOT EXISTS idx_pre_coaching_coach ON pre_coaching_logs(coach_id, submitted_at);
+CREATE INDEX IF NOT EXISTS idx_meetings_client_starts ON meetings(client_id, starts_at);
+CREATE INDEX IF NOT EXISTS idx_meetings_coach_starts ON meetings(coach_id, starts_at);
+CREATE INDEX IF NOT EXISTS idx_meetings_starts_status ON meetings(starts_at, status);
 CREATE INDEX IF NOT EXISTS idx_commitments_user_active ON commitments(user_id, active);
 CREATE INDEX IF NOT EXISTS idx_messages_recipient_read ON messages(recipient_id, read);
 CREATE INDEX IF NOT EXISTS idx_messages_archived ON messages(recipient_id, archived, read);

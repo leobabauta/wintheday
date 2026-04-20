@@ -9,6 +9,8 @@ import Button from '@/components/ui/Button';
 import MutedMono from '@/components/ui/MutedMono';
 import MessageThreadCoach from '@/components/messages/MessageThreadCoach';
 import ClientInfoEditor from '@/components/coach/ClientInfoEditor';
+import ClientMeetingsSection from '@/components/coach/ClientMeetingsSection';
+import PreCoachingLogView from '@/components/coach/PreCoachingLogView';
 
 const PROMPTS = [
   { key: 'well', label: 'What went well today?' },
@@ -211,6 +213,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             </div>
           </div>
         </Card>
+
+        <ClientMeetingsSection clientId={clientId} />
+
+        <PreCoachingLogView clientId={clientId} />
 
         <Card>
           <div className="flex items-center justify-between mb-4">

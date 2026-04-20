@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import DailyWins from './DailyWins';
 import ReflectionModal from '@/components/journal/ReflectionModal';
+import NextMeetingCard from '@/components/meetings/NextMeetingCard';
 
 interface Props {
   userName: string;
@@ -95,6 +96,7 @@ export default function TodayClient({ userName, ratingLabel }: Props) {
 
   return (
     <>
+      <NextMeetingCard />
       <DailyWins
         userName={userName}
         commitments={commitments}

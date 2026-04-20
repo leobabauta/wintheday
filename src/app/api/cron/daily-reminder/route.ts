@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne } from '@/lib/db';
 import { Resend } from 'resend';
+import { syncAllCoachCalendars } from '@/lib/gcal-sync';
+import { sendMeetingReminders } from '@/lib/meeting-reminders';
 
 export async function GET(request: NextRequest) {
   // Verify cron secret to prevent unauthorized access
@@ -8,6 +10,11 @@ export async function GET(request: NextRequest) {
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const dryRun = request.nextUrl.searchParams.get('dryRun') === '1';
+
+  const gcalSync = await syncAllCoachCalendars();
+  const meetingReminders = await sendMeetingReminders({ dryRun });
 
   const resend = new Resend(process.env.RESEND_API_KEY);
   const nowUtc = new Date();
@@ -67,6 +74,11 @@ export async function GET(request: NextRequest) {
       message = "Great job checking off wins today! Take a moment to do your daily reflection too.";
     }
 
+    if (dryRun) {
+      sent++;
+      continue;
+    }
+
     try {
       await resend.emails.send({
         from: process.env.REMINDER_FROM_EMAIL || 'Win the Day <onboarding@resend.dev>',
@@ -90,5 +102,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, sent, checked: clients.length });
+  return NextResponse.json({ ok: true, sent, checked: clients.length, gcalSync, meetingReminders, dryRun });
 }
