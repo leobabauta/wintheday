@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Card from '@/components/ui/Card';
-import Button from '@/components/ui/Button';
 import MutedMono from '@/components/ui/MutedMono';
 import { PRE_COACHING_PROMPTS } from '@/lib/pre-coaching';
 
@@ -12,6 +10,10 @@ type Props = {
   meetingStartsAt: string;
   coachName: string;
 };
+
+// ZHD pre-coaching: full-screen, no card wrappers around each prompt.
+// Mono-caps prompt label, then a hairline-bordered textarea set in
+// Fraunces italic — it should feel like writing in a journal, not a form.
 
 export default function PreCoachingForm({ meetingId, meetingStartsAt, coachName }: Props) {
   const router = useRouter();
@@ -64,54 +66,71 @@ export default function PreCoachingForm({ meetingId, meetingStartsAt, coachName 
     hour: 'numeric', minute: '2-digit',
   });
 
-  if (loading) return <p className="text-[13px] text-text-muted">Loading…</p>;
+  if (loading) return <MutedMono>Loading…</MutedMono>;
 
   return (
     <div>
       <button
         onClick={() => router.back()}
-        className="text-[13px] text-text-secondary hover:text-text block mb-3.5"
+        className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-secondary hover:text-text block mb-4"
       >
         ← Back
       </button>
-      <h1 className="font-display text-[28px] leading-[1.15] text-text">Pre-coaching log</h1>
-      <p className="text-[13px] text-text-muted mt-1 mb-6">
-        For your session with {coachName.split(' ')[0]} on {startDate} at {startTime}.
-      </p>
+
+      <MutedMono className="block mb-2">Pre-coaching log</MutedMono>
+      <h1 className="font-display italic text-[28px] leading-[1.15] text-text tracking-[-0.005em]">
+        A few notes before we meet.
+      </h1>
+      <MutedMono className="block mt-[10px] mb-7">
+        For {startDate} · {startTime} with {coachName.split(' ')[0]}
+      </MutedMono>
 
       {submittedAt && (
-        <Card accent className="mb-4">
-          <MutedMono className="block">Sent {new Date(submittedAt).toLocaleString()}</MutedMono>
-          <p className="text-[13px] text-text mt-1">
+        <div className="mb-6 px-[14px] py-3 bg-[var(--color-accent-light)] border-l-2 border-[var(--color-accent)]">
+          <MutedMono className="block text-[var(--color-accent)] mb-1">
+            Sent {new Date(submittedAt).toLocaleString('en-US', {
+              month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+            })}
+          </MutedMono>
+          <p className="text-[13px] text-text">
             You can still edit — any changes will be visible to your coach.
           </p>
-        </Card>
+        </div>
       )}
 
-      <div className="space-y-4">
+      <div className="flex flex-col gap-[18px]">
         {PRE_COACHING_PROMPTS.map(p => (
-          <Card key={p.key}>
-            <label className="block">
-              <MutedMono className="block mb-2">{p.label}</MutedMono>
-              <textarea
-                value={responses[p.key] ?? ''}
-                onChange={e => setResponses({ ...responses, [p.key]: e.target.value })}
-                rows={4}
-                className="w-full text-[14px] p-2 rounded-[8px] border border-border bg-bg resize-y"
-              />
-            </label>
-          </Card>
+          <div key={p.key}>
+            <MutedMono className="block mb-2">{p.label}</MutedMono>
+            <textarea
+              value={responses[p.key] ?? ''}
+              onChange={e => setResponses({ ...responses, [p.key]: e.target.value })}
+              rows={3}
+              placeholder="…"
+              className="w-full px-0 py-[10px] border-0 border-t border-b border-border bg-transparent text-text font-display italic font-light text-[15px] leading-[1.55] resize-y outline-none focus:border-text-secondary"
+            />
+          </div>
         ))}
       </div>
 
-      <div className="flex items-center gap-3 mt-6">
-        <Button variant="outline" size="md" onClick={() => save(false)} disabled={saving}>
+      <div className="mt-7 flex items-center gap-3 flex-wrap">
+        <button
+          onClick={() => save(false)}
+          disabled={saving}
+          className="px-[18px] py-[10px] border border-[var(--color-border-strong)] bg-transparent text-text rounded-full font-mono text-[11px] tracking-[0.14em] uppercase disabled:opacity-60"
+        >
           {saving ? 'Saving…' : 'Save draft'}
-        </Button>
-        <Button variant="filled" size="md" onClick={() => save(true)} disabled={saving}>
+        </button>
+        <button
+          onClick={() => save(true)}
+          disabled={saving}
+          className="px-[18px] py-[10px] border border-[var(--color-accent)] bg-[var(--color-accent)] text-[#FCFBF9] rounded-full font-mono text-[11px] tracking-[0.14em] uppercase disabled:opacity-60"
+        >
           {submittedAt ? 'Update & resend' : 'Send to coach'}
-        </Button>
-        {statusMsg && <span className="text-[12px] text-text-muted">{statusMsg}</span>}
+        </button>
+        {statusMsg && (
+          <MutedMono className="text-text-muted">{statusMsg}</MutedMono>
+        )}
       </div>
     </div>
   );
