@@ -10,15 +10,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-// ZHD shell — responsive:
-//   < md (mobile): single column, max-w-[520px], bottom tab bar (ClientNav).
-//   ≥ md (desktop): 2-column — left rail with ZHD mark + vertical nav + user
-//                    footer, right column is the content (same hairline ZHD).
-//
-// No rounded-phone-on-desktop floating card. On desktop the app fills the
-// viewport; content is capped at 680px reading width inside the right column.
-
-const deskNav = [
+const tabs = [
   { href: '/today',    label: 'Today' },
   { href: '/meetings', label: 'Sessions' },
   { href: '/journal',  label: 'Journal' },
@@ -35,72 +27,85 @@ function WTDMark({ size = 22 }: { size?: number }) {
   );
 }
 
-function DesktopSidebar({
+function DesktopTopNav({
   pathname,
-  unreadCount,
   userName,
+  unreadCount,
 }: {
   pathname: string;
-  unreadCount: number;
   userName?: string;
+  unreadCount: number;
 }) {
+  const initial = (userName || '?').trim().charAt(0).toUpperCase();
+
   return (
-    <aside className="hidden md:flex flex-col w-[240px] border-r border-border px-8 py-10 shrink-0 sticky top-0 h-dvh">
-      <Link href="/today" className="flex items-center gap-[10px] mb-14">
-        <WTDMark />
-        <span className="font-display text-[17px] tracking-[-0.01em]">Win the Day</span>
-      </Link>
+    <header className="hidden md:block border-b border-border bg-bg">
+      <div className="h-[64px] max-w-[1180px] mx-auto px-8 flex items-center">
+        {/* Left — wordmark */}
+        <Link href="/today" className="flex items-center gap-[10px] flex-shrink-0">
+          <WTDMark />
+          <span className="font-mono text-[11px] font-medium tracking-[0.22em] uppercase text-text">
+            Win the Day
+          </span>
+        </Link>
 
-      <nav className="flex flex-col gap-[2px]">
-        {deskNav.map(tab => {
-          const active = pathname.startsWith(tab.href);
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={`group flex items-center justify-between py-[9px] text-[14px] transition-colors ${
-                active ? 'text-text' : 'text-text-muted hover:text-text'
-              }`}
-            >
-              <span className="flex items-center gap-3">
-                {active && (
-                  <span className="block w-[14px] h-px bg-[var(--color-accent)]" aria-hidden />
+        {/* Center — nav items */}
+        <nav className="flex-1 flex items-center justify-center gap-8 h-full">
+          {tabs.map(t => {
+            const active = pathname.startsWith(t.href);
+            return (
+              <Link
+                key={t.href}
+                href={t.href}
+                className="relative h-full flex items-center"
+              >
+                <span
+                  className={`font-mono text-[12px] tracking-[0.14em] uppercase transition-colors ${
+                    active
+                      ? 'text-text'
+                      : 'text-text-muted hover:text-text-secondary'
+                  }`}
+                >
+                  {t.label}
+                </span>
+                {t.href === '/messages' && unreadCount > 0 && (
+                  <span className="absolute top-[18px] -right-[10px] w-1.5 h-1.5 rounded-full bg-[var(--color-accent)]" />
                 )}
-                <span className={active ? '' : 'ml-[26px]'}>{tab.label}</span>
-              </span>
-              {tab.href === '/messages' && unreadCount > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)]" />
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+                {active && (
+                  <span className="absolute bottom-0 left-0 right-0 h-px bg-[var(--color-text)]" />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
 
-      <div className="mt-auto pt-8 border-t border-border">
-        <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted mb-1">
-          Signed in as
-        </p>
-        <p className="text-[13px] text-text-secondary truncate">{userName || '—'}</p>
+        {/* Right — avatar */}
+        <Link
+          href="/settings"
+          className="flex-shrink-0 w-[30px] h-[30px] rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent)] flex items-center justify-center font-mono text-[11px] font-medium tracking-[0.05em]"
+          aria-label="Account"
+        >
+          {initial}
+        </Link>
       </div>
-    </aside>
+    </header>
   );
 }
 
 export default function ClientShell({ unreadCount = 0, userName, children }: Props) {
   const pathname = usePathname();
+  const isJournal = pathname.startsWith('/journal');
+  const contentMax = isJournal ? 'max-w-[860px]' : 'max-w-[640px]';
 
   return (
-    <div className="min-h-dvh bg-bg flex">
-      <DesktopSidebar pathname={pathname} unreadCount={unreadCount} userName={userName} />
+    <div className="min-h-dvh bg-bg">
+      <DesktopTopNav pathname={pathname} userName={userName} unreadCount={unreadCount} />
 
-      {/* Content column */}
-      <main className="flex-1 min-w-0 flex justify-center">
-        <div className="w-full max-w-[680px] px-6 pt-10 pb-24 md:px-10 md:pt-14 md:pb-16">
-          {children}
-        </div>
+      <main className={`w-full mx-auto px-6 md:px-10 pt-10 md:pt-12 pb-24 md:pb-20 ${contentMax}`}>
+        {children}
       </main>
 
-      {/* Mobile tab bar — hidden on md+ */}
+      {/* Mobile bottom tab bar */}
       <div className="md:hidden">
         <ClientNav unreadCount={unreadCount} />
       </div>

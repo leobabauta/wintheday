@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Reference patch drops live alongside src/; keep them out of Tailwind's scan
+ * so stale utility usages there don't leak back into production CSS. */
+@source not "./handoff/**/*";
+@source not "./patch-*/**/*";
+
 /* Google Fonts — loaded via next/font in layout.tsx; these are CSS vars */
 
 @theme {
