@@ -1,29 +1,31 @@
 import { getSession } from '@/lib/auth';
 import { query } from '@/lib/db';
+import { getUserSettings } from '@/lib/settings';
 import { getDateString } from '@/lib/wins';
 import { redirect } from 'next/navigation';
 import JournalClient from '@/components/journal/JournalClient';
 
-const PROMPT_LABELS: Record<string, string> = {
-  well: 'What went well today',
-  challenge: 'What was challenging',
-  learn: 'What I noticed',
-  tomorrow: 'For tomorrow',
+type Responses = {
+  well?: string;
+  challenge?: string;
+  learn?: string;
+  tomorrow?: string;
 };
 
-function entryText(content: string): string {
+function parseResponses(content: string): Responses {
   try {
     const parsed = JSON.parse(content);
     if (typeof parsed === 'object' && parsed !== null) {
-      const parts: string[] = [];
-      for (const k of ['well','challenge','learn','tomorrow']) {
+      const r: Responses = {};
+      for (const k of ['well', 'challenge', 'learn', 'tomorrow'] as const) {
         const v = (parsed as Record<string, string>)[k];
-        if (v && v.trim()) parts.push(`${PROMPT_LABELS[k]}: ${v.trim()}`);
+        if (typeof v === 'string' && v.trim()) r[k] = v.trim();
       }
-      return parts.join('\n\n');
+      return r;
     }
   } catch {}
-  return content?.trim() || '';
+  if (content?.trim()) return { well: content.trim() };
+  return {};
 }
 
 export default async function JournalPage() {
@@ -54,16 +56,18 @@ export default async function JournalPage() {
     }
   }
 
+  const settings = await getUserSettings(session.userId);
+
   const mapped = allEntries
     .map(e => ({
       id: String(e.id),
       date: e.date,
-      text: entryText(e.content),
+      responses: parseResponses(e.content),
       rating: e.rating ? Number(e.rating) : undefined,
       commitmentsWon: winsByDate[e.date]?.won,
       commitmentsTotal: winsByDate[e.date]?.total,
     }))
-    .filter(e => e.text.length > 0);
+    .filter(e => Object.values(e.responses).some(v => v && v.trim().length > 0));
 
-  return <JournalClient entries={mapped} today={today} />;
+  return <JournalClient entries={mapped} today={today} ratingLabel={settings.rating_label} />;
 }

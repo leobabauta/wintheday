@@ -57,54 +57,49 @@ export default function NextSessionCard() {
   const rescheduled = !!meeting.reschedule_requested_at;
 
   return (
-    <div className="mb-6">
+    <div className="rounded-[14px] border border-border bg-bg p-[22px] mb-3">
       <MutedMono className="block mb-[10px]">Next Session</MutedMono>
-
-      <div className="border-t border-b border-border py-[14px]">
-        {rescheduled && (
-          <MutedMono className="block mb-[6px] text-[var(--color-accent)]">
-            Coach requested a reschedule
+      {rescheduled && (
+        <MutedMono className="block mb-[6px] text-[var(--color-accent)]">
+          Coach requested a reschedule
+        </MutedMono>
+      )}
+      <div className="flex items-baseline justify-between gap-3">
+        <div>
+          <p className="text-[22px] font-light tracking-[-0.01em] text-text">
+            {whenLabel}
+          </p>
+          <MutedMono className="block mt-[4px]">
+            {fmtTime(meeting.starts_at)} · with {meeting.coach_name.split(' ')[0]}
           </MutedMono>
-        )}
-
-        <div className="flex items-baseline justify-between gap-3">
-          <div>
-            <p className="text-[18px] font-light tracking-[-0.01em] text-text">
-              {whenLabel}
-            </p>
-            <MutedMono className="block mt-[4px]">
-              {fmtTime(meeting.starts_at)} · with {meeting.coach_name.split(' ')[0]}
-            </MutedMono>
-          </div>
-
-          {meeting.cal_com_reschedule_url && (
-            <a
-              href={meeting.cal_com_reschedule_url}
-              target="_blank"
-              rel="noreferrer"
-              className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-secondary underline underline-offset-[3px] decoration-[0.5px] hover:text-text"
-            >
-              Reschedule
-            </a>
-          )}
         </div>
-
-        <div className="mt-3 pt-[10px] border-t border-border flex items-center justify-between gap-3">
-          <Link
-            href={`/pre-coaching/${meeting.id}`}
+        {meeting.cal_com_reschedule_url && (
+          <a
+            href={meeting.cal_com_reschedule_url}
+            target="_blank"
+            rel="noreferrer"
             className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-secondary underline underline-offset-[3px] decoration-[0.5px] hover:text-text"
           >
-            Pre-coaching form →
+            Reschedule
+          </a>
+        )}
+      </div>
+
+      <div className="mt-[14px] pt-[12px] border-t border-border flex items-center justify-between gap-3">
+        <Link
+          href={`/pre-coaching/${meeting.id}`}
+          className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-secondary underline underline-offset-[3px] decoration-[0.5px] hover:text-text"
+        >
+          Pre-coaching form →
+        </Link>
+        {upcomingCount > 1 && (
+          <Link
+            href="/meetings"
+            className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted hover:text-text"
+          >
+            All {upcomingCount} upcoming
           </Link>
-          {upcomingCount > 1 && (
-            <Link
-              href="/meetings"
-              className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted hover:text-text"
-            >
-              All {upcomingCount} upcoming
-            </Link>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

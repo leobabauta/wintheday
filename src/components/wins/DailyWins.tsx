@@ -22,7 +22,7 @@ interface Props {
   rating?: string;
 }
 
-function Check({ size = 10 }: { size?: number }) {
+function Check({ size = 11 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 10 10" fill="none">
       <path d="M2 5L4 7L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -30,23 +30,18 @@ function Check({ size = 10 }: { size?: number }) {
   );
 }
 
-// ZHD row — completed rows get a soft accent-light wash that bleeds past the
-// container's horizontal padding. Borders on adjacent rows are suppressed so
-// the wash reads as one unbroken strip.
+// Warm-variant checkbox row. Completed rows show a 24px filled-clay circle
+// with a 4px accent-light halo ring.
 function WinRow({ c, onToggle }: { c: Commitment; onToggle: (id: string) => void }) {
   return (
     <button
       onClick={() => onToggle(c.id)}
-      className={`w-full flex items-center gap-[14px] py-[12px] text-left transition-colors border-t border-border first:border-t-0 ${
-        c.completed
-          ? 'bg-[var(--color-accent-light)]/50 -mx-2 px-2 border-t-transparent [&+*]:border-t-transparent'
-          : ''
-      }`}
+      className="w-full flex items-center gap-[14px] py-[12px] text-left transition-colors border-t border-border first:border-t-0"
     >
       <span
-        className={`inline-flex w-[22px] h-[22px] rounded-full items-center justify-center flex-shrink-0 transition-colors ${
+        className={`inline-flex w-[24px] h-[24px] rounded-full items-center justify-center flex-shrink-0 transition-all ${
           c.completed
-            ? 'bg-[var(--color-accent)] border border-[var(--color-accent)] text-white'
+            ? 'bg-[var(--color-accent)] border border-[var(--color-accent)] text-[#FCFBF9] ring-4 ring-[var(--color-accent-light)]'
             : 'bg-transparent border border-[var(--color-border-strong)] text-transparent'
         }`}
       >
@@ -68,9 +63,8 @@ function WinRow({ c, onToggle }: { c: Commitment; onToggle: (id: string) => void
   );
 }
 
-// Flattened Today — no cards. Hairline-separated sections flow as one column.
-// Section labels are mono-caps eyebrows; rows are hairline-divided.
-// Section spacing carries the hierarchy, not bordered boxes.
+const CARD = 'rounded-[14px] border border-border bg-bg p-[22px] mb-3';
+
 export default function DailyWins({
   userName, commitments, practice, reflection, onToggle, onAddCommitment, onOpenReflection, rating = 'inner peace',
 }: Props) {
@@ -100,7 +94,7 @@ export default function DailyWins({
         <MutedMono className="block mb-2">
           {today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </MutedMono>
-        <h1 className="text-[28px] font-light tracking-[-0.01em] leading-[1.15] text-text">
+        <h1 className="font-display text-[28px] font-light tracking-[-0.01em] leading-[1.15] text-text">
           {greeting}{userName ? `, ${userName.split(' ')[0]}` : ''}.
         </h1>
       </div>
@@ -108,15 +102,15 @@ export default function DailyWins({
       {/* Next session — quiet, renders only when one exists */}
       <NextSessionCard />
 
-      {/* Progress — tiny sliver line, no card */}
-      <div className="mb-8">
+      {/* Progress card */}
+      <div className={CARD}>
         <div className="flex items-baseline justify-between mb-[10px]">
           <MutedMono>Today&apos;s wins</MutedMono>
           <span className="font-mono text-[10px] tracking-[0.04em] text-text-muted">
             {doneCount}/{Math.max(1, total)}
           </span>
         </div>
-        <div className="relative w-full h-[1px] bg-border overflow-hidden">
+        <div className="relative w-full h-[2px] bg-border overflow-hidden rounded-[1px]">
           <div
             className="absolute top-0 left-0 h-full bg-[var(--color-accent)] transition-[width] duration-[480ms]"
             style={{ width: `${(doneCount / Math.max(1, total)) * 100}%` }}
@@ -129,11 +123,11 @@ export default function DailyWins({
         )}
       </div>
 
-      {/* Commitments — hairline section, no card wrapper */}
+      {/* Commitments card */}
       {commits.length > 0 && (
-        <div className="mb-8">
-          <MutedMono className="block mb-[10px]">Commitments</MutedMono>
-          <div className="border-t border-b border-border">
+        <div className={CARD}>
+          <MutedMono className="block mb-[6px]">Commitments</MutedMono>
+          <div>
             {commits.map(c => <WinRow key={c.id} c={c} onToggle={onToggle} />)}
 
             {adding ? (
@@ -163,7 +157,7 @@ export default function DailyWins({
                 onClick={() => setAdding(true)}
                 className="w-full flex items-center gap-[14px] py-[12px] border-t border-border text-left text-text-muted hover:text-text transition-colors"
               >
-                <span className="inline-flex w-[22px] h-[22px] rounded-full border border-dashed border-[var(--color-border-strong)] items-center justify-center text-[14px] leading-none">+</span>
+                <span className="inline-flex w-[24px] h-[24px] rounded-full border border-dashed border-[var(--color-border-strong)] items-center justify-center text-[14px] leading-none">+</span>
                 <span className="text-[15px]">Add a commitment</span>
               </button>
             )}
@@ -171,23 +165,23 @@ export default function DailyWins({
         </div>
       )}
 
-      {/* Practice */}
+      {/* Practice card */}
       {practices.length > 0 && (
-        <div className="mb-8">
-          <MutedMono className="block mb-[10px]">Practice</MutedMono>
-          <div className="border-t border-b border-border">
+        <div className={CARD}>
+          <MutedMono className="block mb-[6px]">Practice</MutedMono>
+          <div>
             {practices.map(c => <WinRow key={c.id} c={c} onToggle={onToggle} />)}
           </div>
         </div>
       )}
 
-      {/* Reflection prompt — hairline block, no card */}
+      {/* Reflection prompt card */}
       <button
         onClick={onOpenReflection}
-        className="w-full text-left block border-t border-b border-border py-[16px] hover:bg-surface/50 transition-colors"
+        className={`${CARD} w-full text-left block hover:bg-surface/40 transition-colors`}
       >
         <MutedMono className="block mb-[6px]">
-          Tonight&apos;s reflection · {rating.toLowerCase()}
+          Daily reflection · {rating.toLowerCase()}
         </MutedMono>
         <p className={`font-display italic text-[16px] leading-[1.5] ${reflection ? 'text-text' : 'text-text-muted'}`}>
           {reflection || 'What would winning the day look like?'}

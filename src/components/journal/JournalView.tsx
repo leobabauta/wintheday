@@ -1,14 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import Eyebrow from '@/components/ui/Eyebrow';
+import { useState, useMemo } from 'react';
 import MutedMono from '@/components/ui/MutedMono';
-import Card from '@/components/ui/Card';
+
+export type Responses = {
+  well?: string;
+  challenge?: string;
+  learn?: string;
+  tomorrow?: string;
+};
 
 export interface JournalEntry {
   id: string;
   date: string; // YYYY-MM-DD
-  text: string;
+  responses: Responses;
   rating?: number;
   commitmentsWon?: number;
   commitmentsTotal?: number;
@@ -16,22 +21,135 @@ export interface JournalEntry {
 
 interface Props {
   entries: JournalEntry[];
-  onCreate?: (text: string) => Promise<void>;
   today?: string;
+  ratingLabel?: string;
+  onCreate?: (well: string) => Promise<void>;
 }
 
-function weekdayOf(iso: string) {
-  return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' });
-}
-function dateShort(iso: string) {
-  return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const PROMPTS: Array<{ key: keyof Responses; label: string }> = [
+  { key: 'well', label: 'What went well today?' },
+  { key: 'challenge', label: 'What was challenging?' },
+  { key: 'learn', label: 'What did you learn or notice?' },
+  { key: 'tomorrow', label: 'What will you focus on tomorrow?' },
+];
+
+function noonDate(iso: string) {
+  return new Date(iso + 'T12:00:00');
 }
 
-export default function JournalView({ entries, onCreate, today }: Props) {
-  const [composing, setComposing] = useState(false);
+function weekday(iso: string) {
+  return noonDate(iso).toLocaleDateString('en-US', { weekday: 'long' });
+}
+function longDate(iso: string) {
+  return noonDate(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+function monthShort(iso: string) {
+  return noonDate(iso).toLocaleDateString('en-US', { month: 'short' });
+}
+function dayNum(iso: string) {
+  return noonDate(iso).getDate().toString();
+}
+
+function daysAgoLabel(entryIso: string, todayIso?: string): string {
+  if (!todayIso) return '';
+  const d1 = noonDate(entryIso).getTime();
+  const d2 = noonDate(todayIso).getTime();
+  const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return '1 day ago';
+  if (diffDays < 0) return 'Upcoming';
+  return `${diffDays} days ago`;
+}
+
+function RatingBars({ rating }: { rating: number }) {
+  const filled = Math.round(rating);
+  return (
+    <div className="inline-flex items-end gap-[3px]">
+      {[1, 2, 3, 4, 5].map(n => (
+        <span
+          key={n}
+          className={`block w-[3px] h-[10px] ${
+            n <= filled ? 'bg-[var(--color-accent)]' : 'bg-border'
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ComposePanel({
+  onCreate,
+  onCancel,
+}: {
+  onCreate: (well: string) => Promise<void>;
+  onCancel: () => void;
+}) {
   const [draft, setDraft] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const hasTodayEntry = today && entries.some(e => e.date === today);
+  const save = async () => {
+    if (!draft.trim()) return;
+    setSaving(true);
+    await onCreate(draft.trim());
+    setSaving(false);
+  };
+
+  return (
+    <article>
+      <h2 className="font-display text-[28px] font-light tracking-[-0.01em] leading-[1.1] text-text">
+        Today
+      </h2>
+      <MutedMono className="block mt-2 mb-8">A small mark for today</MutedMono>
+
+      <div className="py-5 border-t border-border">
+        <MutedMono className="block mb-3">What went well today?</MutedMono>
+        <textarea
+          autoFocus
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          placeholder="Today I noticed…"
+          rows={6}
+          className="w-full font-display text-[18px] font-light leading-[1.6] text-text bg-transparent border-0 outline-none resize-y px-0 py-0"
+        />
+      </div>
+
+      <div className="mt-6 flex items-center gap-3 flex-wrap">
+        <button
+          onClick={save}
+          disabled={!draft.trim() || saving}
+          className="px-[18px] py-[10px] border border-[var(--color-accent)] bg-[var(--color-accent)] text-[#FCFBF9] rounded-full font-mono text-[11px] tracking-[0.14em] uppercase disabled:opacity-60"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          onClick={onCancel}
+          className="px-[18px] py-[10px] border border-[var(--color-border-strong)] bg-transparent text-text rounded-full font-mono text-[11px] tracking-[0.14em] uppercase"
+        >
+          Cancel
+        </button>
+      </div>
+    </article>
+  );
+}
+
+export default function JournalView({ entries, today, ratingLabel = 'inner peace', onCreate }: Props) {
+  const hasTodayEntry = !!today && entries.some(e => e.date === today);
+  const canCompose = !!onCreate && !!today && !hasTodayEntry;
+
+  // Open compose by default when no entries exist yet and today is writable.
+  const [composing, setComposing] = useState(entries.length === 0 && canCompose);
+  const [selectedId, setSelectedId] = useState<string | null>(entries[0]?.id ?? null);
+
+  const selected = useMemo(
+    () => entries.find(e => e.id === selectedId) ?? entries[0] ?? null,
+    [entries, selectedId]
+  );
+
+  const pickEntry = (id: string) => {
+    setComposing(false);
+    setSelectedId(id);
+  };
+  const openCompose = () => setComposing(true);
 
   return (
     <div>
@@ -39,73 +157,152 @@ export default function JournalView({ entries, onCreate, today }: Props) {
         <MutedMono>Journal</MutedMono>
         <h1 className="font-display text-[28px] mt-2 leading-[1.1]">Pages.</h1>
         <p className="reflection-text text-text-secondary text-[15px] mt-2">
-          Each day, one small mark. No pressure to write much.
+          Each day, one small mark.
         </p>
       </div>
 
-      {/* Compose today */}
-      {today && !hasTodayEntry && (
-        <Card muted className="mb-8">
-          <MutedMono>Today · {dateShort(today)}</MutedMono>
-          {composing ? (
-            <>
-              <textarea
-                autoFocus
-                value={draft}
-                onChange={e => setDraft(e.target.value)}
-                className="w-full mt-2 min-h-[100px] bg-transparent border-none resize-none font-display italic text-[15px] leading-[1.55] focus:outline-none"
-                placeholder="Today I noticed…"
-              />
-              <div className="flex gap-2 justify-end mt-2">
-                <button
-                  className="font-mono text-[10px] tracking-[0.12em] uppercase text-text-muted hover:text-text"
-                  onClick={() => { setDraft(''); setComposing(false); }}
-                >Cancel</button>
-                <button
-                  className="font-mono text-[10px] tracking-[0.12em] uppercase text-accent disabled:opacity-40"
-                  disabled={!draft.trim()}
-                  onClick={async () => {
-                    if (onCreate) await onCreate(draft.trim());
-                    setDraft(''); setComposing(false);
-                  }}
-                >Save</button>
-              </div>
-            </>
-          ) : (
-            <button
-              onClick={() => setComposing(true)}
-              className="reflection-text text-text-muted text-left text-[15px] mt-2 w-full"
-            >
-              What&apos;s alive for you today?
-            </button>
-          )}
-        </Card>
-      )}
+      {entries.length === 0 && !canCompose ? (
+        <div className="rounded-[14px] border border-border bg-bg p-[22px]">
+          <p className="font-display italic text-[17px] leading-[1.5] text-text-secondary">
+            No entries yet.
+          </p>
+        </div>
+      ) : (
+        <div className="md:grid md:grid-cols-[180px_1fr] md:gap-10">
+          {/* Mobile: horizontal chip rail */}
+          <nav className="md:hidden -mx-6 px-6 mb-6 overflow-x-auto">
+            <div className="flex gap-5 min-w-max pb-2">
+              {canCompose && (
+                <button onClick={openCompose} className="flex flex-col items-start text-left">
+                  <span className={`text-[22px] font-light leading-none tracking-[-0.01em] ${composing ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
+                    +
+                  </span>
+                  <span className={`font-mono text-[9px] tracking-[0.22em] uppercase mt-[4px] ${composing ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
+                    Today
+                  </span>
+                </button>
+              )}
+              {entries.map(e => {
+                const active = !composing && selected?.id === e.id;
+                return (
+                  <button
+                    key={e.id}
+                    onClick={() => pickEntry(e.id)}
+                    className="flex flex-col items-start text-left"
+                  >
+                    <span className={`text-[22px] font-light leading-none tracking-[-0.01em] ${active ? 'text-text' : 'text-text-muted'}`}>
+                      {dayNum(e.date)}
+                    </span>
+                    <span className={`font-mono text-[9px] tracking-[0.22em] uppercase mt-[4px] ${active ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
+                      {monthShort(e.date)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
 
-      {/* Timeline */}
-      <Eyebrow>Recent</Eyebrow>
-      <div>
-        {entries.length === 0 ? (
-          <p className="text-text-muted text-[14px]">No entries yet.</p>
-        ) : (
-          entries.map(e => (
-            <article key={e.id} className="py-5 border-t border-border">
-              <div className="flex items-baseline gap-3 mb-2">
-                <span className="font-display text-[18px]">{weekdayOf(e.date)}</span>
-                <MutedMono>{dateShort(e.date)}</MutedMono>
-                {typeof e.commitmentsWon === 'number' && typeof e.commitmentsTotal === 'number' && (
-                  <MutedMono className="ml-auto">
-                    {e.commitmentsWon}/{e.commitmentsTotal} won
+          {/* Desktop: sticky left rail */}
+          <nav className="hidden md:block md:sticky md:top-10 md:self-start md:max-h-[calc(100dvh-80px)] md:overflow-y-auto">
+            <MutedMono className="block mb-4">All entries</MutedMono>
+            <div className="flex flex-col">
+              {canCompose && (
+                <button
+                  onClick={openCompose}
+                  className="text-left py-3 border-t border-border first:border-t-0"
+                >
+                  <div className="flex items-baseline gap-[8px]">
+                    <span className={`text-[22px] font-light leading-none tracking-[-0.01em] ${composing ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
+                      +
+                    </span>
+                    <span className={`font-mono text-[10px] tracking-[0.22em] uppercase ${composing ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
+                      Today
+                    </span>
+                  </div>
+                  <span className="font-mono text-[9px] tracking-[0.22em] uppercase mt-[2px] block text-text-muted">
+                    Write a reflection
+                  </span>
+                </button>
+              )}
+              {entries.map(e => {
+                const active = !composing && selected?.id === e.id;
+                return (
+                  <button
+                    key={e.id}
+                    onClick={() => pickEntry(e.id)}
+                    className="text-left py-3 border-t border-border first:border-t-0"
+                  >
+                    <div className="flex items-baseline gap-[8px]">
+                      <span className={`text-[22px] font-light leading-none tracking-[-0.01em] ${active ? 'text-text' : 'text-text-muted'}`}>
+                        {dayNum(e.date)}
+                      </span>
+                      <span className={`font-mono text-[10px] tracking-[0.22em] uppercase ${active ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
+                        {monthShort(e.date)}
+                      </span>
+                    </div>
+                    <span className={`font-mono text-[9px] tracking-[0.22em] uppercase mt-[2px] block ${active ? 'text-text-secondary' : 'text-text-muted'}`}>
+                      {daysAgoLabel(e.date, today)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+
+          {/* Right column: compose panel or selected entry */}
+          {composing && onCreate ? (
+            <ComposePanel onCreate={onCreate} onCancel={() => setComposing(false)} />
+          ) : (
+            <article>
+              {selected && (
+                <>
+                  <h2 className="font-display text-[28px] font-light tracking-[-0.01em] leading-[1.1] text-text">
+                    {weekday(selected.date)}
+                  </h2>
+                  <MutedMono className="block mt-2">
+                    {longDate(selected.date)}
                   </MutedMono>
-                )}
-              </div>
-              <p className="reflection-text text-[15px] text-text leading-[1.6] text-pretty">
-                {e.text}
-              </p>
+
+                  {(typeof selected.rating === 'number' ||
+                    typeof selected.commitmentsWon === 'number') && (
+                    <div className="flex items-center gap-5 mt-4 flex-wrap">
+                      {typeof selected.rating === 'number' && (
+                        <div className="flex items-center gap-[10px]">
+                          <MutedMono>
+                            {ratingLabel} · {selected.rating}/5
+                          </MutedMono>
+                          <RatingBars rating={selected.rating} />
+                        </div>
+                      )}
+                      {typeof selected.commitmentsWon === 'number' &&
+                        typeof selected.commitmentsTotal === 'number' && (
+                          <MutedMono>
+                            {selected.commitmentsWon}/{selected.commitmentsTotal} won
+                          </MutedMono>
+                        )}
+                    </div>
+                  )}
+
+                  <div className="mt-8">
+                    {PROMPTS.map(p => {
+                      const answer = selected.responses[p.key];
+                      if (!answer || !answer.trim()) return null;
+                      return (
+                        <div key={p.key} className="py-5 border-t border-border first:border-t-0">
+                          <MutedMono className="block mb-3">{p.label}</MutedMono>
+                          <p className="font-display text-[18px] font-light leading-[1.6] text-text whitespace-pre-wrap text-pretty">
+                            {answer}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </article>
-          ))
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
