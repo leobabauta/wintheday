@@ -62,7 +62,7 @@ export default function MessageThreadClient({ initial, clientUserId, coachUserId
     const res = await fetch('/api/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ recipientId: coachUserId, type: 'message', content: text }),
+      body: JSON.stringify({ recipientId: coachUserId, type: 'question', content: text }),
     });
     if (res.ok) {
       const saved = await res.json();

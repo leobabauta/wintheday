@@ -84,7 +84,7 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
     const res = await fetch('/api/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ recipientId: clientUserId, type: 'message', content: text }),
+      body: JSON.stringify({ recipientId: clientUserId, type: 'reply', content: text }),
     });
     if (res.ok) {
       const saved = await res.json();
