@@ -41,12 +41,25 @@ export default function MeetingsList() {
     })();
   }, []);
 
+  // Loading — quiet, centered
   if (meetings === null) {
-    return <MutedMono>Loading…</MutedMono>;
+    return (
+      <div className="py-16 text-center">
+        <MutedMono>Loading…</MutedMono>
+      </div>
+    );
   }
 
+  // Empty state — Fraunces italic pulled-quote, not a bare mono line
   if (meetings.length === 0) {
-    return <MutedMono>No upcoming sessions.</MutedMono>;
+    return (
+      <div className="border-t border-b border-border py-10 text-center">
+        <p className="font-display italic text-[17px] leading-[1.5] text-text-secondary mb-2">
+          No sessions on the calendar yet.
+        </p>
+        <MutedMono>Your coach will schedule the next one</MutedMono>
+      </div>
+    );
   }
 
   return (

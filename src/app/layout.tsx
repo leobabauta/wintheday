@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Jost, JetBrains_Mono } from "next/font/google";
+import { Fraunces, Jost, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -17,10 +17,12 @@ const jost = Jost({
   display: "swap",
 });
 
-const jetbrains = JetBrains_Mono({
-  variable: "--font-jetbrains",
+// ZHD uses IBM Plex Mono (warmer, less technical than JetBrains Mono).
+// CSS custom property kept as --font-plex; update globals.css to match.
+const plex = IBM_Plex_Mono({
+  variable: "--font-plex",
   subsets: ["latin"],
-  weight: ["400"],
+  weight: ["400", "500"],
   display: "swap",
 });
 
@@ -35,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${fraunces.variable} ${jost.variable} ${jetbrains.variable} antialiased`}
+        className={`${fraunces.variable} ${jost.variable} ${plex.variable} antialiased`}
         data-accent="clay"
       >
         {children}
