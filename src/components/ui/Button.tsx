@@ -3,16 +3,23 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg';
 }
 
+// ZHD buttons: thin, pill-shaped, mono-caps tracked labels.
+// - filled:  accent pill (primary actions — rare)
+// - outline: hairline border pill (default — most actions)
+// - text:    underline-on-hover mono link (inline controls like Edit/Cancel)
 const variants = {
-  filled:  'bg-accent text-bg hover:bg-accent-dark border border-accent',
-  outline: 'bg-transparent text-text border border-border hover:bg-surface',
-  text:    'bg-transparent text-text-secondary hover:text-text border-0 px-0',
+  filled:
+    'bg-[var(--color-accent)] text-bg border border-[var(--color-accent)] hover:bg-[var(--color-accent-dark)] hover:border-[var(--color-accent-dark)]',
+  outline:
+    'bg-transparent text-text border border-border hover:border-text-muted hover:text-text',
+  text:
+    'bg-transparent border-0 text-text-muted hover:text-text px-0 tracking-[0.22em]',
 };
 
 const sizes = {
-  sm: 'px-3 py-2 text-[12px]',
-  md: 'px-5 py-2.5 text-[13px]',
-  lg: 'px-6 py-3 text-[14px]',
+  sm: 'px-3 py-1.5 text-[10px]',
+  md: 'px-5 py-2 text-[11px]',
+  lg: 'px-6 py-2.5 text-[11px]',
 };
 
 export default function Button({
@@ -24,7 +31,7 @@ export default function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`rounded-full font-body font-normal tracking-wide transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`font-mono uppercase tracking-[0.18em] rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >
       {children}

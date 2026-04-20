@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Card from '@/components/ui/Card';
-import Input from '@/components/ui/Input';
+import SettingRow from './SettingRow';
 
 export default function EmailSetting({ initialEmail }: { initialEmail: string }) {
   const [email, setEmail] = useState(initialEmail);
@@ -35,19 +34,19 @@ export default function EmailSetting({ initialEmail }: { initialEmail: string })
   };
 
   return (
-    <Card>
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xs font-bold text-text-muted uppercase tracking-wider">Your Email</h2>
-        {!saved && <span className="text-[10px] text-accent">Saving...</span>}
-      </div>
-      <Input
+    <SettingRow
+      eyebrow="Email"
+      right={!saved && <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)]">Saving…</span>}
+    >
+      <input
         type="email"
         value={email}
         onChange={e => { setEmail(e.target.value); setError(''); }}
         onBlur={save}
         placeholder="your@email.com"
+        className="w-full bg-transparent border-0 border-b border-transparent focus:border-[var(--color-accent)] py-1 text-[15px] text-text outline-none transition-colors"
       />
-      {error && <p className="text-xs text-destructive mt-1">{error}</p>}
-    </Card>
+      {error && <p className="text-xs text-destructive mt-2">{error}</p>}
+    </SettingRow>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Card from '@/components/ui/Card';
+import SettingRow from './SettingRow';
 
 const TIMES = [
   { value: 15, label: '3:00 PM' },
@@ -31,27 +31,35 @@ export default function ReflectionTimeSetting({ initialTime }: { initialTime: nu
   };
 
   return (
-    <Card>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Daily Reflection Time</h2>
-        <span className={`text-[10px] ${saved ? 'text-success' : 'text-accent'}`}>
-          {saved ? 'Saved' : 'Saving...'}
+    <SettingRow
+      eyebrow="Reflection time"
+      right={
+        <span className={`font-mono text-[10px] uppercase tracking-[0.18em] ${saved ? 'text-text-muted' : 'text-[var(--color-accent)]'}`}>
+          {saved ? 'Saved' : 'Saving…'}
         </span>
-      </div>
-      <p className="text-xs text-text-muted mb-3">When should the daily reflection prompt appear?</p>
+      }
+    >
+      <p className="text-[13px] text-text-muted mb-3 reflection-text">
+        When should the evening prompt appear?
+      </p>
       <div className="flex flex-wrap gap-2">
-        {TIMES.map(t => (
-          <button
-            key={t.value}
-            onClick={() => handleChange(t.value)}
-            className={`px-3 py-1.5 rounded-[12px] text-xs font-medium transition-colors ${
-              time === t.value ? 'bg-text text-white' : 'bg-surface text-text-secondary hover:bg-surface'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+        {TIMES.map(t => {
+          const active = time === t.value;
+          return (
+            <button
+              key={t.value}
+              onClick={() => handleChange(t.value)}
+              className={`px-3 py-1.5 rounded-full text-[12px] font-mono tabular-nums transition-colors border ${
+                active
+                  ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-light)]'
+                  : 'border-border text-text-muted hover:text-text hover:border-text-muted'
+              }`}
+            >
+              {t.label}
+            </button>
+          );
+        })}
       </div>
-    </Card>
+    </SettingRow>
   );
 }

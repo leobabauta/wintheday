@@ -1,9 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Card from '@/components/ui/Card';
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
+import SettingRow from './SettingRow';
 
 export default function PasswordSetting() {
   const [open, setOpen] = useState(false);
@@ -41,31 +39,72 @@ export default function PasswordSetting() {
     setTimeout(() => { setSuccess(false); setOpen(false); }, 2000);
   };
 
+  const inputCls =
+    'w-full bg-transparent border-0 border-b border-border focus:border-[var(--color-accent)] py-1 text-[15px] text-text outline-none transition-colors';
+
   if (!open) {
     return (
-      <Card>
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold text-text-muted uppercase tracking-wider">Password</h2>
-          <Button variant="text" size="sm" onClick={() => setOpen(true)}>Change</Button>
-        </div>
-      </Card>
+      <SettingRow
+        eyebrow="Password"
+        right={
+          <button
+            onClick={() => setOpen(true)}
+            className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted hover:text-text"
+          >
+            Change
+          </button>
+        }
+      >
+        <p className="text-[15px] text-text-muted">••••••••</p>
+      </SettingRow>
     );
   }
 
   return (
-    <Card>
-      <h2 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-3">Change Password</h2>
-      <div className="space-y-3">
-        <Input label="Current Password" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
-        <Input label="New Password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="At least 6 characters" />
-        <Input label="Confirm New Password" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} />
-        {error && <p className="text-xs text-destructive">{error}</p>}
-        {success && <p className="text-xs text-success">Password updated!</p>}
-        <div className="flex gap-2 pt-1">
-          <Button variant="text" size="sm" onClick={() => { setOpen(false); setError(''); }}>Cancel</Button>
-          <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Update Password'}</Button>
+    <SettingRow eyebrow="Change password">
+      <div className="space-y-4">
+        <div>
+          <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted block mb-1">
+            Current
+          </label>
+          <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className={inputCls} />
+        </div>
+        <div>
+          <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted block mb-1">
+            New
+          </label>
+          <input
+            type="password"
+            value={newPassword}
+            onChange={e => setNewPassword(e.target.value)}
+            placeholder="At least 6 characters"
+            className={inputCls}
+          />
+        </div>
+        <div>
+          <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted block mb-1">
+            Confirm
+          </label>
+          <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} className={inputCls} />
+        </div>
+        {error && <p className="text-[12px] text-destructive">{error}</p>}
+        {success && <p className="text-[12px] text-[var(--color-success)]">Password updated.</p>}
+        <div className="flex gap-4 pt-1">
+          <button
+            onClick={() => { setOpen(false); setError(''); }}
+            className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted hover:text-text"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)] disabled:opacity-40"
+          >
+            {saving ? 'Saving…' : 'Update'}
+          </button>
         </div>
       </div>
-    </Card>
+    </SettingRow>
   );
 }

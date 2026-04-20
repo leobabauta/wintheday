@@ -1,9 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Card from '@/components/ui/Card';
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
+import SettingRow from './SettingRow';
 
 export default function RatingLabelSetting({ initialLabel }: { initialLabel: string }) {
   const [editing, setEditing] = useState(false);
@@ -24,34 +22,54 @@ export default function RatingLabelSetting({ initialLabel }: { initialLabel: str
 
   if (!editing) {
     return (
-      <Card>
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Daily Rating</h3>
-            <p className="text-sm text-text mt-1">How much did you experience <strong>{label}</strong>?</p>
-          </div>
-          <Button variant="text" size="sm" onClick={() => setEditing(true)}>Edit</Button>
-        </div>
-      </Card>
+      <SettingRow
+        eyebrow="Daily rating"
+        right={
+          <button
+            onClick={() => setEditing(true)}
+            className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted hover:text-text"
+          >
+            Edit
+          </button>
+        }
+      >
+        <p className="text-[15px] text-text">
+          How much did you experience{' '}
+          <em className="font-display not-italic text-[16px]">&ldquo;{label}&rdquo;</em>?
+        </p>
+      </SettingRow>
     );
   }
 
   return (
-    <Card>
-      <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Daily Rating</h3>
-      <p className="text-xs text-text-muted mb-2">What do you want to rate each day? This will appear in your reflection.</p>
-      <Input
+    <SettingRow eyebrow="Daily rating">
+      <p className="text-[13px] text-text-muted mb-3 reflection-text">
+        What do you want to rate each day? This will appear in your evening reflection.
+      </p>
+      <input
         value={label}
         onChange={e => setLabel(e.target.value)}
-        placeholder="e.g., inner peace, confidence, joy"
+        placeholder="inner peace, confidence, joy…"
+        className="w-full bg-transparent border-0 border-b border-border focus:border-[var(--color-accent)] py-1 text-[15px] text-text outline-none transition-colors"
       />
-      <p className="text-xs text-text/30 mt-1 mb-3">Preview: &quot;How much did you experience <strong>{label}</strong> today?&quot;</p>
-      <div className="flex gap-2">
-        <Button variant="text" size="sm" onClick={() => { setLabel(initialLabel); setEditing(false); }}>Cancel</Button>
-        <Button size="sm" onClick={handleSave} disabled={saving || !label.trim()}>
-          {saving ? 'Saving...' : 'Save'}
-        </Button>
+      <p className="text-[12px] text-text-muted mt-2 italic reflection-text">
+        Preview: &ldquo;How much did you experience <strong className="font-display not-italic">{label}</strong> today?&rdquo;
+      </p>
+      <div className="flex gap-4 mt-4">
+        <button
+          onClick={() => { setLabel(initialLabel); setEditing(false); }}
+          className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted hover:text-text"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saving || !label.trim()}
+          className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent)] disabled:opacity-40"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
       </div>
-    </Card>
+    </SettingRow>
   );
 }

@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Card from '@/components/ui/Card';
 import NudgeSettings, { DEFAULT_NUDGES, NudgeState } from './NudgeSettings';
 
 const STORAGE_KEY = 'wtd_nudges_v1';
 
+// ZHD: no card wrapper — NudgeSettings already renders its own hairline
+// rows and eyebrow. Just host the state and drop it into the settings
+// section flow.
 export default function NudgeSettingsCard() {
   const [nudges, setNudges] = useState<NudgeState | null>(null);
 
@@ -24,9 +26,5 @@ export default function NudgeSettingsCard() {
   };
 
   if (!nudges) return null;
-  return (
-    <Card>
-      <NudgeSettings nudges={nudges} onChange={update} />
-    </Card>
-  );
+  return <NudgeSettings nudges={nudges} onChange={update} />;
 }

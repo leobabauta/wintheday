@@ -4,16 +4,19 @@ interface BadgeProps {
   className?: string;
 }
 
+// ZHD badges — hairline ring pills, mono-caps labels. No filled blocks.
 const variants = {
-  default: 'bg-surface text-text-secondary',
-  success: 'bg-green-100 text-green-700',
-  warning: 'bg-amber-100 text-amber-700',
-  active: 'bg-text text-white',
+  default: 'border-border text-text-muted',
+  success: 'border-[var(--color-success)] text-[var(--color-success)]',
+  warning: 'border-[var(--color-warning)] text-[var(--color-warning)]',
+  active:  'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-light)]',
 };
 
 export default function Badge({ children, variant = 'default', className = '' }: BadgeProps) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium ${variants[variant]} ${className}`}>
+    <span
+      className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full border font-mono text-[10px] uppercase tracking-[0.12em] ${variants[variant]} ${className}`}
+    >
       {children}
     </span>
   );

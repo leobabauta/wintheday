@@ -2,14 +2,18 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
 }
 
+// ZHD input: underline-only field. No rounded boxes, no filled background.
+// Label (when present) renders as a mono-caps eyebrow above the field.
 export default function Input({ label, className = '', ...props }: InputProps) {
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-sm font-medium text-text-secondary">{label}</label>
+        <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted">
+          {label}
+        </label>
       )}
       <input
-        className={`rounded-[12px] border border-border bg-bg px-4 py-2.5 text-text outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors ${className}`}
+        className={`bg-transparent border-0 border-b border-border focus:border-[var(--color-accent)] py-1 text-[15px] text-text outline-none transition-colors ${className}`}
         {...props}
       />
     </div>

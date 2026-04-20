@@ -2,10 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Card from '@/components/ui/Card';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import Badge from '@/components/ui/Badge';
 
 interface Commitment {
   id: number;
@@ -29,6 +25,11 @@ interface Props {
   initialCommitments: Commitment[];
   userId?: number; // Set when coach is editing for a client
 }
+
+// ZHD CommitmentEditor — no Card boxes, no black-pill day markers, no Badge.
+// Hairline separators between items, mono-caps eyebrows, accent underline
+// links for Edit/Remove, ring-style day pills (outline by default, accent
+// fill when active). Fits inside the /settings "Your wins" section.
 
 export default function CommitmentEditor({ initialCommitments, userId }: Props) {
   const router = useRouter();
@@ -56,7 +57,6 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
 
   const handleSave = async () => {
     if (!form.title.trim() || form.days.length === 0) return;
-
     const body: Record<string, unknown> = {
       title: form.title,
       type: form.type,
@@ -73,7 +73,9 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
       });
       setCommitments(prev =>
         prev.map(c =>
-          c.id === editing ? { ...c, title: form.title, days_of_week: JSON.stringify(form.days) } : c
+          c.id === editing
+            ? { ...c, title: form.title, days_of_week: JSON.stringify(form.days) }
+            : c
         )
       );
     } else {
@@ -85,7 +87,13 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
       const data = await res.json();
       setCommitments(prev => [
         ...prev,
-        { id: data.id, title: form.title, type: form.type, days_of_week: JSON.stringify(form.days), active: 1 },
+        {
+          id: data.id,
+          title: form.title,
+          type: form.type,
+          days_of_week: JSON.stringify(form.days),
+          active: 1,
+        },
       ]);
     }
     resetForm();
@@ -95,13 +103,12 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
   const handleDeactivate = async (id: number) => {
     const body: Record<string, unknown> = { id, active: false };
     if (userId) body.userId = userId;
-
     await fetch('/api/commitments', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    setCommitments(prev => prev.map(c => c.id === id ? { ...c, active: 0 } : c));
+    setCommitments(prev => prev.map(c => (c.id === id ? { ...c, active: 0 } : c)));
     router.refresh();
   };
 
@@ -115,41 +122,70 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
     });
   };
 
-  const renderList = (items: Commitment[], label: string) => (
-    <Card className="mb-4">
-      <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">{label}</h2>
+  // Static day pill — shows which days a commitment runs on.
+  const DayPill = ({ on, children }: { on: boolean; children: React.ReactNode }) => (
+    <span
+      className={`w-6 h-6 inline-flex items-center justify-center rounded-full font-mono text-[10px] uppercase tracking-[0.05em] ${
+        on
+          ? 'border border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-light)]'
+          : 'border border-border text-text-muted'
+      }`}
+    >
+      {children}
+    </span>
+  );
+
+  // Interactive day toggle — for the add/edit form.
+  const DayToggle = ({ on, children, ...rest }: { on: boolean; children: React.ReactNode } & React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button
+      {...rest}
+      type="button"
+      className={`w-9 h-9 inline-flex items-center justify-center rounded-full font-mono text-[11px] uppercase tracking-[0.05em] transition-colors ${
+        on
+          ? 'bg-[var(--color-accent)] text-bg border border-[var(--color-accent)]'
+          : 'border border-border text-text-muted hover:text-text hover:border-text-muted'
+      }`}
+    >
+      {children}
+    </button>
+  );
+
+  const renderList = (items: Commitment[], eyebrow: string) => (
+    <div className="mb-8">
+      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-text-muted mb-2">
+        {eyebrow}
+      </p>
       {items.length === 0 ? (
-        <p className="text-sm text-text-muted">None yet</p>
+        <p className="text-[13px] text-text-muted italic reflection-text py-3 border-t border-border">
+          None yet
+        </p>
       ) : (
-        <div className="space-y-3">
+        <div>
           {items.map(c => {
             const days: string[] = JSON.parse(c.days_of_week);
             return (
-              <div key={c.id} className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-sm font-medium text-text">{c.title}</p>
-                  <div className="flex gap-1 mt-1">
+              <div
+                key={c.id}
+                className="flex items-start justify-between gap-3 py-4 border-t border-border"
+              >
+                <div className="min-w-0">
+                  <p className="text-[15px] text-text">{c.title}</p>
+                  <div className="flex gap-1 mt-2">
                     {DAYS.map(d => (
-                      <Badge
-                        key={d.key}
-                        variant={days.includes(d.key) ? 'active' : 'default'}
-                        className="w-6 h-6 justify-center text-[10px]"
-                      >
-                        {d.label}
-                      </Badge>
+                      <DayPill key={d.key} on={days.includes(d.key)}>{d.label}</DayPill>
                     ))}
                   </div>
                 </div>
-                <div className="flex gap-1 shrink-0">
+                <div className="flex gap-4 shrink-0 pt-[3px]">
                   <button
                     onClick={() => startEdit(c)}
-                    className="text-xs text-text-muted hover:text-text px-2 py-1"
+                    className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted hover:text-text"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDeactivate(c.id)}
-                    className="text-xs text-destructive/50 hover:text-destructive px-2 py-1"
+                    className="font-mono text-[10px] uppercase tracking-[0.18em] text-destructive/60 hover:text-destructive"
                   >
                     Remove
                   </button>
@@ -159,7 +195,7 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
           })}
         </div>
       )}
-    </Card>
+    </div>
   );
 
   return (
@@ -168,66 +204,89 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
       {renderList(activePractices, 'Practices')}
 
       {adding ? (
-        <Card className="mb-4">
-          <h3 className="text-sm font-semibold text-text mb-4">
-            {editing ? 'Edit' : 'Add'} Win
-          </h3>
-          <div className="space-y-4">
-            <Input
-              label="What are you committed to?"
-              value={form.title}
-              onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
-              placeholder="e.g., Morning meditation (10 min)"
-            />
+        <div className="border-t border-border pt-5 mt-2">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-text-muted mb-4">
+            {editing ? 'Edit win' : 'Add a win'}
+          </p>
+          <div className="space-y-5">
             <div>
-              <label className="text-sm font-medium text-text-secondary block mb-1.5">Type</label>
+              <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted block mb-2">
+                What are you committed to?
+              </label>
+              <input
+                value={form.title}
+                onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="e.g., Morning meditation (10 min)"
+                className="w-full bg-transparent border-0 border-b border-border focus:border-[var(--color-accent)] py-1 text-[15px] text-text outline-none transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted block mb-2">
+                Type
+              </label>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setForm(prev => ({ ...prev, type: 'commitment' }))}
-                  className={`px-4 py-2 rounded-[12px] text-sm font-medium transition-colors ${
-                    form.type === 'commitment' ? 'bg-text text-white' : 'bg-surface text-text-secondary'
-                  }`}
-                >
-                  Commitment
-                </button>
-                <button
-                  onClick={() => setForm(prev => ({ ...prev, type: 'practice' }))}
-                  className={`px-4 py-2 rounded-[12px] text-sm font-medium transition-colors ${
-                    form.type === 'practice' ? 'bg-text text-white' : 'bg-surface text-text-secondary'
-                  }`}
-                >
-                  Practice
-                </button>
+                {(['commitment', 'practice'] as const).map(t => {
+                  const on = form.type === t;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, type: t }))}
+                      className={`px-4 py-1.5 rounded-full font-mono text-[11px] uppercase tracking-[0.14em] transition-colors border ${
+                        on
+                          ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-light)]'
+                          : 'border-border text-text-muted hover:text-text hover:border-text-muted'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  );
+                })}
               </div>
             </div>
+
             <div>
-              <label className="text-sm font-medium text-text-secondary block mb-1.5">Days</label>
+              <label className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted block mb-2">
+                Days
+              </label>
               <div className="flex gap-2">
                 {DAYS.map(d => (
-                  <button
+                  <DayToggle
                     key={d.key}
+                    on={form.days.includes(d.key)}
                     onClick={() => toggleDay(d.key)}
-                    className={`w-9 h-9 rounded-[12px] text-sm font-medium transition-colors ${
-                      form.days.includes(d.key) ? 'bg-text text-white' : 'bg-surface text-text-secondary'
-                    }`}
                   >
                     {d.label}
-                  </button>
+                  </DayToggle>
                 ))}
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleSave} size="sm" disabled={!form.title.trim() || form.days.length === 0}>
+
+            <div className="flex gap-5 pt-1">
+              <button
+                onClick={resetForm}
+                className="font-mono text-[10px] uppercase tracking-[0.22em] text-text-muted hover:text-text"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={!form.title.trim() || form.days.length === 0}
+                className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--color-accent)] disabled:opacity-40"
+              >
                 {editing ? 'Update' : 'Add'}
-              </Button>
-              <Button onClick={resetForm} variant="text" size="sm">Cancel</Button>
+              </button>
             </div>
           </div>
-        </Card>
+        </div>
       ) : (
-        <Button onClick={() => setAdding(true)} className="w-full">
-          + Add Win
-        </Button>
+        <button
+          onClick={() => setAdding(true)}
+          className="w-full mt-2 py-3 border-t border-border font-mono text-[11px] uppercase tracking-[0.22em] text-text-muted hover:text-[var(--color-accent)] text-left transition-colors"
+        >
+          + Add a win
+        </button>
       )}
     </div>
   );
