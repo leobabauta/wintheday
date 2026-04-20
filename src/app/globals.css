@@ -34,10 +34,13 @@
 
   --color-success: #4A7C6F;
 
-  /* Fonts — ZHD uses IBM Plex Mono, not JetBrains */
-  --font-display: var(--font-fraunces), Georgia, serif;
-  --font-body: var(--font-jost), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-plex), ui-monospace, monospace;
+  /* Fonts — reference the next/font family names directly.
+   * Using var(--font-fraunces) here would fail at :root (where @theme is
+   * resolved) because next/font defines those vars on <body>, not :root —
+   * the whole declaration goes invalid and font-family falls back to Times. */
+  --font-display: "Fraunces", "Fraunces Fallback", Georgia, serif;
+  --font-body: "Jost", "Jost Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "IBM Plex Mono Fallback", ui-monospace, monospace;
 
   /* Radii */
   --radius-sm: 8px;
