@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <mask id="cutRight">
+      <rect width="1024" height="1024" fill="white"/>
+      <circle cx="632" cy="512" r="168" fill="black"/>
+    </mask>
+    <mask id="cutLeft">
+      <rect width="1024" height="1024" fill="white"/>
+      <circle cx="392" cy="512" r="168" fill="black"/>
+    </mask>
+  </defs>
+  <rect width="1024" height="1024" fill="#FCFBF9"/>
+  <circle cx="392" cy="512" r="168" fill="#B5705A" mask="url(#cutRight)"/>
+  <circle cx="632" cy="512" r="168" fill="#4A7C6F" mask="url(#cutLeft)"/>
+</svg>
