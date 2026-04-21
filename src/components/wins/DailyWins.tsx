@@ -62,7 +62,9 @@ function WinRow({ c, onToggle }: { c: Commitment; onToggle: (id: string) => void
   );
 }
 
-const CARD = 'rounded-[14px] border border-border bg-bg px-[22px] py-[14px] mb-3';
+const CARD = 'rounded-[14px] border border-border px-[22px] py-[14px] mb-3';
+const CARD_BG = 'bg-bg';
+const CARD_BG_WIN = 'bg-[var(--color-accent-light)]';
 
 export default function DailyWins({
   userName, commitments, reflection, onToggle, onAddCommitment, onOpenReflection, rating = 'inner peace',
@@ -102,7 +104,7 @@ export default function DailyWins({
       <NextSessionCard />
 
       {/* Progress card */}
-      <div className={CARD}>
+      <div className={`${CARD} ${allDone ? CARD_BG_WIN : CARD_BG}`}>
         <div className="flex items-baseline justify-between mb-[10px]">
           <MutedMono>Today&apos;s wins</MutedMono>
           <span className="font-mono text-[10px] tracking-[0.04em] text-text-muted">
@@ -124,7 +126,7 @@ export default function DailyWins({
 
       {/* Commitments card */}
       {commits.length > 0 && (
-        <div className={CARD}>
+        <div className={`${CARD} ${CARD_BG}`}>
           <MutedMono className="block mb-[6px]">Commitments</MutedMono>
           <div>
             {commits.map(c => <WinRow key={c.id} c={c} onToggle={onToggle} />)}
@@ -166,7 +168,7 @@ export default function DailyWins({
 
       {/* Practice card */}
       {practices.length > 0 && (
-        <div className={CARD}>
+        <div className={`${CARD} ${CARD_BG}`}>
           <MutedMono className="block mb-[6px]">Practice</MutedMono>
           <div>
             {practices.map(c => <WinRow key={c.id} c={c} onToggle={onToggle} />)}
@@ -177,7 +179,7 @@ export default function DailyWins({
       {/* Reflection prompt card */}
       <button
         onClick={onOpenReflection}
-        className={`${CARD} w-full text-left block hover:bg-surface/40 transition-colors`}
+        className={`${CARD} ${CARD_BG} w-full text-left block hover:bg-surface/40 transition-colors`}
       >
         <MutedMono className="block mb-[6px]">
           Daily reflection · {rating.toLowerCase()}
