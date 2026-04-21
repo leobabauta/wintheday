@@ -101,7 +101,7 @@ export default function ClientShell({ unreadCount = 0, userName, children }: Pro
     <div className="min-h-dvh bg-bg">
       <DesktopTopNav pathname={pathname} userName={userName} unreadCount={unreadCount} />
 
-      <main className={`w-full mx-auto px-6 md:px-10 pt-10 md:pt-12 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-20 ${contentMax}`}>
+      <main className={`w-full mx-auto px-6 md:px-10 pt-[calc(2.5rem+env(safe-area-inset-top))] md:pt-12 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-20 ${contentMax}`}>
         {children}
       </main>
 

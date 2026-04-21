@@ -22,6 +22,22 @@ function getLocalDate(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function extractReflectionPreview(content: unknown): string {
+  if (typeof content !== 'string' || !content.trim()) return '';
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed && typeof parsed === 'object') {
+      const keys = ['well', 'challenge', 'learn', 'tomorrow'] as const;
+      for (const k of keys) {
+        const v = (parsed as Record<string, unknown>)[k];
+        if (typeof v === 'string' && v.trim()) return v.trim();
+      }
+      return '';
+    }
+  } catch {}
+  return content.trim();
+}
+
 export default function TodayClient({ userName, ratingLabel }: Props) {
   const [date] = useState(getLocalDate);
   const [wins, setWins] = useState<WinItem[] | null>(null);
@@ -38,7 +54,7 @@ export default function TodayClient({ userName, ratingLabel }: Props) {
       const winsData = await winsRes.json();
       const journalData = await journalRes.json();
       setWins(winsData);
-      setReflection(journalData?.content || '');
+      setReflection(extractReflectionPreview(journalData?.content));
       setRating(journalData?.rating ? Number(journalData.rating) : 0);
     }
     load();

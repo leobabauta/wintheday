@@ -55,7 +55,7 @@ export default function MessageThread({ coachName, coachInitials, messages, onSe
   const groups = groupByDate(messages);
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-4rem)] sm:h-full -mx-6 -my-10">
+    <div className="flex flex-col h-[calc(100dvh-4.75rem-max(env(safe-area-inset-bottom),16px))] sm:h-full -mx-6 -mt-10 sm:-my-10">
       <div className="px-6 py-4 border-b border-border flex items-center gap-3">
         <div className="w-9 h-9 rounded-full bg-accent-light text-accent flex items-center justify-center text-[13px]">
           {coachInitials}
