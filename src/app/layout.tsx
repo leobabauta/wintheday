@@ -37,14 +37,31 @@ export const viewport = {
   viewportFit: "cover" as const,
 };
 
+// Runs before first paint so theme + accent are applied without flash.
+// Placed inline in <head> and targets documentElement so CSS vars cascade
+// to html and body (keeps iOS rubber-band scroll matching the theme).
+const prePaint = `
+try {
+  var t = localStorage.getItem('wtd.theme') || 'light';
+  var a = localStorage.getItem('wtd.accent') || 'clay';
+  var resolved = t === 'auto'
+    ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    : t;
+  document.documentElement.dataset.theme = resolved;
+  document.documentElement.dataset.accent = a;
+} catch (e) {}
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-accent="clay" data-theme="light">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: prePaint }} />
+      </head>
       <body
         className={`${fraunces.variable} ${jost.variable} ${plex.variable} antialiased`}
-        data-accent="clay"
       >
         {children}
       </body>

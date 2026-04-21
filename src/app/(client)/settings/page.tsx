@@ -9,6 +9,7 @@ import EmailSetting from '@/components/layout/EmailSetting';
 import RatingLabelSetting from '@/components/layout/RatingLabelSetting';
 import PasswordSetting from '@/components/layout/PasswordSetting';
 import NudgeSettingsCard from '@/components/layout/NudgeSettingsCard';
+import AppearanceSettings from '@/components/layout/AppearanceSettings';
 import LogoutButton from '@/components/layout/LogoutButton';
 import MutedMono from '@/components/ui/MutedMono';
 
@@ -70,6 +71,12 @@ export default async function SettingsPage() {
       <section className="mb-10">
         <h2 className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted mb-4">Nudges</h2>
         <NudgeSettingsCard />
+      </section>
+
+      {/* Appearance */}
+      <section className="mb-10">
+        <h2 className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted mb-4">Appearance</h2>
+        <AppearanceSettings />
       </section>
 
       {/* Sign out */}

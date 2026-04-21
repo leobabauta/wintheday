@@ -63,6 +63,75 @@
   --color-accent-dark: #002459;
 }
 
+/* Dark mode — warm near-black (not cold #000), hairlines stay visible,
+ * accents gain luminance so they read without shouting. Applied on <html>
+ * so vars cascade to html+body and the root bg tracks the theme (otherwise
+ * iOS rubber-band scroll exposes a light gap). */
+[data-theme="dark"] {
+  --color-bg: #15130F;
+  --color-surface: #1C1915;
+  --color-surface-hover: #252019;
+
+  --color-text: #F0ECE5;
+  --color-text-secondary: #A8A39D;
+  --color-text-muted: #6B6560;
+
+  --color-border: #2A2622;
+  --color-border-strong: #3A3632;
+
+  --color-accent: #D9967E;
+  --color-accent-light: #2E201B;
+  --color-accent-dark: #B5705A;
+
+  --color-destructive: #C97060;
+  --color-destructive-light: #3A2420;
+
+  --color-success: #8EB5A8;
+}
+[data-theme="dark"][data-accent="sage"],
+[data-theme="dark"] [data-accent="sage"] {
+  --color-accent: #8EB5A8;
+  --color-accent-light: #1F2E2A;
+  --color-accent-dark: #4A7C6F;
+}
+[data-theme="dark"][data-accent="cobalt"],
+[data-theme="dark"] [data-accent="cobalt"] {
+  --color-accent: #7B9DD4;
+  --color-accent-light: #1A2236;
+  --color-accent-dark: #003175;
+}
+
+/* Filled-button / filled-pill text flips on dark so lighter accents
+ * still have legible contrast against their own background. */
+[data-theme="dark"] .btn-filled,
+[data-theme="dark"] .day-pill.on {
+  color: #15130F;
+}
+
+/* Soften elevation shadows on dark — crisp shadows read as halos. */
+[data-theme="dark"] .card,
+[data-theme="dark"] .mobile-frame,
+[data-theme="dark"] .desktop-frame {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35),
+              0 24px 60px -20px rgba(0, 0, 0, 0.55);
+}
+
+/* Welcome-back splash — neutral-dark with a barely-there mark */
+[data-theme="dark"] .splash {
+  background: #1A1713;
+}
+[data-theme="dark"] .splash-mark {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Desktop body bg (area around the centered content) */
+@media (min-width: 900px) {
+  [data-theme="dark"] .app-desktop {
+    background: #15130F;
+  }
+}
+
 html, body {
   background: var(--color-bg);
   color: var(--color-text);
