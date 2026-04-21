@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import MutedMono from '@/components/ui/MutedMono';
+import Avatar from '@/components/ui/Avatar';
 
 interface ClientInfoData {
   name: string;
   email: string;
+  avatar_url: string | null;
   sign_on_date: string;
   closing_date: string | null;
   coaching_day: string;
@@ -21,24 +23,54 @@ interface ClientInfoData {
   rating_label: string;
 }
 
+// Resize to a 200×200 JPEG data URL so avatars stay small enough to live
+// inline in the users table without introducing a storage backend.
+async function fileToResizedDataUrl(file: File, size = 200): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  // Center-crop to square
+  const srcSize = Math.min(bitmap.width, bitmap.height);
+  const sx = (bitmap.width - srcSize) / 2;
+  const sy = (bitmap.height - srcSize) / 2;
+  ctx.drawImage(bitmap, sx, sy, srcSize, srcSize, 0, 0, size, size);
+  return canvas.toDataURL('image/jpeg', 0.85);
+}
+
 export default function ClientInfoEditor({ clientId, data }: { clientId: number; data: ClientInfoData }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(data);
   const [newPassword, setNewPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const formatDate = (d: string | null) =>
     d ? new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await fileToResizedDataUrl(file);
+      setForm({ ...form, avatar_url: dataUrl });
+    } catch (err) {
+      console.error('Failed to read image:', err);
+      alert('Could not read that image. Try a different file.');
+    }
+    e.target.value = '';
+  };
+
   const handleSave = async () => {
     setSaving(true);
-    if (form.name !== data.name || form.email !== data.email) {
+    if (form.name !== data.name || form.email !== data.email || form.avatar_url !== data.avatar_url) {
       await fetch(`/api/clients/${clientId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name, email: form.email }),
+        body: JSON.stringify({ name: form.name, email: form.email, avatar_url: form.avatar_url }),
       });
     }
     await fetch(`/api/clients/${clientId}`, {
@@ -77,15 +109,14 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
           <MutedMono>Client Info</MutedMono>
           <Button variant="text" size="sm" onClick={() => setEditing(true)}>Edit</Button>
         </div>
+        <div className="flex items-center gap-3 mb-4">
+          <Avatar name={data.name} avatarUrl={data.avatar_url} size={52} textSize={16} />
+          <div>
+            <div className="text-[15px] text-text">{data.name}</div>
+            <div className="text-[12px] text-text-muted">{data.email}</div>
+          </div>
+        </div>
         <div className="space-y-2 text-[13px]">
-          <div className="flex justify-between">
-            <span className="text-text-secondary">Name</span>
-            <span className="text-text">{data.name}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-text-secondary">Email</span>
-            <span className="text-text">{data.email}</span>
-          </div>
           <div className="flex justify-between">
             <span className="text-text-secondary">Sign-on Date</span>
             <span className="text-text">{formatDate(data.sign_on_date)}</span>
@@ -127,6 +158,29 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
     <Card>
       <MutedMono className="block mb-4">Edit Client Info</MutedMono>
       <div className="space-y-3">
+        <div className="flex items-center gap-4 pb-3 border-b border-border">
+          <Avatar name={form.name} avatarUrl={form.avatar_url} size={56} textSize={18} />
+          <div className="flex flex-col gap-1.5">
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                {form.avatar_url ? 'Change photo' : 'Upload photo'}
+              </Button>
+              {form.avatar_url && (
+                <Button variant="text" size="sm" onClick={() => setForm({ ...form, avatar_url: null })}>
+                  Remove
+                </Button>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <p className="text-[11px] text-text-muted">Stored at 200×200 JPEG.</p>
+          </div>
+        </div>
         <Input label="Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
         <Input label="Email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
         <Input label="Sign-on Date" type="date" value={form.sign_on_date || ''} onChange={e => setForm({ ...form, sign_on_date: e.target.value })} />

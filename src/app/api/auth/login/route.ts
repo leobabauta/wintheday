@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryOne } from '@/lib/db';
+import { execute, queryOne } from '@/lib/db';
 import { verifyPassword, createSessionToken } from '@/lib/auth';
 import { COOKIE_NAME } from '@/lib/config';
 
@@ -21,6 +21,8 @@ export async function POST(request: NextRequest) {
     }
 
     const token = createSessionToken(user.id, user.role);
+
+    await execute('UPDATE users SET last_active_at = NOW() WHERE id = $1', [user.id]);
 
     const response = NextResponse.json({
       ok: true,

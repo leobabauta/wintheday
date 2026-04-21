@@ -69,6 +69,11 @@ export async function PUT(
       await execute('UPDATE users SET email = $1 WHERE id = $2', [body.email, clientId]);
     }
 
+    // Update avatar if provided (null clears, data URL sets)
+    if (body.avatar_url !== undefined) {
+      await execute('UPDATE users SET avatar_url = $1 WHERE id = $2', [body.avatar_url, clientId]);
+    }
+
     const fields = ['sign_on_date', 'closing_date', 'coaching_day', 'coaching_time', 'coaching_frequency', 'payment_amount', 'payment_frequency', 'renewal_day'];
     for (const field of fields) {
       if (body[field] !== undefined) {

@@ -7,10 +7,6 @@ import Button from '@/components/ui/Button';
 import MutedMono from '@/components/ui/MutedMono';
 import ClientTable from '@/components/coach/ClientTable';
 
-function initialsOf(name: string) {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
-}
-
 function statusFor(ratio: number): 'on-track' | 'steady' | 'struggling' {
   if (ratio >= 0.8) return 'on-track';
   if (ratio >= 0.5) return 'steady';
@@ -28,12 +24,40 @@ function lastEntryLabel(dateStr: string | null, today: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+function lastActiveLabel(iso: string | null): string {
+  if (!iso) return '—';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const min = Math.round(diffMs / 60000);
+  if (min < 2) return 'Just now';
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const days = Math.round(hr / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function daysUntilClose(closing: string | null): number | null {
+  if (!closing) return null;
+  const d = new Date(closing + 'T12:00:00');
+  if (isNaN(d.getTime())) return null;
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  return Math.round((d.getTime() - today.getTime()) / 86400000);
+}
+
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session || session.role !== 'coach') redirect('/login');
 
-  const clients = await query<{ id: number; name: string }>(
-    `SELECT u.id, u.name
+  const clients = await query<{
+    id: number;
+    name: string;
+    avatar_url: string | null;
+    last_active_at: string | null;
+    closing_date: string | null;
+  }>(
+    `SELECT u.id, u.name, u.avatar_url, u.last_active_at, ci.closing_date
      FROM users u
      JOIN client_info ci ON ci.user_id = u.id
      WHERE ci.coach_id = $1
@@ -82,17 +106,20 @@ export default async function DashboardPage() {
 
     const ratio = total7 > 0 ? done7 / total7 : 0;
 
+    const daysLeft = daysUntilClose(client.closing_date);
     return {
       id: String(client.id),
       name: client.name,
-      initials: initialsOf(client.name),
+      avatarUrl: client.avatar_url,
       status: statusFor(ratio),
       streak,
       commitmentsDone7: done7,
       commitmentsTotal7: Math.max(total7, 1),
       lastEntry: lastEntryLabel(lastEntry?.date || null, today),
+      lastActive: lastActiveLabel(client.last_active_at),
       rating14,
       openNeeds: unreadCount > 0 ? 'message' as const : null,
+      endingSoon: daysLeft !== null && daysLeft >= 0 && daysLeft <= 30,
     };
   }));
 

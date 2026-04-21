@@ -59,7 +59,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     [clientId]
   );
 
-  const user = await queryOne<{ id: number; name: string; email: string; created_at: string }>(
+  const user = await queryOne<{ id: number; name: string; email: string; avatar_url: string | null; created_at: string }>(
     'SELECT * FROM users WHERE id = $1',
     [clientId]
   );
@@ -117,6 +117,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           data={{
             name: user!.name,
             email: user!.email,
+            avatar_url: user!.avatar_url,
             sign_on_date: clientInfo.sign_on_date,
             closing_date: clientInfo.closing_date,
             coaching_day: clientInfo.coaching_day,
@@ -266,6 +267,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             coachUserId={session.userId}
             clientUserId={clientId}
             clientName={user!.name}
+            clientAvatarUrl={user!.avatar_url}
           />
         </div>
 

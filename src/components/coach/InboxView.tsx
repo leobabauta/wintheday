@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { useState } from 'react';
 import Button from '@/components/ui/Button';
 import MutedMono from '@/components/ui/MutedMono';
+import Avatar from '@/components/ui/Avatar';
 
 interface InboxItem {
   id: string;
   clientId: string;
   clientName: string;
-  clientInitials: string;
+  clientAvatarUrl?: string | null;
   kind: 'reflection' | 'message' | 'quiet';
   at: string;
   preview: string;
@@ -46,9 +47,7 @@ export default function InboxView({ items, onMarkAttended }: Props) {
         </div>
       ) : visible.map(it => (
         <div key={it.id} className="grid grid-cols-[44px_1fr_auto] gap-4 py-6 border-b border-border items-start">
-          <div className="w-11 h-11 rounded-full bg-accent-light text-accent flex items-center justify-center text-[12px]">
-            {it.clientInitials}
-          </div>
+          <Avatar name={it.clientName} avatarUrl={it.clientAvatarUrl} size={44} textSize={12} />
           <div>
             <div className="flex items-baseline gap-2.5 mb-1">
               <Link href={`/dashboard/clients/${it.clientId}`} className="text-[15px] text-text">

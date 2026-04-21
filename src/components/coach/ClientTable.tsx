@@ -1,24 +1,20 @@
 import Link from 'next/link';
 import MutedMono from '@/components/ui/MutedMono';
-
-interface DayStats {
-  date: string;
-  commitmentsWon: number;
-  commitmentsTotal: number;
-  rating: number; // 0-5 (0 = none)
-}
+import Avatar from '@/components/ui/Avatar';
 
 interface Client {
   id: string;
   name: string;
-  initials: string;
+  avatarUrl?: string | null;
   status: 'on-track' | 'steady' | 'struggling';
   streak: number;
   commitmentsDone7: number;
   commitmentsTotal7: number;
   lastEntry: string;
+  lastActive: string;
   rating14: number[];
   openNeeds?: 'reflection' | 'message' | 'nudge' | null;
+  endingSoon?: boolean;
 }
 
 interface Props {
@@ -36,6 +32,8 @@ const STATUS_COLOR = {
   'struggling': 'text-destructive',
 };
 
+const GRID_COLS = 'grid-cols-[1fr_110px_80px_130px_90px_100px_24px]';
+
 function Bars14({ values }: { values: number[] }) {
   return (
     <div className="flex gap-[2px] items-end h-[22px]">
@@ -51,29 +49,31 @@ function Bars14({ values }: { values: number[] }) {
 export default function ClientTable({ clients }: Props) {
   return (
     <div className="border border-border rounded-[14px] overflow-hidden">
-      <div className="grid grid-cols-[1fr_120px_100px_140px_110px_24px] gap-4 px-5 py-3 bg-surface border-b border-border">
+      <div className={`grid ${GRID_COLS} gap-4 px-5 py-3 bg-surface border-b border-border`}>
         <MutedMono>Client</MutedMono>
         <MutedMono>7-day wins</MutedMono>
         <MutedMono>Streak</MutedMono>
         <MutedMono>14-day quality</MutedMono>
         <MutedMono>Last entry</MutedMono>
+        <MutedMono>Last active</MutedMono>
         <div />
       </div>
       {clients.map(c => (
         <Link
           key={c.id}
           href={`/dashboard/clients/${c.id}`}
-          className="grid grid-cols-[1fr_120px_100px_140px_110px_24px] gap-4 px-5 py-4 items-center border-b border-border last:border-b-0 hover:bg-surface transition-colors"
+          className={`grid ${GRID_COLS} gap-4 px-5 py-4 items-center border-b border-border last:border-b-0 transition-colors ${
+            c.endingSoon ? 'bg-accent-light hover:bg-accent-light/70' : 'hover:bg-surface'
+          }`}
         >
           <div className="flex items-center gap-3.5">
-            <div className="w-9 h-9 rounded-full bg-accent-light text-accent flex items-center justify-center text-[12px] tracking-wider flex-shrink-0">
-              {c.initials}
-            </div>
+            <Avatar name={c.name} avatarUrl={c.avatarUrl} size={36} textSize={12} />
             <div>
               <div className="text-[15px] text-text">{c.name}</div>
               <MutedMono className={`mt-0.5 block ${STATUS_COLOR[c.status]}`}>
                 {STATUS_LABEL[c.status]}
                 {c.openNeeds && <span className="text-text-muted"> · {c.openNeeds === 'reflection' ? 'new reflection' : c.openNeeds === 'message' ? 'new message' : 'gone quiet'}</span>}
+                {c.endingSoon && <span className="text-accent"> · ending soon</span>}
               </MutedMono>
             </div>
           </div>
@@ -90,6 +90,7 @@ export default function ClientTable({ clients }: Props) {
           </div>
           <Bars14 values={c.rating14} />
           <MutedMono>{c.lastEntry}</MutedMono>
+          <MutedMono>{c.lastActive}</MutedMono>
           <svg width="10" height="10" viewBox="0 0 10 10" className="text-text-muted">
             <path d="M3 1L7 5L3 9" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
           </svg>

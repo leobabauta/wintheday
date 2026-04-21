@@ -8,7 +8,7 @@ interface InboxItem {
   id: string;
   clientId: string;
   clientName: string;
-  clientInitials: string;
+  clientAvatarUrl?: string | null;
   kind: 'reflection' | 'message' | 'quiet';
   at: string;
   preview: string;

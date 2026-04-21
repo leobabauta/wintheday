@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import MutedMono from '@/components/ui/MutedMono';
+import Avatar from '@/components/ui/Avatar';
 
 interface DbRow {
   id: number;
@@ -17,6 +18,7 @@ interface Props {
   coachUserId: number;
   clientUserId: number;
   clientName: string;
+  clientAvatarUrl?: string | null;
 }
 
 interface UiMessage {
@@ -25,10 +27,6 @@ interface UiMessage {
   text: string;
   date: string;
   time: string;
-}
-
-function initialsOf(name: string) {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
 }
 
 function toParts(iso: string) {
@@ -52,7 +50,7 @@ function dateLabel(iso: string, today: string) {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).toUpperCase();
 }
 
-export default function MessageThreadCoach({ initial, coachUserId, clientUserId, clientName }: Props) {
+export default function MessageThreadCoach({ initial, coachUserId, clientUserId, clientName, clientAvatarUrl }: Props) {
   const [rows, setRows] = useState<DbRow[]>([...initial].reverse());
   const [draft, setDraft] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
@@ -135,9 +133,7 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
   return (
     <div className="border border-border rounded-[14px] overflow-hidden flex flex-col max-h-[600px]">
       <div className="px-5 py-3 border-b border-border flex items-center gap-3 bg-surface">
-        <div className="w-9 h-9 rounded-full bg-accent-light text-accent flex items-center justify-center text-[13px]">
-          {initialsOf(clientName)}
-        </div>
+        <Avatar name={clientName} avatarUrl={clientAvatarUrl} size={36} textSize={13} />
         <div>
           <MutedMono>Conversation</MutedMono>
           <div className="text-[14px]">{clientName}</div>
