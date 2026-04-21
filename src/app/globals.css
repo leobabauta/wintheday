@@ -4,6 +4,8 @@
  * so stale utility usages there don't leak back into production CSS. */
 @source not "./handoff/**/*";
 @source not "./patch-*/**/*";
+@source not "./ios/**/*";
+@source not "./android/**/*";
 
 /* Google Fonts — loaded via next/font in layout.tsx; these are CSS vars */
 

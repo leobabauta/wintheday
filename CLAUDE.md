@@ -4,7 +4,7 @@ Coaching app for daily commitments, journaling, and client-coach communication.
 
 ## Deployment
 
-- Hosted on **Vercel** — auto-deploy from GitHub is currently broken; deploy manually with `vercel --prod --yes`
+- Hosted on **Vercel** — auto-deploys on push to `main` (GitHub App integration). Manual override: `vercel --prod --yes`.
 - Live at **https://www.wintheday.work/**
 - Supabase project ref: `tkhwiukylohjfnocjqyy`
 - Vercel Hobby plan — cron jobs limited to once daily

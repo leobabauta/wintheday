@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Win the Day</string>
+    <string name="title_activity_main">Win the Day</string>
+    <string name="package_name">work.wintheday.app</string>
+    <string name="custom_url_scheme">work.wintheday.app</string>
+</resources>
