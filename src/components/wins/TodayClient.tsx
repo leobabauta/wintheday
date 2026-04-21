@@ -125,7 +125,7 @@ export default function TodayClient({ userName, ratingLabel }: Props) {
           ratingLabel={ratingLabel}
           onClose={() => setModalOpen(false)}
           onSaved={(content, r) => {
-            setReflection(content);
+            setReflection(extractReflectionPreview(content));
             setRating(r);
             setModalOpen(false);
           }}

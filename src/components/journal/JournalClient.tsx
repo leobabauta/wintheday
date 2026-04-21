@@ -23,5 +23,13 @@ export default function JournalClient({
     router.refresh();
   };
 
-  return <JournalView entries={entries} today={today} ratingLabel={ratingLabel} onCreate={onCreate} />;
+  return (
+    <JournalView
+      entries={entries}
+      today={today}
+      ratingLabel={ratingLabel}
+      onCreate={onCreate}
+      onEdited={() => router.refresh()}
+    />
+  );
 }

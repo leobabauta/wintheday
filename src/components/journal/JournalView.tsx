@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import MutedMono from '@/components/ui/MutedMono';
+import ReflectionModal from './ReflectionModal';
 
 export type Responses = {
   well?: string;
@@ -24,6 +25,7 @@ interface Props {
   today?: string;
   ratingLabel?: string;
   onCreate?: (well: string) => Promise<void>;
+  onEdited?: () => void;
 }
 
 const PROMPTS: Array<{ key: keyof Responses; label: string }> = [
@@ -132,34 +134,46 @@ function ComposePanel({
   );
 }
 
-export default function JournalView({ entries, today, ratingLabel = 'inner peace', onCreate }: Props) {
+export default function JournalView({ entries, today, ratingLabel = 'inner peace', onCreate, onEdited }: Props) {
   const hasTodayEntry = !!today && entries.some(e => e.date === today);
   const canCompose = !!onCreate && !!today && !hasTodayEntry;
 
   // Open compose by default when no entries exist yet and today is writable.
   const [composing, setComposing] = useState(entries.length === 0 && canCompose);
   const [selectedId, setSelectedId] = useState<string | null>(entries[0]?.id ?? null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const selected = useMemo(
     () => entries.find(e => e.id === selectedId) ?? entries[0] ?? null,
     [entries, selectedId]
+  );
+  const editing = useMemo(
+    () => (editingId ? entries.find(e => e.id === editingId) ?? null : null),
+    [entries, editingId]
   );
 
   const pickEntry = (id: string) => {
     setComposing(false);
     setSelectedId(id);
   };
-  const openCompose = () => setComposing(true);
 
   return (
     <div>
       {/* Mobile: page eyebrow + h1 (weekday of selected entry) */}
       {selected && !composing && (
-        <div className="md:hidden mb-5">
-          <MutedMono>Journal · Timeline</MutedMono>
-          <h1 className="font-display text-[30px] mt-2 leading-[1.1] font-light">
-            {weekday(selected.date)}
-          </h1>
+        <div className="md:hidden mb-5 flex items-start justify-between gap-4">
+          <div>
+            <MutedMono>Journal · Timeline</MutedMono>
+            <h1 className="font-display text-[30px] mt-2 leading-[1.1] font-light">
+              {weekday(selected.date)}
+            </h1>
+          </div>
+          <button
+            onClick={() => setEditingId(selected.id)}
+            className="mt-[2px] font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted hover:text-[var(--color-accent)] transition-colors"
+          >
+            Edit
+          </button>
         </div>
       )}
 
@@ -234,12 +248,22 @@ export default function JournalView({ entries, today, ratingLabel = 'inner peace
             <article>
               {selected && (
                 <>
-                  <h2 className="hidden md:block font-display text-[28px] font-light tracking-[-0.01em] leading-[1.1] text-text">
-                    {weekday(selected.date)}
-                  </h2>
-                  <MutedMono className="hidden md:block mt-2">
-                    {longDate(selected.date)}
-                  </MutedMono>
+                  <div className="hidden md:flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="font-display text-[28px] font-light tracking-[-0.01em] leading-[1.1] text-text">
+                        {weekday(selected.date)}
+                      </h2>
+                      <MutedMono className="block mt-2">
+                        {longDate(selected.date)}
+                      </MutedMono>
+                    </div>
+                    <button
+                      onClick={() => setEditingId(selected.id)}
+                      className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted hover:text-[var(--color-accent)] transition-colors"
+                    >
+                      Edit
+                    </button>
+                  </div>
 
                   {(typeof selected.rating === 'number' ||
                     typeof selected.commitmentsWon === 'number') && (
@@ -280,6 +304,19 @@ export default function JournalView({ entries, today, ratingLabel = 'inner peace
             </article>
           )}
         </div>
+      )}
+
+      {editing && (
+        <ReflectionModal
+          date={editing.date}
+          existingReflection={JSON.stringify(editing.responses)}
+          existingRating={editing.rating ?? 0}
+          ratingLabel={ratingLabel}
+          onClose={() => setEditingId(null)}
+          onSaved={() => {
+            if (onEdited) onEdited();
+          }}
+        />
       )}
     </div>
   );
