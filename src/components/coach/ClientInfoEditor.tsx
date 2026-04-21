@@ -44,9 +44,31 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
   const [form, setForm] = useState(data);
   const [newPassword, setNewPassword] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // Persist avatar immediately — users expect photo uploads to "stick" on pick
+  // rather than waiting for a separate Save click.
+  const persistAvatar = async (avatarUrl: string | null) => {
+    setUploadingPhoto(true);
+    try {
+      const res = await fetch(`/api/clients/${clientId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_url: avatarUrl }),
+      });
+      if (!res.ok) throw new Error(`Save failed: ${res.status}`);
+      setForm((prev) => ({ ...prev, avatar_url: avatarUrl }));
+      router.refresh();
+    } catch (err) {
+      console.error('Avatar save failed:', err);
+      alert('Could not save photo. Try again.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   const formatDate = (d: string | null) =>
     d ? new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
@@ -56,7 +78,7 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
     if (!file) return;
     try {
       const dataUrl = await fileToResizedDataUrl(file);
-      setForm({ ...form, avatar_url: dataUrl });
+      await persistAvatar(dataUrl);
     } catch (err) {
       console.error('Failed to read image:', err);
       alert('Could not read that image. Try a different file.');
@@ -66,11 +88,11 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
 
   const handleSave = async () => {
     setSaving(true);
-    if (form.name !== data.name || form.email !== data.email || form.avatar_url !== data.avatar_url) {
+    if (form.name !== data.name || form.email !== data.email) {
       await fetch(`/api/clients/${clientId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name, email: form.email, avatar_url: form.avatar_url }),
+        body: JSON.stringify({ name: form.name, email: form.email }),
       });
     }
     await fetch(`/api/clients/${clientId}`, {
@@ -162,11 +184,11 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
           <Avatar name={form.name} avatarUrl={form.avatar_url} size={56} textSize={18} />
           <div className="flex flex-col gap-1.5">
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                {form.avatar_url ? 'Change photo' : 'Upload photo'}
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto}>
+                {uploadingPhoto ? 'Saving…' : form.avatar_url ? 'Change photo' : 'Upload photo'}
               </Button>
-              {form.avatar_url && (
-                <Button variant="text" size="sm" onClick={() => setForm({ ...form, avatar_url: null })}>
+              {form.avatar_url && !uploadingPhoto && (
+                <Button variant="text" size="sm" onClick={() => persistAvatar(null)}>
                   Remove
                 </Button>
               )}
@@ -178,7 +200,7 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
               onChange={handleFileChange}
               className="hidden"
             />
-            <p className="text-[11px] text-text-muted">Stored at 200×200 JPEG.</p>
+            <p className="text-[11px] text-text-muted">Saves immediately. Stored at 200×200 JPEG.</p>
           </div>
         </div>
         <Input label="Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
