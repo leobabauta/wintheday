@@ -71,7 +71,7 @@ export default function ClientNav({ unreadCount = 0 }: { unreadCount?: number })
   const pathname = usePathname();
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
-      <div className="w-full max-w-[520px] bg-bg/95 backdrop-blur border-t border-border pointer-events-auto pb-[env(safe-area-inset-bottom)]">
+      <div className="w-full max-w-[520px] bg-bg/95 backdrop-blur border-t border-border pointer-events-auto pb-[max(env(safe-area-inset-bottom),16px)]">
         <div className="flex items-stretch justify-around h-[76px] px-2">
           {tabs.map(tab => {
             const active = pathname.startsWith(tab.href);
