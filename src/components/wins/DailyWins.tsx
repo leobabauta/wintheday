@@ -62,7 +62,7 @@ function WinRow({ c, onToggle }: { c: Commitment; onToggle: (id: string) => void
   );
 }
 
-const CARD = 'rounded-[14px] border border-border bg-bg p-[22px] mb-3';
+const CARD = 'rounded-[14px] border border-border bg-bg px-[22px] py-[14px] mb-3';
 
 export default function DailyWins({
   userName, commitments, reflection, onToggle, onAddCommitment, onOpenReflection, rating = 'inner peace',
