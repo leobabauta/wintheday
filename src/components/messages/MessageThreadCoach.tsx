@@ -63,6 +63,32 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
   }, [initial]);
 
   useEffect(() => {
+    let cancelled = false;
+    const fetchMessages = async () => {
+      try {
+        const res = await fetch(`/api/messages?clientId=${clientUserId}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data: DbRow[] = await res.json();
+        if (!cancelled) setRows([...data].reverse());
+      } catch {
+        // swallow — next poll will retry
+      }
+    };
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchMessages();
+    }, 4000);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') fetchMessages();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [clientUserId]);
+
+  useEffect(() => {
     if (endRef.current) endRef.current.scrollTop = endRef.current.scrollHeight;
   }, [rows.length]);
 

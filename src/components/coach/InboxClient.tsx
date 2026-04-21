@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import InboxView from './InboxView';
+import { INBOX_REFRESH_EVENT } from '@/components/layout/InboxBadge';
 
 interface InboxItem {
   id: string;
@@ -24,6 +25,7 @@ export default function InboxClient({ items }: { items: InboxItem[] }) {
       body: JSON.stringify({ ids: [Number(id)] }),
     });
     router.refresh();
+    window.dispatchEvent(new CustomEvent(INBOX_REFRESH_EVENT));
   };
 
   return <InboxView items={items} onMarkAttended={onMarkAttended} />;
