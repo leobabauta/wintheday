@@ -153,13 +153,15 @@ export default function JournalView({ entries, today, ratingLabel = 'inner peace
 
   return (
     <div>
-      <div className="mb-8">
-        <MutedMono>Journal</MutedMono>
-        <h1 className="font-display text-[28px] mt-2 leading-[1.1]">Pages.</h1>
-        <p className="reflection-text text-text-secondary text-[15px] mt-2">
-          Each day, one small mark.
-        </p>
-      </div>
+      {/* Mobile: page eyebrow + h1 (weekday of selected entry) */}
+      {selected && !composing && (
+        <div className="md:hidden mb-5">
+          <MutedMono>Journal · Timeline</MutedMono>
+          <h1 className="font-display text-[30px] mt-2 leading-[1.1] font-light">
+            {weekday(selected.date)}
+          </h1>
+        </div>
+      )}
 
       {entries.length === 0 && !canCompose ? (
         <div className="rounded-[14px] border border-border bg-bg p-[22px]">
@@ -171,26 +173,20 @@ export default function JournalView({ entries, today, ratingLabel = 'inner peace
         <div className="md:grid md:grid-cols-[180px_1fr] md:gap-10">
           {/* Mobile: horizontal chip rail */}
           <nav className="md:hidden -mx-6 px-6 mb-6 overflow-x-auto">
-            <div className="flex gap-5 min-w-max pb-2">
-              {canCompose && (
-                <button onClick={openCompose} className="flex flex-col items-start text-left">
-                  <span className={`text-[22px] font-light leading-none tracking-[-0.01em] ${composing ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
-                    +
-                  </span>
-                  <span className={`font-mono text-[9px] tracking-[0.22em] uppercase mt-[4px] ${composing ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
-                    Today
-                  </span>
-                </button>
-              )}
+            <div className="flex gap-1 min-w-max pb-2">
               {entries.map(e => {
                 const active = !composing && selected?.id === e.id;
                 return (
                   <button
                     key={e.id}
                     onClick={() => pickEntry(e.id)}
-                    className="flex flex-col items-start text-left"
+                    className={`flex flex-col items-center text-center px-[14px] py-[8px] rounded-[10px] transition-colors ${
+                      active
+                        ? 'border border-[var(--color-accent)] bg-[var(--color-accent-light)]'
+                        : 'border border-transparent'
+                    }`}
                   >
-                    <span className={`text-[22px] font-light leading-none tracking-[-0.01em] ${active ? 'text-text' : 'text-text-muted'}`}>
+                    <span className={`text-[22px] font-light leading-none tracking-[-0.01em] ${active ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
                       {dayNum(e.date)}
                     </span>
                     <span className={`font-mono text-[9px] tracking-[0.22em] uppercase mt-[4px] ${active ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
@@ -206,24 +202,6 @@ export default function JournalView({ entries, today, ratingLabel = 'inner peace
           <nav className="hidden md:block md:sticky md:top-10 md:self-start md:max-h-[calc(100dvh-80px)] md:overflow-y-auto">
             <MutedMono className="block mb-4">All entries</MutedMono>
             <div className="flex flex-col">
-              {canCompose && (
-                <button
-                  onClick={openCompose}
-                  className="text-left py-3 border-t border-border first:border-t-0"
-                >
-                  <div className="flex items-baseline gap-[8px]">
-                    <span className={`text-[22px] font-light leading-none tracking-[-0.01em] ${composing ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
-                      +
-                    </span>
-                    <span className={`font-mono text-[10px] tracking-[0.22em] uppercase ${composing ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
-                      Today
-                    </span>
-                  </div>
-                  <span className="font-mono text-[9px] tracking-[0.22em] uppercase mt-[2px] block text-text-muted">
-                    Write a reflection
-                  </span>
-                </button>
-              )}
               {entries.map(e => {
                 const active = !composing && selected?.id === e.id;
                 return (
@@ -256,10 +234,10 @@ export default function JournalView({ entries, today, ratingLabel = 'inner peace
             <article>
               {selected && (
                 <>
-                  <h2 className="font-display text-[28px] font-light tracking-[-0.01em] leading-[1.1] text-text">
+                  <h2 className="hidden md:block font-display text-[28px] font-light tracking-[-0.01em] leading-[1.1] text-text">
                     {weekday(selected.date)}
                   </h2>
-                  <MutedMono className="block mt-2">
+                  <MutedMono className="hidden md:block mt-2">
                     {longDate(selected.date)}
                   </MutedMono>
 
