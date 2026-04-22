@@ -3,6 +3,7 @@ import { queryOne } from '@/lib/db';
 import { getUserSettings } from '@/lib/settings';
 import ClientShell from '@/components/layout/ClientShell';
 import TimezoneSync from '@/components/layout/TimezoneSync';
+import PushRegistration from '@/components/layout/PushRegistration';
 
 export default async function ClientLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -37,6 +38,7 @@ export default async function ClientLayout({ children }: { children: React.React
   return (
     <ClientShell unreadCount={unreadCount} userName={userName}>
       <TimezoneSync currentTimezone={timezone} />
+      {session && <PushRegistration />}
       {children}
     </ClientShell>
   );

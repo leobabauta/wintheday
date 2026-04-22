@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import LogoutButton from '@/components/layout/LogoutButton';
 import InboxBadge from '@/components/layout/InboxBadge';
+import PushRegistration from '@/components/layout/PushRegistration';
 
 export default function CoachLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -26,6 +27,7 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
         </div>
       </header>
       <div className="max-w-[1100px] mx-auto px-8 py-8">
+        <PushRegistration />
         {children}
       </div>
     </div>

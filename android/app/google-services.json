@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "661970332759",
+    "project_id": "win-the-day-1eab7",
+    "storage_bucket": "win-the-day-1eab7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:661970332759:android:2f08dadf0c605a2c814712",
+        "android_client_info": {
+          "package_name": "work.wintheday.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxx4ij8AHqqmssqiWhIFbT6IRJ1IZt7Ac"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
