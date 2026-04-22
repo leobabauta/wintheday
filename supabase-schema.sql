@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   role TEXT NOT NULL CHECK(role IN ('client','coach')),
   last_active_at TIMESTAMPTZ,
+  last_message_email_sent_at TIMESTAMPTZ,
   avatar_url TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );

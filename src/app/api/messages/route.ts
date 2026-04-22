@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, execute, insertReturning } from '@/lib/db';
 import { requireAuth, handleAuthError } from '@/lib/api-auth';
+import { notifyNewMessage } from '@/lib/message-notifications';
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,6 +52,9 @@ export async function POST(request: NextRequest) {
       'INSERT INTO messages (sender_id, recipient_id, type, content, parent_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
       [auth.userId, recipientId, type, content || '', parentId || null]
     );
+
+    // Fire-and-forget email notification; throttled inside the helper.
+    notifyNewMessage(auth.userId, recipientId, content || '').catch(() => {});
 
     return NextResponse.json({ id: result.id, ok: true });
   } catch (error) {
