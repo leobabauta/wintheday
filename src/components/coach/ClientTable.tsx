@@ -13,7 +13,8 @@ interface Client {
   lastEntry: string;
   lastActive: string;
   rating14: number[];
-  openNeeds?: 'reflection' | 'message' | 'nudge' | null;
+  unreadMessages: number;
+  hasUnopenedForm: boolean;
   endingSoon?: boolean;
 }
 
@@ -68,11 +69,26 @@ export default function ClientTable({ clients }: Props) {
         >
           <div className="flex items-center gap-3.5">
             <Avatar name={c.name} avatarUrl={c.avatarUrl} size={36} textSize={12} />
-            <div>
-              <div className="text-[15px] text-text">{c.name}</div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="text-[15px] text-text">{c.name}</div>
+                {c.hasUnopenedForm && (
+                  <span
+                    title="New pre-coaching form"
+                    className="inline-block w-[8px] h-[8px] rounded-full bg-accent flex-shrink-0"
+                  />
+                )}
+                {c.unreadMessages > 0 && (
+                  <span
+                    title={`${c.unreadMessages} unread message${c.unreadMessages === 1 ? '' : 's'}`}
+                    className="inline-block w-[8px] h-[8px] rounded-full bg-destructive flex-shrink-0"
+                  />
+                )}
+              </div>
               <MutedMono className={`mt-0.5 block ${STATUS_COLOR[c.status]}`}>
                 {STATUS_LABEL[c.status]}
-                {c.openNeeds && <span className="text-text-muted"> · {c.openNeeds === 'reflection' ? 'new reflection' : c.openNeeds === 'message' ? 'new message' : 'gone quiet'}</span>}
+                {c.unreadMessages > 0 && <span className="text-text-muted"> · new message</span>}
+                {c.hasUnopenedForm && <span className="text-text-muted"> · pre-coaching form</span>}
                 {c.endingSoon && <span className="text-accent"> · ending soon</span>}
               </MutedMono>
             </div>

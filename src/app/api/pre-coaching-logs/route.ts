@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execute, queryOne } from '@/lib/db';
 import { requireAuth, handleAuthError } from '@/lib/api-auth';
-import { Resend } from 'resend';
-
-const APP_URL = process.env.APP_URL || 'https://www.wintheday.work';
+import { notifyPreCoachingSubmitted } from '@/lib/pre-coaching-notifications';
 
 type LogRow = {
   id: number;
@@ -91,43 +89,13 @@ export async function PUT(request: NextRequest) {
       [meetingId, auth.userId, meeting.coach_id, JSON.stringify(responses)]
     );
 
-    if (submit && process.env.RESEND_API_KEY) {
-      try {
-        const coach = await queryOne<{ email: string; name: string }>(
-          `SELECT email, name FROM users WHERE id = $1`,
-          [meeting.coach_id]
-        );
-        const client = await queryOne<{ name: string }>(
-          `SELECT name FROM users WHERE id = $1`,
-          [auth.userId]
-        );
-        if (coach && client) {
-          const resend = new Resend(process.env.RESEND_API_KEY);
-          const sessionDate = new Date(meeting.starts_at).toLocaleDateString('en-US', {
-            weekday: 'long', month: 'long', day: 'numeric',
-          });
-          const clientLink = `${APP_URL}/dashboard/clients/${auth.userId}`;
-          await resend.emails.send({
-            from: process.env.REMINDER_FROM_EMAIL || 'Win the Day <onboarding@resend.dev>',
-            to: coach.email,
-            subject: `${client.name} sent their pre-coaching form`,
-            html: `
-              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
-                <h2 style="color: #1B1F3B; font-size: 20px; margin-bottom: 8px;">Pre-coaching form received</h2>
-                <p style="color: #4A5068; font-size: 15px; line-height: 1.6;">
-                  <strong>${client.name}</strong> submitted their pre-coaching form for the session on ${sessionDate}.
-                </p>
-                <a href="${clientLink}"
-                   style="display: inline-block; margin-top: 16px; padding: 12px 24px; background: #1B1F3B; color: white; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 14px;">
-                  View responses
-                </a>
-              </div>
-            `,
-          });
-        }
-      } catch (err) {
-        console.error('Failed to email coach on pre-coaching submit:', err);
-      }
+    if (submit) {
+      notifyPreCoachingSubmitted({
+        meetingId: meeting.id,
+        clientId: auth.userId,
+        coachId: meeting.coach_id,
+        startsAt: meeting.starts_at,
+      }).catch(() => {});
     }
 
     return NextResponse.json({ ok: true, submitted: submit });

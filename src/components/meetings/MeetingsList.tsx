@@ -29,19 +29,75 @@ function daysUntil(iso: string): number {
   return Math.round((targetStart - nowStart) / (1000 * 60 * 60 * 24));
 }
 
-// ZHD-styled list: no heavy cards. Each meeting is a hairline-bordered block.
+function MeetingRow({ m, first, isPast }: { m: Meeting; first: boolean; isPast: boolean }) {
+  const days = daysUntil(m.starts_at);
+  const whenLabel = isPast
+    ? fmtLong(m.starts_at)
+    : days === 0
+      ? 'Today'
+      : days === 1
+        ? 'Tomorrow'
+        : fmtLong(m.starts_at);
+  const rescheduled = !!m.reschedule_requested_at;
+
+  return (
+    <div className={`py-[18px] border-b border-border ${first ? 'border-t' : ''}`}>
+      {rescheduled && !isPast && (
+        <MutedMono className="block mb-[6px] text-[var(--color-accent)]">
+          Coach requested a reschedule
+        </MutedMono>
+      )}
+
+      <div className="flex items-baseline justify-between gap-3">
+        <div>
+          <p className="text-[17px] font-light tracking-[-0.01em] text-text">{whenLabel}</p>
+          <MutedMono className="block mt-[4px]">
+            {fmtTime(m.starts_at)} · with {m.coach_name.split(' ')[0]}
+          </MutedMono>
+        </div>
+        {!isPast && m.cal_com_reschedule_url && (
+          <a
+            href={m.cal_com_reschedule_url}
+            target="_blank"
+            rel="noreferrer"
+            className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-secondary underline underline-offset-[3px] decoration-[0.5px] hover:text-text"
+          >
+            Reschedule
+          </a>
+        )}
+      </div>
+
+      <div className="mt-[10px] flex gap-5">
+        {!isPast && (
+          <Link
+            href={`/pre-coaching/${m.id}`}
+            className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-secondary underline underline-offset-[3px] decoration-[0.5px] hover:text-text"
+          >
+            Pre-coaching form →
+          </Link>
+        )}
+        <Link
+          href={`/meetings/${m.id}`}
+          className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-secondary underline underline-offset-[3px] decoration-[0.5px] hover:text-text"
+        >
+          {isPast ? 'Session notes →' : 'View session →'}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function MeetingsList() {
   const [meetings, setMeetings] = useState<Meeting[] | null>(null);
 
   useEffect(() => {
     (async () => {
-      const res = await fetch('/api/meetings');
+      const res = await fetch('/api/meetings?include_completed=1');
       if (res.ok) setMeetings(await res.json());
       else setMeetings([]);
     })();
   }, []);
 
-  // Loading — quiet, centered
   if (meetings === null) {
     return (
       <div className="py-16 text-center">
@@ -50,7 +106,6 @@ export default function MeetingsList() {
     );
   }
 
-  // Empty state — Fraunces italic pulled-quote, not a bare mono line
   if (meetings.length === 0) {
     return (
       <div className="border-t border-b border-border py-10 text-center">
@@ -62,55 +117,30 @@ export default function MeetingsList() {
     );
   }
 
+  const now = Date.now();
+  const upcoming = meetings.filter((m) => new Date(m.starts_at).getTime() >= now);
+  // API returns ASC; upcoming stays ASC (next-up first). Past reversed to DESC.
+  const past = meetings.filter((m) => new Date(m.starts_at).getTime() < now).reverse();
+
   return (
     <div>
-      {meetings.map((m, i) => {
-        const days = daysUntil(m.starts_at);
-        const whenLabel = days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : fmtLong(m.starts_at);
-        const rescheduled = !!m.reschedule_requested_at;
-        return (
-          <div
-            key={m.id}
-            className={`py-[18px] border-b border-border ${i === 0 ? 'border-t' : ''}`}
-          >
-            {rescheduled && (
-              <MutedMono className="block mb-[6px] text-[var(--color-accent)]">
-                Coach requested a reschedule
-              </MutedMono>
-            )}
+      {upcoming.length > 0 && (
+        <section className="mb-10">
+          <MutedMono className="block mb-3">Upcoming</MutedMono>
+          {upcoming.map((m, i) => (
+            <MeetingRow key={m.id} m={m} first={i === 0} isPast={false} />
+          ))}
+        </section>
+      )}
 
-            <div className="flex items-baseline justify-between gap-3">
-              <div>
-                <p className="text-[17px] font-light tracking-[-0.01em] text-text">
-                  {whenLabel}
-                </p>
-                <MutedMono className="block mt-[4px]">
-                  {fmtTime(m.starts_at)} · with {m.coach_name.split(' ')[0]}
-                </MutedMono>
-              </div>
-              {m.cal_com_reschedule_url && (
-                <a
-                  href={m.cal_com_reschedule_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-secondary underline underline-offset-[3px] decoration-[0.5px] hover:text-text"
-                >
-                  Reschedule
-                </a>
-              )}
-            </div>
-
-            <div className="mt-[10px]">
-              <Link
-                href={`/pre-coaching/${m.id}`}
-                className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-secondary underline underline-offset-[3px] decoration-[0.5px] hover:text-text"
-              >
-                Pre-coaching form →
-              </Link>
-            </div>
-          </div>
-        );
-      })}
+      {past.length > 0 && (
+        <section>
+          <MutedMono className="block mb-3">Past sessions</MutedMono>
+          {past.map((m, i) => (
+            <MeetingRow key={m.id} m={m} first={i === 0} isPast={true} />
+          ))}
+        </section>
+      )}
     </div>
   );
 }

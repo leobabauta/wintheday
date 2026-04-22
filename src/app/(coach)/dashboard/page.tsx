@@ -99,10 +99,18 @@ export default async function DashboardPage() {
     );
 
     const unread = await queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM messages WHERE recipient_id = $1 AND sender_id = $2 AND read = 0',
+      'SELECT COUNT(*) as count FROM messages WHERE recipient_id = $1 AND sender_id = $2 AND archived = 0 AND read = 0',
       [session.userId, client.id]
     );
-    const unreadCount = parseInt(unread?.count || '0');
+    const unreadMessages = parseInt(unread?.count || '0');
+
+    const unopenedForm = await queryOne<{ count: string }>(
+      `SELECT COUNT(*) AS count FROM pre_coaching_logs
+       WHERE coach_id = $1 AND client_id = $2
+         AND submitted_at IS NOT NULL AND opened_at IS NULL`,
+      [session.userId, client.id]
+    );
+    const hasUnopenedForm = parseInt(unopenedForm?.count || '0') > 0;
 
     const ratio = total7 > 0 ? done7 / total7 : 0;
 
@@ -118,7 +126,8 @@ export default async function DashboardPage() {
       lastEntry: lastEntryLabel(lastEntry?.date || null, today),
       lastActive: lastActiveLabel(client.last_active_at),
       rating14,
-      openNeeds: unreadCount > 0 ? 'message' as const : null,
+      unreadMessages,
+      hasUnopenedForm,
       endingSoon: daysLeft !== null && daysLeft >= 0 && daysLeft <= 30,
     };
   }));

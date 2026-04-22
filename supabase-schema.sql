@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Note: meetings.coach_notes and pre_coaching_logs.opened_at +
+-- acknowledged_at live in migration 20260422000002.
+
 CREATE TABLE IF NOT EXISTS device_tokens (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

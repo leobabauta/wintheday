@@ -13,7 +13,7 @@ export default async function ClientMeetingsPage() {
     <div>
       <div className="mb-7 mt-3">
         <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted mb-2">
-          Upcoming
+          Coaching
         </p>
         <h1 className="text-[28px] font-light tracking-[-0.01em] leading-[1.15] text-text">
           Sessions.

@@ -8,10 +8,12 @@ import Avatar from '@/components/ui/Avatar';
 
 interface InboxItem {
   id: string;
+  messageId?: number;
+  meetingId?: number;
   clientId: string;
   clientName: string;
   clientAvatarUrl?: string | null;
-  kind: 'reflection' | 'message' | 'quiet';
+  kind: 'reflection' | 'message' | 'quiet' | 'pre_coaching';
   at: string;
   preview: string;
   meta: string;
@@ -19,8 +21,15 @@ interface InboxItem {
 
 interface Props {
   items: InboxItem[];
-  onMarkAttended: (id: string) => Promise<void>;
+  onMarkAttended: (item: InboxItem) => Promise<void>;
   onReply: (item: InboxItem, content: string) => Promise<void>;
+}
+
+function kindLabel(kind: InboxItem['kind']) {
+  if (kind === 'reflection') return 'Reflection';
+  if (kind === 'message') return 'Message';
+  if (kind === 'pre_coaching') return 'Pre-coaching';
+  return 'Quiet';
 }
 
 export default function InboxView({ items, onMarkAttended, onReply }: Props) {
@@ -30,9 +39,9 @@ export default function InboxView({ items, onMarkAttended, onReply }: Props) {
   const [sending, setSending] = useState(false);
   const visible = items.filter(i => !locallyDone.has(i.id));
 
-  const mark = async (id: string) => {
-    setLocallyDone(prev => new Set([...prev, id]));
-    await onMarkAttended(id);
+  const mark = async (it: InboxItem) => {
+    setLocallyDone(prev => new Set([...prev, it.id]));
+    await onMarkAttended(it);
   };
 
   const send = async (item: InboxItem) => {
@@ -76,6 +85,9 @@ export default function InboxView({ items, onMarkAttended, onReply }: Props) {
       ) : visible.map(it => {
         const isReplying = replyingTo === it.id;
         const canReply = it.kind === 'message';
+        const primaryHref = it.kind === 'pre_coaching' && it.meetingId
+          ? `/dashboard/clients/${it.clientId}/sessions/${it.meetingId}`
+          : `/dashboard/clients/${it.clientId}`;
         return (
           <div key={it.id} className="grid grid-cols-[44px_1fr_auto] gap-4 py-6 border-b border-border items-start">
             <Avatar name={it.clientName} avatarUrl={it.clientAvatarUrl} size={44} textSize={12} />
@@ -84,7 +96,7 @@ export default function InboxView({ items, onMarkAttended, onReply }: Props) {
                 <Link href={`/dashboard/clients/${it.clientId}`} className="text-[15px] text-text">
                   {it.clientName}
                 </Link>
-                <MutedMono>{it.kind === 'reflection' ? 'Reflection' : it.kind === 'message' ? 'Message' : 'Quiet'}</MutedMono>
+                <MutedMono>{kindLabel(it.kind)}</MutedMono>
                 <MutedMono className="ml-auto">{it.at}</MutedMono>
               </div>
               <p className={`text-[15px] leading-[1.55] font-light text-text mb-1.5 text-pretty ${it.kind === 'reflection' ? 'font-display italic' : ''}`}>
@@ -126,12 +138,16 @@ export default function InboxView({ items, onMarkAttended, onReply }: Props) {
               {canReply && !isReplying && (
                 <Button size="sm" onClick={() => toggleReply(it.id)}>Reply</Button>
               )}
-              <Link href={`/dashboard/clients/${it.clientId}`}>
-                <Button size="sm" variant="outline">Open</Button>
+              <Link href={primaryHref}>
+                <Button size="sm" variant={it.kind === 'pre_coaching' ? 'filled' : 'outline'}>
+                  {it.kind === 'pre_coaching' ? 'Read form' : 'Open'}
+                </Button>
               </Link>
-              <button className="text-[11px] text-text-muted hover:text-text" onClick={() => mark(it.id)}>
-                Mark attended
-              </button>
+              {it.kind === 'message' && (
+                <button className="text-[11px] text-text-muted hover:text-text" onClick={() => mark(it)}>
+                  Mark attended
+                </button>
+              )}
             </div>
           </div>
         );
