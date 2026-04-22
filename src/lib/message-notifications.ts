@@ -14,22 +14,20 @@ export async function notifyNewMessage(senderId: number, recipientId: number, co
       email: string;
       name: string;
       role: string;
-      last_active_at: string | null;
       last_message_email_sent_at: string | null;
     }>(
-      `SELECT email, name, role, last_active_at, last_message_email_sent_at
+      `SELECT email, name, role, last_message_email_sent_at
        FROM users WHERE id = $1`,
       [recipientId]
     );
     if (!recipient) return;
 
     const now = Date.now();
-    const activeMs = recipient.last_active_at ? now - new Date(recipient.last_active_at).getTime() : Infinity;
     const emailedMs = recipient.last_message_email_sent_at ? now - new Date(recipient.last_message_email_sent_at).getTime() : Infinity;
 
-    // Skip: recipient is actively using the app, they'll see the message there.
-    if (activeMs < 10 * 60 * 1000) return;
-    // Skip: we already emailed them recently, don't stack notifications.
+    // Skip only if we already emailed them recently; otherwise always send.
+    // A recipient who has the app open but hasn't opened the Messages tab
+    // still deserves the nudge to come check it.
     if (emailedMs < 15 * 60 * 1000) return;
 
     const sender = await queryOne<{ name: string }>('SELECT name FROM users WHERE id = $1', [senderId]);

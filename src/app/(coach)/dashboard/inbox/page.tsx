@@ -29,7 +29,7 @@ export default async function InboxPage() {
     `SELECT m.id, m.sender_id, u.name as sender_name, u.avatar_url as sender_avatar, m.content, m.read, m.created_at
      FROM messages m
      JOIN users u ON u.id = m.sender_id
-     WHERE m.recipient_id = $1 AND m.archived = 0 AND m.read = 0
+     WHERE m.recipient_id = $1 AND m.archived = 0
      ORDER BY m.created_at DESC
      LIMIT 100`,
     [session.userId]
@@ -43,7 +43,7 @@ export default async function InboxPage() {
     kind: 'message' as const,
     at: relativeAt(m.created_at),
     preview: m.content.length > 240 ? m.content.slice(0, 240) + '…' : m.content,
-    meta: 'Unread',
+    meta: m.read ? 'Seen · needs reply' : 'Unread',
   }));
 
   return <InboxClient items={items} />;

@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const auth = requireAuth(request, 'coach');
     const result = await queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM messages WHERE recipient_id = $1 AND read = 0 AND archived = 0',
+      'SELECT COUNT(*) as count FROM messages WHERE recipient_id = $1 AND archived = 0',
       [auth.userId]
     );
     return NextResponse.json({ count: parseInt(result?.count || '0') });

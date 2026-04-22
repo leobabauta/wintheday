@@ -53,6 +53,15 @@ export async function POST(request: NextRequest) {
       [auth.userId, recipientId, type, content || '', parentId || null]
     );
 
+    // Coach replying anywhere (inbox, client detail chat) counts as attending
+    // to that client's pending messages — drop them off the inbox.
+    if (auth.role === 'coach') {
+      await execute(
+        'UPDATE messages SET archived = 1, read = 1 WHERE sender_id = $1 AND recipient_id = $2 AND archived = 0',
+        [recipientId, auth.userId]
+      );
+    }
+
     // Fire-and-forget email notification; throttled inside the helper.
     notifyNewMessage(auth.userId, recipientId, content || '').catch(() => {});
 
@@ -73,7 +82,7 @@ export async function PATCH(request: NextRequest) {
 
     const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
     await execute(
-      `UPDATE messages SET read = 1 WHERE id IN (${placeholders}) AND recipient_id = $${ids.length + 1}`,
+      `UPDATE messages SET read = 1, archived = 1 WHERE id IN (${placeholders}) AND recipient_id = $${ids.length + 1}`,
       [...ids, auth.userId]
     );
 
