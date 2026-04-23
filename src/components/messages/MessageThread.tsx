@@ -14,6 +14,7 @@ interface Message {
 interface Props {
   coachName: string;
   coachInitials: string;
+  coachAvatarUrl?: string | null;
   messages: Message[];
   onSend: (text: string) => Promise<void>;
   today: string;
@@ -38,7 +39,7 @@ function groupByDate(msgs: Message[]) {
   return groups;
 }
 
-export default function MessageThread({ coachName, coachInitials, messages, onSend, today }: Props) {
+export default function MessageThread({ coachName, coachInitials, coachAvatarUrl, messages, onSend, today }: Props) {
   const [draft, setDraft] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -57,9 +58,18 @@ export default function MessageThread({ coachName, coachInitials, messages, onSe
   return (
     <div className="flex flex-col h-[calc(100dvh-4.75rem-max(calc(env(safe-area-inset-bottom)-1.25rem),4px))] sm:h-full -mx-6 -mt-[env(safe-area-inset-top)] sm:-my-10">
       <div className="px-6 py-4 border-b border-border flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-accent-light text-accent flex items-center justify-center text-[13px]">
-          {coachInitials}
-        </div>
+        {coachAvatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={coachAvatarUrl}
+            alt=""
+            className="w-9 h-9 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-accent-light text-accent flex items-center justify-center text-[13px]">
+            {coachInitials}
+          </div>
+        )}
         <div>
           <MutedMono>Your coach</MutedMono>
           <div className="text-[15px]">{coachName}</div>

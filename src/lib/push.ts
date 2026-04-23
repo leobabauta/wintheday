@@ -30,8 +30,10 @@ function getApnProvider(): apn.Provider | null {
   const key = Buffer.from(keyBase64, 'base64').toString('utf8');
   apnProvider = new apn.Provider({
     token: { key, keyId, teamId },
-    // TestFlight builds talk to sandbox; App Store builds talk to production.
-    // Flip APNS_PRODUCTION=true once the App Store build is live.
+    // TestFlight + App Store builds both use APNs PRODUCTION. The sandbox
+    // endpoint is only for Xcode debug builds installed directly onto a
+    // device (easy to get wrong — a `development` aps-environment
+    // entitlement on a Release archive still yields production tokens).
     production: envStr('APNS_PRODUCTION') === 'true',
   });
   return apnProvider;

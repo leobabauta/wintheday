@@ -17,15 +17,13 @@ interface Props {
   clientUserId: number;
   coachUserId: number;
   coachName: string;
+  coachAvatarUrl?: string | null;
 }
 
-function initialsOf(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(p => p[0].toUpperCase())
-    .join('');
+// Initial from the first word only — avoids turning "Leo (Coach)" into "L(".
+function initialOf(name: string) {
+  const first = name.trim().split(/\s+/)[0] || '';
+  return first[0]?.toUpperCase() || '';
 }
 
 function toParts(iso: string) {
@@ -40,7 +38,7 @@ function todayLocal() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function MessageThreadClient({ initial, clientUserId, coachUserId, coachName }: Props) {
+export default function MessageThreadClient({ initial, clientUserId, coachUserId, coachName, coachAvatarUrl }: Props) {
   const [rows, setRows] = useState<DbRow[]>([...initial].reverse());
 
   useEffect(() => {
@@ -106,7 +104,8 @@ export default function MessageThreadClient({ initial, clientUserId, coachUserId
   return (
     <MessageThread
       coachName={coachName}
-      coachInitials={initialsOf(coachName)}
+      coachInitials={initialOf(coachName)}
+      coachAvatarUrl={coachAvatarUrl || null}
       messages={messages}
       onSend={onSend}
       today={todayLocal()}

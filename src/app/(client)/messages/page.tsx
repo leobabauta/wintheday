@@ -21,8 +21,8 @@ export default async function MessagesPage() {
     );
   }
 
-  const coach = await queryOne<{ name: string }>(
-    'SELECT name FROM users WHERE id = $1',
+  const coach = await queryOne<{ name: string; avatar_url: string | null }>(
+    'SELECT name, avatar_url FROM users WHERE id = $1',
     [clientInfo.coach_id]
   );
 
@@ -44,12 +44,18 @@ export default async function MessagesPage() {
     [session.userId, clientInfo.coach_id]
   );
 
+  // Strip "(Coach)" / "(anything)" suffixes from the stored display name —
+  // the "YOUR COACH" label already tells clients who this is.
+  const rawName = coach?.name || 'Your coach';
+  const displayName = rawName.replace(/\s*\(.*?\)\s*$/, '').trim() || rawName;
+
   return (
     <MessageThreadClient
       initial={messages}
       clientUserId={session.userId}
       coachUserId={clientInfo.coach_id}
-      coachName={coach?.name || 'Your coach'}
+      coachName={displayName}
+      coachAvatarUrl={coach?.avatar_url || null}
     />
   );
 }
