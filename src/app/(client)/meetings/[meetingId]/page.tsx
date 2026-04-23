@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import MutedMono from '@/components/ui/MutedMono';
+import Markdown from '@/components/ui/Markdown';
 import { PRE_COACHING_PROMPTS } from '@/lib/pre-coaching';
 
 type MeetingRow = {
@@ -100,7 +101,7 @@ export default async function ClientSessionDetailPage({
                 return (
                   <div key={p.key}>
                     <MutedMono className="block">{p.label}</MutedMono>
-                    <p className="text-[14px] text-text-secondary whitespace-pre-wrap mt-1 reflection-text">
+                    <p className="text-[15px] text-text whitespace-pre-wrap mt-1 leading-[1.55] font-light">
                       {answer}
                     </p>
                   </div>
@@ -113,9 +114,7 @@ export default async function ClientSessionDetailPage({
         <Card>
           <MutedMono className="block mb-4">Notes from {coachFirstName}</MutedMono>
           {meeting.coach_notes && meeting.coach_notes.trim() ? (
-            <p className="text-[14px] text-text-secondary whitespace-pre-wrap leading-[1.55] reflection-text">
-              {meeting.coach_notes}
-            </p>
+            <Markdown text={meeting.coach_notes} />
           ) : (
             <p className="text-[13px] text-text-muted">
               {isPast

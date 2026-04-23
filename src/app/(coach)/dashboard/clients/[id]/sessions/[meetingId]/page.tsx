@@ -112,7 +112,7 @@ export default async function CoachSessionDetailPage({
                   return (
                     <div key={p.key}>
                       <MutedMono className="block">{p.label}</MutedMono>
-                      <p className="text-[14px] text-text-secondary whitespace-pre-wrap mt-1 reflection-text">
+                      <p className="text-[15px] text-text whitespace-pre-wrap mt-1 leading-[1.55] font-light">
                         {answer}
                       </p>
                     </div>
@@ -137,7 +137,7 @@ export default async function CoachSessionDetailPage({
         <Card>
           <MutedMono className="block mb-4">My notes</MutedMono>
           <SessionNotesEditor meetingId={mId} initialNotes={meeting.coach_notes || ''} />
-          <p className="text-[11px] text-text-muted mt-3">
+          <p className="text-[11px] text-text-muted mt-2">
             Visible to {firstName} too — they&apos;ll see these on their session page.
           </p>
         </Card>
