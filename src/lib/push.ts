@@ -12,11 +12,19 @@ type DeviceRow = {
 let apnProvider: apn.Provider | null = null;
 let fcmInitialized = false;
 
+// Trailing whitespace/newlines in values pasted into the Vercel env UI have
+// bitten us once: a `\n` tail on APNS_BUNDLE_ID silently broke every push
+// because the topic didn't match the key's registered bundle. Trim defensively.
+function envStr(name: string): string | undefined {
+  const v = process.env[name];
+  return v ? v.trim() : undefined;
+}
+
 function getApnProvider(): apn.Provider | null {
   if (apnProvider) return apnProvider;
-  const keyBase64 = process.env.APNS_KEY_BASE64;
-  const keyId = process.env.APNS_KEY_ID;
-  const teamId = process.env.APNS_TEAM_ID;
+  const keyBase64 = envStr('APNS_KEY_BASE64');
+  const keyId = envStr('APNS_KEY_ID');
+  const teamId = envStr('APNS_TEAM_ID');
   if (!keyBase64 || !keyId || !teamId) return null;
 
   const key = Buffer.from(keyBase64, 'base64').toString('utf8');
@@ -24,7 +32,7 @@ function getApnProvider(): apn.Provider | null {
     token: { key, keyId, teamId },
     // TestFlight builds talk to sandbox; App Store builds talk to production.
     // Flip APNS_PRODUCTION=true once the App Store build is live.
-    production: process.env.APNS_PRODUCTION === 'true',
+    production: envStr('APNS_PRODUCTION') === 'true',
   });
   return apnProvider;
 }
@@ -53,7 +61,7 @@ type PushPayload = {
 
 async function sendToIos(tokens: string[], payload: PushPayload): Promise<DeadToken[]> {
   const provider = getApnProvider();
-  const bundleId = process.env.APNS_BUNDLE_ID;
+  const bundleId = envStr('APNS_BUNDLE_ID');
   if (!provider || !bundleId || tokens.length === 0) return [];
 
   const note = new apn.Notification();

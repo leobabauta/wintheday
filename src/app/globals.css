@@ -192,7 +192,9 @@ input[type="password"],
 input[type="time"],
 textarea {
   font-family: inherit;
-  font-size: 15px;
+  /* 16px is the iOS threshold — below this, WKWebView auto-zooms on focus
+   * and (without maximum-scale) leaves the page stuck zoomed. */
+  font-size: 16px;
   color: var(--color-text);
   background: transparent;
   border: 1px solid var(--color-border);
