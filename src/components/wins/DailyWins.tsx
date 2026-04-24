@@ -182,10 +182,10 @@ export default function DailyWins({
         className={`${CARD} ${CARD_BG} w-full text-left block hover:bg-surface/40 transition-colors`}
       >
         <MutedMono className="block mb-[6px]">
-          Daily reflection · {rating.toLowerCase()}
+          {reflection ? `Daily reflection · ${rating.toLowerCase()}` : 'Daily reflection'}
         </MutedMono>
         <p className={`font-display italic text-[16px] leading-[1.5] ${reflection ? 'text-text' : 'text-text-muted'}`}>
-          {reflection || 'What would winning the day look like?'}
+          {reflection || "Add today's journal entry"}
         </p>
       </button>
     </div>

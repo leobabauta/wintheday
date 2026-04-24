@@ -12,6 +12,8 @@ import ClientInfoEditor from '@/components/coach/ClientInfoEditor';
 import ClientMeetingsSection from '@/components/coach/ClientMeetingsSection';
 import PreCoachingLogView from '@/components/coach/PreCoachingLogView';
 
+import type { ReactNode } from 'react';
+
 const PROMPTS = [
   { key: 'well', label: 'What went well today?' },
   { key: 'challenge', label: 'What was challenging?' },
@@ -29,11 +31,35 @@ function parseContent(content: string): Record<string, string> {
   return {};
 }
 
-function displayAnswers(content: string): { label: string; text: string }[] {
+// New-format body entries return one unlabeled item; legacy entries still
+// return up to four labeled items.
+function displayAnswers(content: string): { label: string | null; text: string }[] {
   const answers = parseContent(content);
+  if (typeof answers.body === 'string' && answers.body.trim()) {
+    return [{ label: null, text: answers.body }];
+  }
   return PROMPTS
     .filter(p => answers[p.key]?.trim())
     .map(p => ({ label: p.label, text: answers[p.key] }));
+}
+
+function highlightBold(text: string): ReactNode[] {
+  const parts: ReactNode[] = [];
+  const regex = /\*\*(.+?)\*\*/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let idx = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+    parts.push(
+      <strong key={`b-${idx++}`} className="font-semibold text-text">
+        {match[1]}
+      </strong>,
+    );
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts;
 }
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -248,8 +274,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                       <div className="space-y-2">
                         {items.map((item, i) => (
                           <div key={i}>
-                            <MutedMono className="block">{item.label}</MutedMono>
-                            <p className="text-[15px] text-text whitespace-pre-wrap line-clamp-2 leading-[1.55] font-light mt-1">{item.text}</p>
+                            {item.label && <MutedMono className="block">{item.label}</MutedMono>}
+                            <p className={`text-[15px] text-text whitespace-pre-wrap line-clamp-2 leading-[1.55] font-light ${item.label ? 'mt-1' : ''}`}>
+                              {highlightBold(item.text)}
+                            </p>
                           </div>
                         ))}
                       </div>

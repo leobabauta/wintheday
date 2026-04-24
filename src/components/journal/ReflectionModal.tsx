@@ -24,7 +24,7 @@
  * HANDOFF.md step 2).
  */
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, type ReactNode } from 'react';
 
 const PROMPTS = [
   "What's alive in you tonight?",
@@ -33,12 +33,37 @@ const PROMPTS = [
   'What are you carrying into tomorrow?',
 ];
 
+// Buttons keep their short casual labels; when clicked we insert the fuller,
+// colon-terminated prompt wrapped in `**` so it renders bold both while
+// editing (via the mirror overlay) and in the read-only journal view.
 const NUDGES = [
-  { key: 'well',     label: 'what went well',     heading: 'What went well —' },
-  { key: 'hard',     label: 'what was hard',      heading: 'What was hard —' },
-  { key: 'noticed',  label: 'what you noticed',   heading: 'What I noticed —' },
-  { key: 'tomorrow', label: 'tomorrow',           heading: 'Tomorrow —' },
+  { key: 'well',     label: 'what went well',     heading: 'What went well:' },
+  { key: 'hard',     label: 'what was hard',      heading: 'What was challenging:' },
+  { key: 'noticed',  label: 'what you noticed',   heading: 'What you learned or noticed:' },
+  { key: 'tomorrow', label: 'tomorrow',           heading: 'Tomorrow I will:' },
 ];
+
+// Split a plain-text body into React nodes, rendering `**…**` spans in bold.
+// Used by the mirror overlay so the inserted prompts look bold while the
+// textarea (transparent text, visible caret) sits on top.
+function highlightBold(text: string): ReactNode[] {
+  const parts: ReactNode[] = [];
+  const regex = /\*\*(.+?)\*\*/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let idx = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+    parts.push(
+      <strong key={`b-${idx++}`} className="font-semibold text-text">
+        {match[1]}
+      </strong>,
+    );
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts;
+}
 
 interface Props {
   date: string;                // YYYY-MM-DD
@@ -92,6 +117,7 @@ export default function ReflectionModal({
   // Pick a prompt once per mount so the question doesn't shuffle as they type.
   const promptIdx = useMemo(() => Math.floor(Math.random() * PROMPTS.length), []);
   const textRef = useRef<HTMLTextAreaElement | null>(null);
+  const mirrorRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const save = useCallback(
@@ -144,7 +170,10 @@ export default function ReflectionModal({
   };
 
   const insertNudge = (heading: string) => {
-    const next = (body.trimEnd() + '\n\n' + heading + '\n').replace(/^\n+/, '');
+    // Wrap the heading in `**…**` so the mirror overlay + read views can bold
+    // just the prompt, not the text typed after the colon.
+    const wrapped = `**${heading}**`;
+    const next = (body.trimEnd() + '\n\n' + wrapped + '\n').replace(/^\n+/, '');
     setBody(next);
     requestAnimationFrame(() => {
       const ta = textRef.current;
@@ -153,6 +182,7 @@ export default function ReflectionModal({
         const pos = next.length;
         ta.setSelectionRange(pos, pos);
         ta.scrollTop = ta.scrollHeight;
+        if (mirrorRef.current) mirrorRef.current.scrollTop = ta.scrollTop;
       }
     });
   };
@@ -213,21 +243,48 @@ export default function ReflectionModal({
           {PROMPTS[promptIdx]}
         </h1>
 
-        <textarea
-          ref={textRef}
-          value={body}
-          onChange={e => setBody(e.target.value)}
-          autoFocus
-          placeholder="A sentence. A paragraph. A page. Whatever wants to come out."
-          className="
-            w-full bg-transparent border-0 outline-none resize-none p-0
-            font-sans font-light text-[17px] md:text-[18px] leading-[1.75] text-text
-            placeholder:italic placeholder:text-text-muted placeholder:opacity-70
-            caret-[var(--color-accent)]
-            min-h-[180px] md:min-h-[240px] max-h-[44vh] md:max-h-[52vh]
-            overflow-y-auto
-          "
-        />
+        {/* Mirror overlay: renders the current body with `**…**` spans as bold,
+            sitting underneath a transparent-text textarea. The textarea owns
+            selection, caret and native keyboard handling; the mirror just
+            shows the formatting. Identical font metrics + padding are load-
+            bearing — any divergence and wrapping drifts. */}
+        <div className="relative min-h-[180px] md:min-h-[240px]">
+          <div
+            ref={mirrorRef}
+            aria-hidden
+            className="
+              pointer-events-none absolute inset-0
+              whitespace-pre-wrap break-words
+              font-sans font-light text-[17px] md:text-[18px] leading-[1.75] text-text
+              overflow-y-auto max-h-[44vh] md:max-h-[52vh]
+              [&::-webkit-scrollbar]:hidden [scrollbar-width:none]
+            "
+          >
+            {highlightBold(body)}
+            {' '}
+          </div>
+          <textarea
+            ref={textRef}
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            onScroll={e => {
+              if (mirrorRef.current) {
+                mirrorRef.current.scrollTop = e.currentTarget.scrollTop;
+              }
+            }}
+            autoFocus
+            placeholder="A sentence. A paragraph. A page. Whatever wants to come out."
+            className="
+              relative w-full bg-transparent border-0 outline-none resize-none p-0
+              font-sans font-light text-[17px] md:text-[18px] leading-[1.75]
+              text-transparent
+              placeholder:italic placeholder:text-text-muted placeholder:opacity-70
+              caret-[var(--color-accent)]
+              min-h-[180px] md:min-h-[240px] max-h-[44vh] md:max-h-[52vh]
+              overflow-y-auto
+            "
+          />
+        </div>
 
         {/* Nudge chips */}
         <div className="flex flex-wrap items-center gap-2 mt-7 pt-5 border-t border-border">

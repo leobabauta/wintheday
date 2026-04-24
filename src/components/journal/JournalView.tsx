@@ -1,8 +1,27 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import MutedMono from '@/components/ui/MutedMono';
 import ReflectionModal from './ReflectionModal';
+
+function highlightBold(text: string): ReactNode[] {
+  const parts: ReactNode[] = [];
+  const regex = /\*\*(.+?)\*\*/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let idx = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+    parts.push(
+      <strong key={`b-${idx++}`} className="font-semibold text-text">
+        {match[1]}
+      </strong>,
+    );
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts;
+}
 
 export type Responses = {
   // New single-body format written by the redesigned reflection surface.
@@ -301,7 +320,7 @@ export default function JournalView({ entries, today, ratingLabel = 'inner peace
                     {selected.responses.body && selected.responses.body.trim() && (
                       <div className="py-5 border-t border-border first:border-t-0">
                         <p className="font-display text-[18px] font-light leading-[1.6] text-text whitespace-pre-wrap text-pretty">
-                          {selected.responses.body}
+                          {highlightBold(selected.responses.body)}
                         </p>
                       </div>
                     )}
