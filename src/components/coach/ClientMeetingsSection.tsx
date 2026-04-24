@@ -52,10 +52,19 @@ export default function ClientMeetingsSection({ clientId }: { clientId: number }
     }
   };
 
-  const now = Date.now();
-  const upcoming = (meetings ?? []).filter((m) => new Date(m.starts_at).getTime() >= now);
+  // Compare by local calendar date, not by wall-clock moment: a session
+  // stays under "Upcoming" for the rest of the day it's scheduled on, so
+  // the coach doesn't see today's session hop into "Past" while they're
+  // still on the call.
+  const todayLocal = new Date();
+  const todayKey = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
+  const dateKey = (iso: string) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const upcoming = (meetings ?? []).filter((m) => dateKey(m.starts_at) >= todayKey);
   const past = (meetings ?? [])
-    .filter((m) => new Date(m.starts_at).getTime() < now)
+    .filter((m) => dateKey(m.starts_at) < todayKey)
     .reverse(); // API returns ASC; show newest past first.
 
   return (
