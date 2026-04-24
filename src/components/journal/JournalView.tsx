@@ -45,7 +45,7 @@ export interface JournalEntry {
 interface Props {
   entries: JournalEntry[];
   today?: string;
-  ratingLabel?: string;
+  ratingLabel?: string | null;
   onCreate?: (well: string) => Promise<void>;
   onEdited?: () => void;
 }
@@ -156,7 +156,11 @@ function ComposePanel({
   );
 }
 
-export default function JournalView({ entries, today, ratingLabel = 'inner peace', onCreate, onEdited }: Props) {
+export default function JournalView({ entries, today, ratingLabel, onCreate, onEdited }: Props) {
+  // Past entries can have a rating number even if the user hasn't picked a
+  // current label (e.g., legacy data). Fall back to a neutral word just for
+  // display so the "… · X/5" line stays readable.
+  const displayLabel = ratingLabel || 'quality';
   const hasTodayEntry = !!today && entries.some(e => e.date === today);
   const canCompose = !!onCreate && !!today && !hasTodayEntry;
 
@@ -301,7 +305,7 @@ export default function JournalView({ entries, today, ratingLabel = 'inner peace
                       {typeof selected.rating === 'number' && (
                         <div className="flex items-center gap-[10px]">
                           <MutedMono>
-                            {ratingLabel} · {selected.rating}/5
+                            {displayLabel} · {selected.rating}/5
                           </MutedMono>
                           <RatingBars rating={selected.rating} />
                         </div>
@@ -360,7 +364,7 @@ export default function JournalView({ entries, today, ratingLabel = 'inner peace
           date={editing.date}
           existingReflection={JSON.stringify(editing.responses)}
           existingRating={editing.rating ?? 0}
-          ratingLabel={ratingLabel}
+          ratingLabel={ratingLabel ?? null}
           onClose={() => setEditingId(null)}
           onSaved={() => {
             if (onEdited) onEdited();

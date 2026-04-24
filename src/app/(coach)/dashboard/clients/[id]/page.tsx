@@ -236,7 +236,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           <div className="border-t border-border mt-4 pt-3">
             <div className="flex justify-between text-[13px]">
               <span className="text-text-secondary">Daily Quality</span>
-              <span className="text-text">{clientSettings?.rating_label || 'inner peace'}</span>
+              <span className={clientSettings?.rating_label ? 'text-text' : 'text-text-muted italic'}>
+                {clientSettings?.rating_label || 'not set yet'}
+              </span>
             </div>
           </div>
         </Card>

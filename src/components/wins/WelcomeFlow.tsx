@@ -31,7 +31,7 @@ export default function WelcomeFlow({ userName, onComplete }: Props) {
   const [state, setState] = useState<WelcomeState>({
     commitments: [],
     practice: '',
-    rating: 'Inner peace',
+    rating: '',
   });
 
   const Steps = [
@@ -46,7 +46,12 @@ export default function WelcomeFlow({ userName, onComplete }: Props) {
       onChange={(v) => setState({ ...state, practice: v })}
       onBack={() => setStep(1)}
       onNext={() => setStep(3)} />,
-    <Done key="done" state={state} name={userName} onBack={() => setStep(2)} onComplete={() => onComplete(state)} />,
+    <RatingStep key="rating"
+      value={state.rating}
+      onChange={(v) => setState({ ...state, rating: v })}
+      onBack={() => setStep(2)}
+      onNext={() => setStep(4)} />,
+    <Done key="done" state={state} name={userName} onBack={() => setStep(3)} onComplete={() => onComplete(state)} />,
   ];
 
   return (
@@ -175,6 +180,39 @@ function PracticeStep({ value, onChange, onBack, onNext }: {
         placeholder="Being present"
         className="w-full mt-8 text-[18px]"
       />
+      <div className="flex gap-2 mt-12 justify-between">
+        <Button variant="text" onClick={onBack}>← Back</Button>
+        <Button variant="filled" onClick={onNext} disabled={!value.trim()}>Continue</Button>
+      </div>
+    </div>
+  );
+}
+
+function RatingStep({ value, onChange, onBack, onNext }: {
+  value: string; onChange: (v: string) => void; onBack: () => void; onNext: () => void;
+}) {
+  return (
+    <div>
+      <MutedMono>Step 04 · daily quality</MutedMono>
+      <h2 className="font-display text-[26px] mt-3 leading-[1.2]">
+        What do you want to measure each day?
+      </h2>
+      <p className="reflection-text text-text-secondary text-[15px] mt-3">
+        One word or short phrase. You&apos;ll rate it nightly. &ldquo;Inner peace.&rdquo; &ldquo;Confidence.&rdquo; &ldquo;Joy.&rdquo; &ldquo;Presence.&rdquo;
+      </p>
+      <input
+        autoFocus
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder="inner peace"
+        className="w-full mt-8 text-[18px]"
+      />
+      {value.trim() && (
+        <p className="text-[13px] text-text-muted mt-4 italic reflection-text">
+          Preview: &ldquo;How much did you experience{' '}
+          <strong className="font-display not-italic">{value.trim()}</strong> today?&rdquo;
+        </p>
+      )}
       <div className="flex gap-2 mt-12 justify-between">
         <Button variant="text" onClick={onBack}>← Back</Button>
         <Button variant="filled" onClick={onNext} disabled={!value.trim()}>Continue</Button>

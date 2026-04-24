@@ -69,7 +69,9 @@ interface Props {
   date: string;                // YYYY-MM-DD
   existingReflection: string;  // JSON string; legacy or { body }
   existingRating: number;
-  ratingLabel: string;         // e.g. "inner peace"
+  // null when the user hasn't picked a daily quality yet. Modal hides the
+  // rating section entirely in that case — they can still journal.
+  ratingLabel: string | null;
   onClose: () => void;
   onSaved: (content: string, rating: number) => void;
 }
@@ -308,7 +310,8 @@ export default function ReflectionModal({
           ))}
         </div>
 
-        {/* Inner peace */}
+        {/* Daily quality rating — hidden until the user has picked a quality. */}
+        {ratingLabel && (
         <div className="mt-9 pt-6 border-t border-border">
           <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted mb-3">
             {ratingLabel} today
@@ -334,6 +337,7 @@ export default function ReflectionModal({
             })}
           </div>
         </div>
+        )}
       </div>
     </div>
   );

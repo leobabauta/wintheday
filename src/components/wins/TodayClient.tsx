@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import DailyWins from './DailyWins';
 import ReflectionModal from '@/components/journal/ReflectionModal';
+import RatingLabelPrompt from './RatingLabelPrompt';
 
 interface Props {
   userName: string;
-  ratingLabel: string;
+  ratingLabel: string | null;
 }
 
 interface WinItem {
@@ -48,6 +49,9 @@ export default function TodayClient({ userName, ratingLabel }: Props) {
   const [reflectionContent, setReflectionContent] = useState('');
   const [rating, setRating] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  // Locally mirror the rating label so the prompt can hide immediately on
+  // save without round-tripping a router.refresh().
+  const [currentLabel, setCurrentLabel] = useState<string | null>(ratingLabel);
 
   useEffect(() => {
     async function load() {
@@ -112,6 +116,9 @@ export default function TodayClient({ userName, ratingLabel }: Props) {
 
   return (
     <>
+      {!currentLabel && (
+        <RatingLabelPrompt onSet={label => setCurrentLabel(label)} />
+      )}
       <DailyWins
         userName={userName}
         commitments={commitments}
@@ -119,14 +126,14 @@ export default function TodayClient({ userName, ratingLabel }: Props) {
         onToggle={onToggle}
         onAddCommitment={onAddCommitment}
         onOpenReflection={() => setModalOpen(true)}
-        rating={ratingLabel}
+        rating={currentLabel}
       />
       {modalOpen && (
         <ReflectionModal
           date={date}
           existingReflection={reflectionContent}
           existingRating={rating}
-          ratingLabel={ratingLabel}
+          ratingLabel={currentLabel}
           onClose={() => setModalOpen(false)}
           onSaved={(content, r) => {
             // Autosave fires every 2s while the user is typing — do NOT close

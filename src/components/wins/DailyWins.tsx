@@ -18,7 +18,8 @@ interface Props {
   onToggle: (id: string) => Promise<void>;
   onAddCommitment: (title: string) => Promise<void>;
   onOpenReflection: () => void;
-  rating?: string;
+  // null → user hasn't picked a daily quality yet; suppress the eyebrow suffix.
+  rating?: string | null;
 }
 
 function Check({ size = 11 }: { size?: number }) {
@@ -67,7 +68,7 @@ const CARD_BG = 'bg-bg';
 const CARD_BG_WIN = 'bg-[var(--color-accent-light)]';
 
 export default function DailyWins({
-  userName, commitments, reflection, onToggle, onAddCommitment, onOpenReflection, rating = 'inner peace',
+  userName, commitments, reflection, onToggle, onAddCommitment, onOpenReflection, rating,
 }: Props) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
@@ -182,7 +183,7 @@ export default function DailyWins({
         className={`${CARD} ${CARD_BG} w-full text-left block hover:bg-surface/40 transition-colors`}
       >
         <MutedMono className="block mb-[6px]">
-          {reflection ? `Daily reflection · ${rating.toLowerCase()}` : 'Daily reflection'}
+          {reflection && rating ? `Daily reflection · ${rating.toLowerCase()}` : 'Daily reflection'}
         </MutedMono>
         <p className={`font-display italic text-[16px] leading-[1.5] ${reflection ? 'text-text' : 'text-text-muted'}`}>
           {reflection || "Add today's journal entry"}

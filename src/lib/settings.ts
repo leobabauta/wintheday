@@ -6,7 +6,9 @@ export interface UserSettings {
   dark_mode: boolean;
   reflection_snoozed_until: string | null;
   reflection_skipped_date: string | null;
-  rating_label: string;
+  // null when the user hasn't picked a quality yet — the Today tab uses
+  // this to decide whether to show the "pick a quality" prompt.
+  rating_label: string | null;
   timezone: string;
 }
 
@@ -21,16 +23,17 @@ export async function getUserSettings(userId: number): Promise<UserSettings> {
       'INSERT INTO user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING',
       [userId]
     );
-    return { reflection_time: 17, onboarded: false, dark_mode: false, reflection_snoozed_until: null, reflection_skipped_date: null, rating_label: 'inner peace', timezone: 'Pacific/Honolulu' };
+    return { reflection_time: 17, onboarded: false, dark_mode: false, reflection_snoozed_until: null, reflection_skipped_date: null, rating_label: null, timezone: 'Pacific/Honolulu' };
   }
 
+  const rawLabel = (row as Record<string, unknown>).rating_label;
   return {
     reflection_time: row.reflection_time,
     onboarded: row.onboarded === 1,
     dark_mode: (row.dark_mode ?? 0) === 1,
     reflection_snoozed_until: (row as Record<string, unknown>).reflection_snoozed_until as string | null,
     reflection_skipped_date: (row as Record<string, unknown>).reflection_skipped_date as string | null,
-    rating_label: ((row as Record<string, unknown>).rating_label as string) || 'inner peace',
+    rating_label: typeof rawLabel === 'string' && rawLabel.trim() ? rawLabel : null,
     timezone: ((row as Record<string, unknown>).timezone as string) || 'Pacific/Honolulu',
   };
 }

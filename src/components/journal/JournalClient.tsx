@@ -10,7 +10,7 @@ export default function JournalClient({
 }: {
   entries: JournalEntry[];
   today: string;
-  ratingLabel: string;
+  ratingLabel: string | null;
 }) {
   const router = useRouter();
 

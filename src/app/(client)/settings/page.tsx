@@ -62,7 +62,7 @@ export default async function SettingsPage() {
       <section className="mb-10">
         <h2 className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted mb-4">Reflection</h2>
         <div>
-          <RatingLabelSetting initialLabel={settings.rating_label} />
+          <RatingLabelSetting initialLabel={settings.rating_label ?? ''} />
           <ReflectionTimeSetting initialTime={settings.reflection_time} />
         </div>
       </section>
