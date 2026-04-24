@@ -196,24 +196,31 @@ h1, h2, h3, h4 {
   border-radius: 4px;
 }
 
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="time"],
-textarea {
-  font-family: inherit;
-  /* 16px is the iOS threshold — below this, WKWebView auto-zooms on focus
-   * and (without maximum-scale) leaves the page stuck zoomed. */
-  font-size: 16px;
-  color: var(--color-text);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 10px 14px;
-  transition: border-color 180ms;
+/* Lives in the `base` layer so Tailwind utility classes (which live in the
+ * `utilities` layer, cascaded later) win. Before this was @layer'd, rules
+ * like `p-0`, `border-0`, or `text-transparent` on a textarea were
+ * silently overridden by this block, which caused ghost/doubled text in
+ * the reflection mirror overlay. */
+@layer base {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="time"],
+  textarea {
+    font-family: inherit;
+    /* 16px is the iOS threshold — below this, WKWebView auto-zooms on focus
+     * and (without maximum-scale) leaves the page stuck zoomed. */
+    font-size: 16px;
+    color: var(--color-text);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    transition: border-color 180ms;
+  }
+  input:focus, textarea:focus { border-color: var(--color-accent); outline: none; }
+  textarea { resize: vertical; }
 }
-input:focus, textarea:focus { border-color: var(--color-accent); outline: none; }
-textarea { resize: vertical; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }

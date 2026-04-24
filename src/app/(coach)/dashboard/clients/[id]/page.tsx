@@ -12,8 +12,6 @@ import ClientInfoEditor from '@/components/coach/ClientInfoEditor';
 import ClientMeetingsSection from '@/components/coach/ClientMeetingsSection';
 import PreCoachingLogView from '@/components/coach/PreCoachingLogView';
 
-import type { ReactNode } from 'react';
-
 const PROMPTS = [
   { key: 'well', label: 'What went well today?' },
   { key: 'challenge', label: 'What was challenging?' },
@@ -31,35 +29,36 @@ function parseContent(content: string): Record<string, string> {
   return {};
 }
 
-// New-format body entries return one unlabeled item; legacy entries still
-// return up to four labeled items.
+// Returns a uniform [{label, text}] list for either legacy 4-field entries
+// or new-format body entries. Body entries are split on `**Heading:**`
+// markers so each inserted prompt becomes its own labeled section (matches
+// the layout of the client-side journal timeline).
 function displayAnswers(content: string): { label: string | null; text: string }[] {
   const answers = parseContent(content);
   if (typeof answers.body === 'string' && answers.body.trim()) {
-    return [{ label: null, text: answers.body }];
+    const body = answers.body;
+    const sections: { label: string | null; text: string }[] = [];
+    const regex = /\*\*(.+?)\*\*/g;
+    let lastIndex = 0;
+    let currentHeading: string | null = null;
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(body)) !== null) {
+      const before = body.slice(lastIndex, match.index).trim();
+      if (before || currentHeading) {
+        sections.push({ label: currentHeading, text: before });
+      }
+      currentHeading = match[1].replace(/[\s:—-]+$/, '').trim();
+      lastIndex = regex.lastIndex;
+    }
+    const remaining = body.slice(lastIndex).trim();
+    if (remaining || currentHeading) {
+      sections.push({ label: currentHeading, text: remaining });
+    }
+    return sections.length > 0 ? sections : [{ label: null, text: body }];
   }
   return PROMPTS
     .filter(p => answers[p.key]?.trim())
     .map(p => ({ label: p.label, text: answers[p.key] }));
-}
-
-function highlightBold(text: string): ReactNode[] {
-  const parts: ReactNode[] = [];
-  const regex = /\*\*(.+?)\*\*/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  let idx = 0;
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
-    parts.push(
-      <strong key={`b-${idx++}`} className="font-semibold text-text">
-        {match[1]}
-      </strong>,
-    );
-    lastIndex = regex.lastIndex;
-  }
-  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
-  return parts;
 }
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -278,7 +277,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                           <div key={i}>
                             {item.label && <MutedMono className="block">{item.label}</MutedMono>}
                             <p className={`text-[15px] text-text whitespace-pre-wrap line-clamp-2 leading-[1.55] font-light ${item.label ? 'mt-1' : ''}`}>
-                              {highlightBold(item.text)}
+                              {item.text}
                             </p>
                           </div>
                         ))}

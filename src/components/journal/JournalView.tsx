@@ -1,26 +1,34 @@
 'use client';
 
-import { useState, useMemo, type ReactNode } from 'react';
+import { useState, useMemo } from 'react';
 import MutedMono from '@/components/ui/MutedMono';
 import ReflectionModal from './ReflectionModal';
 
-function highlightBold(text: string): ReactNode[] {
-  const parts: ReactNode[] = [];
+// Split a new-format body into sections using `**Heading:**` markers.
+// Each section becomes a mono-caps label + sans-serif paragraph (the same
+// typographic treatment as the pre-coaching form answers). Text before the
+// first heading becomes a leading label-less section. Trailing punctuation
+// on the heading (`:` or `—`) is stripped so the uppercase label reads
+// cleanly.
+function parseBodySections(body: string): { heading: string | null; text: string }[] {
+  const sections: { heading: string | null; text: string }[] = [];
   const regex = /\*\*(.+?)\*\*/g;
   let lastIndex = 0;
+  let currentHeading: string | null = null;
   let match: RegExpExecArray | null;
-  let idx = 0;
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
-    parts.push(
-      <strong key={`b-${idx++}`} className="font-semibold text-text">
-        {match[1]}
-      </strong>,
-    );
+  while ((match = regex.exec(body)) !== null) {
+    const before = body.slice(lastIndex, match.index).trim();
+    if (before || currentHeading) {
+      sections.push({ heading: currentHeading, text: before });
+    }
+    currentHeading = match[1].replace(/[\s:—-]+$/, '').trim();
     lastIndex = regex.lastIndex;
   }
-  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
-  return parts;
+  const remaining = body.slice(lastIndex).trim();
+  if (remaining || currentHeading) {
+    sections.push({ heading: currentHeading, text: remaining });
+  }
+  return sections;
 }
 
 export type Responses = {
@@ -320,23 +328,31 @@ export default function JournalView({ entries, today, ratingLabel, onCreate, onE
                   )}
 
                   <div className="mt-8">
-                    {/* New-format: single body block */}
-                    {selected.responses.body && selected.responses.body.trim() && (
-                      <div className="py-5 border-t border-border first:border-t-0">
-                        <p className="font-display text-[18px] font-light leading-[1.6] text-text whitespace-pre-wrap text-pretty">
-                          {highlightBold(selected.responses.body)}
-                        </p>
-                      </div>
-                    )}
+                    {/* New-format: parse **Heading:** markers into mono-caps
+                        labels + sans-serif body, matching the pre-coaching
+                        form layout. Text before the first heading renders
+                        label-less. */}
+                    {selected.responses.body && selected.responses.body.trim() &&
+                      parseBodySections(selected.responses.body).map((s, i) => (
+                        <div key={`b-${i}`} className="py-5 border-t border-border first:border-t-0">
+                          {s.heading && <MutedMono className="block mb-3">{s.heading}</MutedMono>}
+                          {s.text && (
+                            <p className="text-[15px] text-text whitespace-pre-wrap leading-[1.55] font-light">
+                              {s.text}
+                            </p>
+                          )}
+                        </div>
+                      ))}
 
-                    {/* Legacy format: four prompts */}
+                    {/* Legacy format: four prompts with the same sans-serif
+                        body treatment. */}
                     {PROMPTS.map(p => {
                       const answer = selected.responses[p.key];
                       if (!answer || !answer.trim()) return null;
                       return (
                         <div key={p.key} className="py-5 border-t border-border first:border-t-0">
                           <MutedMono className="block mb-3">{p.label}</MutedMono>
-                          <p className="font-display text-[18px] font-light leading-[1.6] text-text whitespace-pre-wrap text-pretty">
+                          <p className="text-[15px] text-text whitespace-pre-wrap leading-[1.55] font-light">
                             {answer}
                           </p>
                         </div>
