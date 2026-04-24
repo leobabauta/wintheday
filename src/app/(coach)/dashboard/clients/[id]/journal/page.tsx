@@ -3,6 +3,7 @@ import { query, queryOne } from '@/lib/db';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
+import MutedMono from '@/components/ui/MutedMono';
 import StarRating from '@/components/ui/StarRating';
 
 const PROMPTS = [
@@ -110,11 +111,11 @@ export default async function ClientJournalPage({ params }: { params: Promise<{ 
                   {items.length === 0 ? (
                     <p className="text-sm text-text-muted italic">Empty entry</p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-5">
                       {items.map((item, i) => (
                         <div key={i}>
-                          <p className="text-xs font-semibold text-text-muted">{item.label}</p>
-                          <p className="text-sm text-text/80 whitespace-pre-wrap mt-0.5">{item.text}</p>
+                          <MutedMono className="block">{item.label}</MutedMono>
+                          <p className="text-[15px] text-text whitespace-pre-wrap mt-1 leading-[1.55] font-light">{item.text}</p>
                         </div>
                       ))}
                     </div>

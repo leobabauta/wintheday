@@ -69,7 +69,7 @@ export default function PreCoachingLogView({ clientId }: { clientId: number }) {
             return (
               <div key={p.key}>
                 <MutedMono className="block">{p.label}</MutedMono>
-                <p className="text-[14px] text-text-secondary whitespace-pre-wrap mt-1 reflection-text">
+                <p className="text-[15px] text-text whitespace-pre-wrap mt-1 leading-[1.55] font-light">
                   {answer}
                 </p>
               </div>

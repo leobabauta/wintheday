@@ -249,7 +249,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                         {items.map((item, i) => (
                           <div key={i}>
                             <MutedMono className="block">{item.label}</MutedMono>
-                            <p className="text-[14px] text-text-secondary whitespace-pre-wrap line-clamp-2 reflection-text">{item.text}</p>
+                            <p className="text-[15px] text-text whitespace-pre-wrap line-clamp-2 leading-[1.55] font-light mt-1">{item.text}</p>
                           </div>
                         ))}
                       </div>

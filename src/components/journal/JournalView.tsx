@@ -172,9 +172,11 @@ export default function JournalView({ entries, today, ratingLabel = 'inner peace
             <button
               onClick={() => setComposing(true)}
               aria-label="New entry today"
-              className="w-10 h-10 rounded-full bg-[var(--color-accent)] text-[#FCFBF9] flex items-center justify-center text-[22px] leading-none hover:bg-[var(--color-accent-dark)] transition-colors"
+              className="w-10 h-10 rounded-full bg-[var(--color-accent)] text-[#FCFBF9] flex items-center justify-center hover:bg-[var(--color-accent-dark)] transition-colors"
             >
-              +
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
+                <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
             </button>
           )}
         </div>
