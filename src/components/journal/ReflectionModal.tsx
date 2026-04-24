@@ -1,222 +1,280 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import Button from '@/components/ui/Button';
-import StarRating from '@/components/ui/StarRating';
+/**
+ * Daily Reflection — full-screen "paper journal" writing surface.
+ *
+ * Replaces the previous centered modal with a full-screen page that matches
+ * the ZHD visual language used across the rest of the app: one rotating
+ * Fraunces italic prompt, unframed textarea on warm paper, optional nudge
+ * chips that insert soft headings into the flow, and a quiet 5-dot
+ * inner-peace rating. Autosaves to /api/journal.
+ *
+ * Props and onSaved contract are unchanged from the previous modal so this
+ * is a drop-in replacement for both call sites:
+ *   - src/components/journal/JournalView.tsx (edit existing entry)
+ *   - src/components/wins/DailyWins.tsx     (write today's reflection)
+ *
+ * Backward-compat: parses the legacy JSON payload
+ *   { well, challenge, learn, tomorrow }
+ * into a single `body` field. New entries are saved as
+ *   { body: "…" }
+ * JournalView.tsx's PROMPTS-based renderer still shows legacy entries
+ * correctly; new entries will appear as a single "body" block. If you want
+ * JournalView to render the new `body` too, add a short adapter (see
+ * HANDOFF.md step 2).
+ */
+
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 
 const PROMPTS = [
-  { key: 'well', label: 'What went well today?' },
-  { key: 'challenge', label: 'What was challenging?' },
-  { key: 'learn', label: 'What did you learn or notice?' },
-  { key: 'tomorrow', label: 'What will you focus on tomorrow?' },
+  "What's alive in you tonight?",
+  'How did today land?',
+  'What moved through you today?',
+  'What are you carrying into tomorrow?',
+];
+
+const NUDGES = [
+  { key: 'well',     label: 'what went well',     heading: 'What went well —' },
+  { key: 'hard',     label: 'what was hard',      heading: 'What was hard —' },
+  { key: 'noticed',  label: 'what you noticed',   heading: 'What I noticed —' },
+  { key: 'tomorrow', label: 'tomorrow',           heading: 'Tomorrow —' },
 ];
 
 interface Props {
-  date: string;
-  existingReflection: string;
+  date: string;                // YYYY-MM-DD
+  existingReflection: string;  // JSON string; legacy or { body }
   existingRating: number;
-  ratingLabel: string;
+  ratingLabel: string;         // e.g. "inner peace"
   onClose: () => void;
   onSaved: (content: string, rating: number) => void;
 }
 
-function MicIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-      <line x1="12" y1="19" x2="12" y2="23" />
-      <line x1="8" y1="23" x2="16" y2="23" />
-    </svg>
-  );
-}
-
-function parseContent(content: string): Record<string, string> {
+function parseContent(content: string): { body: string } {
+  if (!content) return { body: '' };
   try {
     const parsed = JSON.parse(content);
-    if (typeof parsed === 'object' && parsed !== null) return parsed;
+    if (parsed && typeof parsed === 'object') {
+      // New shape
+      if (typeof parsed.body === 'string') return { body: parsed.body };
+      // Legacy { well, challenge, learn, tomorrow } — concat into body.
+      const parts: string[] = [];
+      if (parsed.well)      parts.push(parsed.well);
+      if (parsed.challenge) parts.push((parts.length ? '\n\n' : '') + parsed.challenge);
+      if (parsed.learn)     parts.push((parts.length ? '\n\n' : '') + parsed.learn);
+      if (parsed.tomorrow)  parts.push((parts.length ? '\n\n' : '') + parsed.tomorrow);
+      return { body: parts.join('').trim() };
+    }
   } catch {
-    if (content.trim()) return { well: content };
+    // Non-JSON legacy — treat as plain body.
   }
-  return {};
+  return { body: content };
 }
 
-export default function ReflectionModal({ date, existingReflection, existingRating, ratingLabel, onClose, onSaved }: Props) {
-  const [answers, setAnswers] = useState<Record<string, string>>(() => parseContent(existingReflection));
+function todayReadable(dateIso: string) {
+  const d = new Date(dateIso + 'T12:00:00');
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
+  const month = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  return `${weekday} · ${month}`;
+}
+
+export default function ReflectionModal({
+  date,
+  existingReflection,
+  existingRating,
+  ratingLabel,
+  onClose,
+  onSaved,
+}: Props) {
+  const [body, setBody] = useState(() => parseContent(existingReflection).body);
   const [rating, setRating] = useState(existingRating);
   const [saved, setSaved] = useState(true);
-  const [recording, setRecording] = useState(false);
-  const [recordingFor, setRecordingFor] = useState<string | null>(null);
-  const [speechSupported, setSpeechSupported] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
+  // Pick a prompt once per mount so the question doesn't shuffle as they type.
+  const promptIdx = useMemo(() => Math.floor(Math.random() * PROMPTS.length), []);
+  const textRef = useRef<HTMLTextAreaElement | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const save = useCallback(
+    async (nextBody: string, nextRating: number) => {
+      try {
+        const content = JSON.stringify({ body: nextBody });
+        await fetch('/api/journal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date, content, rating: nextRating }),
+        });
+        setSaved(true);
+        onSaved(content, nextRating);
+      } catch {
+        /* retry on next change */
+      }
+    },
+    [date, onSaved],
+  );
+
+  // Autosave 1.4s after last keystroke.
   useEffect(() => {
-    const supported = typeof window !== 'undefined' &&
-      ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
-    setSpeechSupported(supported);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (!body && !rating) return;
+    setSaved(false);
+    timerRef.current = setTimeout(() => save(body, rating), 1400);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [body, rating]);
+
+  // Flush on unmount if there's a pending save.
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        void save(body, rating);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const save = useCallback(async (data: Record<string, string>, ratingVal?: number) => {
-    try {
-      const content = JSON.stringify(data);
-      await fetch('/api/journal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, content, rating: ratingVal ?? rating }),
-      });
-      setSaved(true);
-      onSaved(content, ratingVal ?? rating);
-    } catch { /* retry */ }
-  }, [date, onSaved, rating]);
-
-  const handleChange = (key: string, value: string) => {
-    const updated = { ...answers, [key]: value };
-    setAnswers(updated);
-    setSaved(false);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => save(updated), 2000);
-  };
-
-  const handleRatingChange = (val: number) => {
-    setRating(val);
-    setSaved(false);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => save(answers, val), 2000);
-  };
-
-  const handleBlur = () => {
-    if (!saved) {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      save(answers);
-    }
-  };
-
   const handleDone = () => {
-    if (!saved) {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      save(answers);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      void save(body, rating);
     }
     onClose();
   };
 
-  const startRecording = (promptKey: string) => {
-    if (!speechSupported) return;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-
-    let finalTranscript = answers[promptKey] || '';
-    if (finalTranscript) finalTranscript += ' ';
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onresult = (event: any) => {
-      let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        } else {
-          interim += event.results[i][0].transcript;
-        }
+  const insertNudge = (heading: string) => {
+    const next = (body.trimEnd() + '\n\n' + heading + '\n').replace(/^\n+/, '');
+    setBody(next);
+    requestAnimationFrame(() => {
+      const ta = textRef.current;
+      if (ta) {
+        ta.focus();
+        const pos = next.length;
+        ta.setSelectionRange(pos, pos);
+        ta.scrollTop = ta.scrollHeight;
       }
-      const combined = finalTranscript + interim;
-      setAnswers(prev => ({ ...prev, [promptKey]: combined }));
-    };
-
-    recognition.onerror = () => {
-      setRecording(false);
-      setRecordingFor(null);
-    };
-
-    recognition.onend = () => {
-      setRecording(false);
-      setRecordingFor(null);
-      setAnswers(prev => {
-        const updated = { ...prev };
-        save(updated);
-        return updated;
-      });
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-    setRecording(true);
-    setRecordingFor(promptKey);
+    });
   };
 
-  const stopRecording = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-  };
+  // Lock body scroll while open.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  // Esc to close.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleDone();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={handleDone}>
-      <div
-        className="w-full max-w-lg mx-4 max-h-[85vh] overflow-y-auto bg-bg rounded-2xl "
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold text-text">Daily Reflection</h2>
-            <div className="flex items-center gap-3">
-              <span className={`text-[10px] ${saved ? 'text-success' : 'text-accent'}`}>
-                {saved ? (Object.values(answers).some(v => v.trim()) ? 'Saved' : '') : 'Saving...'}
-              </span>
-              <button onClick={handleDone} className="text-text-muted hover:text-text text-lg">x</button>
-            </div>
-          </div>
+    <div className="fixed inset-0 z-50 bg-bg overflow-y-auto animate-reflect-in">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-6 pt-[18px] pb-1 whitespace-nowrap">
+        <button
+          onClick={handleDone}
+          className="font-sans text-[13px] text-text-muted hover:text-text transition-colors whitespace-nowrap"
+        >
+          ← Today
+        </button>
+        <div className="flex items-center gap-[14px]">
+          <span
+            className={`font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted transition-opacity duration-200 ${
+              saved && (body || rating) ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            saved
+          </span>
+          <button
+            onClick={handleDone}
+            className="font-sans text-[13px] text-[var(--color-accent)] hover:opacity-80 transition-opacity"
+          >
+            Done
+          </button>
+        </div>
+      </div>
 
-          <div className="mb-5">
-            <StarRating
-              value={rating}
-              onChange={handleRatingChange}
-              label={`How much did you experience ${ratingLabel} today?`}
-              size={28}
-            />
-          </div>
+      {/* Paper */}
+      <div className="max-w-[620px] w-full mx-auto px-7 pt-9 pb-12 md:px-12 md:pt-14 md:pb-16">
+        <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted mb-[10px]">
+          {todayReadable(date)}
+        </p>
 
-          <div className="space-y-4">
-            {PROMPTS.map(prompt => (
-              <div key={prompt.key}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm font-semibold text-text-secondary">{prompt.label}</label>
-                  {speechSupported && (
-                    <button
-                      onClick={() => recording && recordingFor === prompt.key ? stopRecording() : startRecording(prompt.key)}
-                      disabled={recording && recordingFor !== prompt.key}
-                      className={`p-1.5 rounded-lg transition-colors ${
-                        recording && recordingFor === prompt.key
-                          ? 'bg-destructive/10 text-destructive animate-pulse'
-                          : 'text-text/30 hover:text-text-secondary hover:bg-surface'
-                      } disabled:opacity-30`}
-                      title={recording && recordingFor === prompt.key ? 'Stop recording' : 'Record audio'}
-                    >
-                      <MicIcon size={14} />
-                    </button>
-                  )}
-                </div>
-                <textarea
-                  value={answers[prompt.key] || ''}
-                  onChange={e => handleChange(prompt.key, e.target.value)}
-                  onBlur={handleBlur}
-                  placeholder="Write your thoughts..."
-                  className="w-full h-20 bg-surface/30 rounded-[12px] p-3 text-sm text-text outline-none resize-none focus:ring-1 focus:ring-accent/20 transition-colors"
+        <h1 className="font-display italic font-light text-[30px] md:text-[38px] leading-[1.22] tracking-[-0.01em] text-text text-pretty mb-7 md:mb-9">
+          {PROMPTS[promptIdx]}
+        </h1>
+
+        <textarea
+          ref={textRef}
+          value={body}
+          onChange={e => setBody(e.target.value)}
+          autoFocus
+          placeholder="A sentence. A paragraph. A page. Whatever wants to come out."
+          className="
+            w-full bg-transparent border-0 outline-none resize-none p-0
+            font-sans font-light text-[17px] md:text-[18px] leading-[1.75] text-text
+            placeholder:italic placeholder:text-text-muted placeholder:opacity-70
+            caret-[var(--color-accent)]
+            min-h-[180px] md:min-h-[240px] max-h-[44vh] md:max-h-[52vh]
+            overflow-y-auto
+          "
+        />
+
+        {/* Nudge chips */}
+        <div className="flex flex-wrap items-center gap-2 mt-7 pt-5 border-t border-border">
+          <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted mr-1">
+            if stuck —
+          </span>
+          {NUDGES.map(n => (
+            <button
+              key={n.key}
+              type="button"
+              onClick={() => insertNudge(n.heading)}
+              className="
+                font-sans text-[12px] text-text-muted
+                border border-border rounded-full px-3 py-[6px]
+                hover:text-text hover:border-text-muted
+                transition-colors
+              "
+            >
+              {n.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Inner peace */}
+        <div className="mt-9 pt-6 border-t border-border">
+          <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted mb-3">
+            {ratingLabel} today
+          </p>
+          <div className="flex items-center gap-[14px]">
+            {[1, 2, 3, 4, 5].map(n => {
+              const on = n <= rating;
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setRating(n === rating ? 0 : n)}
+                  aria-label={`${ratingLabel} ${n} of 5`}
+                  className={`
+                    w-[14px] h-[14px] rounded-full border-[1.25px] p-0 transition-all
+                    ${on
+                      ? 'bg-[var(--color-accent)] border-[var(--color-accent)]'
+                      : 'bg-transparent border-border hover:border-text-muted'
+                    }
+                  `}
                 />
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5">
-            <Button onClick={handleDone} size="sm">Done</Button>
+              );
+            })}
           </div>
         </div>
       </div>

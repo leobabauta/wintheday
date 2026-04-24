@@ -5,6 +5,9 @@ import MutedMono from '@/components/ui/MutedMono';
 import ReflectionModal from './ReflectionModal';
 
 export type Responses = {
+  // New single-body format written by the redesigned reflection surface.
+  body?: string;
+  // Legacy 4-field format — kept so old entries still render.
   well?: string;
   challenge?: string;
   learn?: string;
@@ -294,6 +297,16 @@ export default function JournalView({ entries, today, ratingLabel = 'inner peace
                   )}
 
                   <div className="mt-8">
+                    {/* New-format: single body block */}
+                    {selected.responses.body && selected.responses.body.trim() && (
+                      <div className="py-5 border-t border-border first:border-t-0">
+                        <p className="font-display text-[18px] font-light leading-[1.6] text-text whitespace-pre-wrap text-pretty">
+                          {selected.responses.body}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Legacy format: four prompts */}
                     {PROMPTS.map(p => {
                       const answer = selected.responses[p.key];
                       if (!answer || !answer.trim()) return null;

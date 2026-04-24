@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import JournalClient from '@/components/journal/JournalClient';
 
 type Responses = {
+  body?: string;
   well?: string;
   challenge?: string;
   learn?: string;
@@ -17,7 +18,7 @@ function parseResponses(content: string): Responses {
     const parsed = JSON.parse(content);
     if (typeof parsed === 'object' && parsed !== null) {
       const r: Responses = {};
-      for (const k of ['well', 'challenge', 'learn', 'tomorrow'] as const) {
+      for (const k of ['body', 'well', 'challenge', 'learn', 'tomorrow'] as const) {
         const v = (parsed as Record<string, string>)[k];
         if (typeof v === 'string' && v.trim()) r[k] = v.trim();
       }

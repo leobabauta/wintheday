@@ -27,7 +27,9 @@ function extractReflectionPreview(content: unknown): string {
   try {
     const parsed = JSON.parse(content);
     if (parsed && typeof parsed === 'object') {
-      const keys = ['well', 'challenge', 'learn', 'tomorrow'] as const;
+      // Prefer the new single-body format; fall through to the legacy 4-field
+      // keys so entries written by the old modal still show a preview.
+      const keys = ['body', 'well', 'challenge', 'learn', 'tomorrow'] as const;
       for (const k of keys) {
         const v = (parsed as Record<string, unknown>)[k];
         if (typeof v === 'string' && v.trim()) return v.trim();

@@ -51,6 +51,16 @@
   --radius-pill: 999px;
 }
 
+/* Mount-fade for the full-screen daily reflection writing surface. */
+@keyframes reflect-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-reflect-in {
+  animation: reflect-in 360ms cubic-bezier(.2,.6,.2,1);
+}
+
 /* Accent switching (user preference) */
 [data-accent="sage"] {
   --color-accent: #4A7C6F;
