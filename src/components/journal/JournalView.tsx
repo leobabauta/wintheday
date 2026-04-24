@@ -188,6 +188,23 @@ export default function JournalView({ entries, today, ratingLabel = 'inner peace
           {/* Mobile: horizontal chip rail */}
           <nav className="md:hidden -mx-6 px-6 mb-6 overflow-x-auto">
             <div className="flex gap-1 min-w-max pb-2">
+              {canCompose && (
+                <button
+                  onClick={() => setComposing(true)}
+                  className={`flex flex-col items-center text-center px-[14px] py-[8px] rounded-[10px] transition-colors ${
+                    composing
+                      ? 'border border-[var(--color-accent)] bg-[var(--color-accent-light)]'
+                      : 'border border-dashed border-[var(--color-border-strong)]'
+                  }`}
+                >
+                  <span className={`text-[22px] font-light leading-none tracking-[-0.01em] ${composing ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
+                    +
+                  </span>
+                  <span className={`font-mono text-[9px] tracking-[0.22em] uppercase mt-[4px] ${composing ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
+                    Today
+                  </span>
+                </button>
+              )}
               {entries.map(e => {
                 const active = !composing && selected?.id === e.id;
                 return (
@@ -215,6 +232,16 @@ export default function JournalView({ entries, today, ratingLabel = 'inner peace
           {/* Desktop: sticky left rail */}
           <nav className="hidden md:block md:sticky md:top-10 md:self-start md:max-h-[calc(100dvh-80px)] md:overflow-y-auto">
             <MutedMono className="block mb-4">All entries</MutedMono>
+            {canCompose && (
+              <button
+                onClick={() => setComposing(true)}
+                className={`text-left py-3 border-b border-border w-full ${composing ? 'text-[var(--color-accent)]' : 'text-text-muted hover:text-[var(--color-accent)]'} transition-colors`}
+              >
+                <span className="font-mono text-[10px] tracking-[0.22em] uppercase">
+                  + New entry today
+                </span>
+              </button>
+            )}
             <div className="flex flex-col">
               {entries.map(e => {
                 const active = !composing && selected?.id === e.id;

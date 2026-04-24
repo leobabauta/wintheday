@@ -41,7 +41,9 @@ function extractReflectionPreview(content: unknown): string {
 export default function TodayClient({ userName, ratingLabel }: Props) {
   const [date] = useState(getLocalDate);
   const [wins, setWins] = useState<WinItem[] | null>(null);
-  const [reflection, setReflection] = useState('');
+  // Full JSON content; the modal needs all four answers on re-open, not just
+  // the preview line we show on the Today card.
+  const [reflectionContent, setReflectionContent] = useState('');
   const [rating, setRating] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -54,7 +56,7 @@ export default function TodayClient({ userName, ratingLabel }: Props) {
       const winsData = await winsRes.json();
       const journalData = await journalRes.json();
       setWins(winsData);
-      setReflection(extractReflectionPreview(journalData?.content));
+      setReflectionContent(typeof journalData?.content === 'string' ? journalData.content : '');
       setRating(journalData?.rating ? Number(journalData.rating) : 0);
     }
     load();
@@ -111,7 +113,7 @@ export default function TodayClient({ userName, ratingLabel }: Props) {
       <DailyWins
         userName={userName}
         commitments={commitments}
-        reflection={reflection}
+        reflection={extractReflectionPreview(reflectionContent)}
         onToggle={onToggle}
         onAddCommitment={onAddCommitment}
         onOpenReflection={() => setModalOpen(true)}
@@ -120,14 +122,16 @@ export default function TodayClient({ userName, ratingLabel }: Props) {
       {modalOpen && (
         <ReflectionModal
           date={date}
-          existingReflection={reflection}
+          existingReflection={reflectionContent}
           existingRating={rating}
           ratingLabel={ratingLabel}
           onClose={() => setModalOpen(false)}
           onSaved={(content, r) => {
-            setReflection(extractReflectionPreview(content));
+            // Autosave fires every 2s while the user is typing — do NOT close
+            // the modal here, or the user loses their draft mid-keystroke.
+            // The modal closes itself via Done / backdrop / X.
+            setReflectionContent(content);
             setRating(r);
-            setModalOpen(false);
           }}
         />
       )}
