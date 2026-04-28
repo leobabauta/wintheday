@@ -140,32 +140,34 @@ export default function ReflectionModal({
     [date, onSaved],
   );
 
-  // Autosave 1.4s after last keystroke.
+  // Autosave 1.4s after last keystroke. timerRef is nulled in every branch
+  // that clears or fires the timer — `clearTimeout` alone does not reset
+  // the ref, and a stale truthy ref previously caused an unmount handler
+  // to overwrite saved content with an empty string (bug 2026-04-28).
   useEffect(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
     if (!body && !rating) return;
     setSaved(false);
-    timerRef.current = setTimeout(() => save(body, rating), 1400);
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      void save(body, rating);
+    }, 1400);
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [body, rating]);
 
-  // Flush on unmount if there's a pending save.
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        void save(body, rating);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleDone = () => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
+      timerRef.current = null;
       void save(body, rating);
     }
     onClose();
