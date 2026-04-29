@@ -15,6 +15,15 @@ export async function POST(
     const { id } = await params;
     const logId = parseInt(id);
 
+    // Coach can preview/edit the message before sending. If `content` isn't
+    // provided we fall back to a default — keeps the endpoint usable from
+    // clients/scripts that don't go through the preview UI.
+    let bodyContent: string | undefined;
+    try {
+      const body = await request.json();
+      if (body && typeof body.content === 'string') bodyContent = body.content.trim();
+    } catch { /* no body — use default */ }
+
     const row = await queryOne<{
       id: number;
       meeting_id: number;
@@ -38,11 +47,11 @@ export async function POST(
     }
 
     const client = await queryOne<{ name: string }>('SELECT name FROM users WHERE id = $1', [row.client_id]);
-    const sessionDate = new Date(row.starts_at).toLocaleDateString('en-US', {
-      weekday: 'long', month: 'long', day: 'numeric',
-    });
     const firstName = client?.name?.split(' ')[0] || 'there';
-    const content = `Thanks for sending your pre-coaching form ahead of our ${sessionDate} session, ${firstName}. I've read it and I'll see you then.`;
+    const day = new Date(row.starts_at).toLocaleDateString('en-US', { weekday: 'long' });
+    const content = (bodyContent && bodyContent.length > 0)
+      ? bodyContent.slice(0, 2000)
+      : `Got it, ${firstName} — thanks. See you ${day}.`;
 
     const inserted = await insertReturning<{ id: number }>(
       `INSERT INTO messages (sender_id, recipient_id, type, content)

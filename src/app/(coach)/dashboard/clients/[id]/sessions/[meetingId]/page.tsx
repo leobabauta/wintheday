@@ -125,6 +125,7 @@ export default async function CoachSessionDetailPage({
                   <AcknowledgeButton
                     logId={log.id}
                     clientFirstName={firstName}
+                    sessionWeekday={new Date(meeting.starts_at).toLocaleDateString('en-US', { weekday: 'long' })}
                     initiallyAcknowledged={!!log.acknowledged_at}
                     acknowledgedAt={log.acknowledged_at}
                   />
