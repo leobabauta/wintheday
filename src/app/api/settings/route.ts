@@ -23,13 +23,15 @@ export async function PUT(request: NextRequest) {
       await execute('UPDATE users SET name = $1 WHERE id = $2', [body.name, auth.userId]);
     }
 
-    // Handle email update (stored in users table)
+    // Handle email update (stored in users table). Normalize to lowercase
+    // so login matches regardless of typed casing.
     if (body.email !== undefined) {
-      const existing = await queryOne('SELECT id FROM users WHERE email = $1 AND id != $2', [body.email, auth.userId]);
+      const normalizedEmail = String(body.email).trim().toLowerCase();
+      const existing = await queryOne('SELECT id FROM users WHERE email = $1 AND id != $2', [normalizedEmail, auth.userId]);
       if (existing) {
         return NextResponse.json({ error: 'Email already in use' }, { status: 400 });
       }
-      await execute('UPDATE users SET email = $1 WHERE id = $2', [body.email, auth.userId]);
+      await execute('UPDATE users SET email = $1 WHERE id = $2', [normalizedEmail, auth.userId]);
     }
 
     // Handle other settings

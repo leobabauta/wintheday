@@ -64,9 +64,10 @@ export async function PUT(
       await execute('UPDATE users SET name = $1 WHERE id = $2', [body.name, clientId]);
     }
 
-    // Update email if provided
+    // Update email if provided. Normalize to lowercase so login matches
+    // regardless of typed casing on the client side.
     if (body.email !== undefined) {
-      await execute('UPDATE users SET email = $1 WHERE id = $2', [body.email, clientId]);
+      await execute('UPDATE users SET email = $1 WHERE id = $2', [String(body.email).trim().toLowerCase(), clientId]);
     }
 
     // Update avatar if provided (null clears, data URL sets)

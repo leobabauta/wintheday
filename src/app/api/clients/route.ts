@@ -58,14 +58,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email, name, and password required' }, { status: 400 });
     }
 
-    const existing = await queryOne('SELECT id FROM users WHERE email = $1', [email]);
+    // Lowercase + trim so login matches regardless of how the email is typed
+    // (phones often autocapitalize the first letter).
+    const normalizedEmail = email.trim().toLowerCase();
+    const existing = await queryOne('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
     if (existing) {
       return NextResponse.json({ error: 'Email already in use' }, { status: 409 });
     }
 
     const userResult = await insertReturning<{ id: number }>(
       'INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4) RETURNING id',
-      [email, hashPassword(password), name, 'client']
+      [normalizedEmail, hashPassword(password), name, 'client']
     );
 
     await insertReturning(

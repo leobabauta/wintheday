@@ -11,9 +11,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
 
+    // Normalize email lookup so phone-autocapitalized "Vivek.Bakshi@…" matches
+    // the lowercase row in the DB. Stored emails are kept lowercase at write
+    // time (see clients/route.ts, settings/route.ts).
+    const normalizedEmail = email.trim().toLowerCase();
     const user = await queryOne<{ id: number; email: string; password_hash: string; name: string; role: string }>(
       'SELECT id, email, password_hash, name, role FROM users WHERE email = $1',
-      [email]
+      [normalizedEmail]
     );
 
     if (!user || !verifyPassword(password, user.password_hash)) {
