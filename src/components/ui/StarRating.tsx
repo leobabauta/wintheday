@@ -4,7 +4,10 @@ import { useState } from 'react';
 
 interface Props {
   value: number;
-  onChange: (value: number) => void;
+  // Optional so server components can render in read-only mode without
+  // passing a no-op function — Next 16 throws when a server component
+  // sends a function across the boundary to a client component.
+  onChange?: (value: number) => void;
   label?: string;
   readonly?: boolean;
   size?: number;
@@ -51,7 +54,7 @@ export default function StarRating({ value, onChange, label, readonly = false, s
   const display = hover ?? value;
 
   const handleClick = (starIndex: number, isLeftHalf: boolean) => {
-    if (readonly) return;
+    if (readonly || !onChange) return;
     const newValue = isLeftHalf ? starIndex + 0.5 : starIndex + 1;
     // Toggle off if clicking same value
     onChange(newValue === value ? 0 : newValue);

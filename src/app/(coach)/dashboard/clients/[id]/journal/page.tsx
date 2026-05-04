@@ -125,7 +125,6 @@ export default async function ClientJournalPage({ params }: { params: Promise<{ 
                     <div className="mb-3 pb-3 border-b border-border">
                       <StarRating
                         value={Number(entry.rating)}
-                        onChange={() => {}}
                         label={ratingLabel?.rating_label || 'inner peace'}
                         readonly
                         size={20}
