@@ -79,6 +79,14 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   if (!clientInfo) notFound();
 
+  // Mark unopened daily-completion rows as seen — landing on the client
+  // page is the closest thing to "I read your win-the-day notification."
+  await execute(
+    `UPDATE daily_completions SET coach_opened_at = NOW()
+     WHERE user_id = $1 AND coach_opened_at IS NULL`,
+    [clientId]
+  );
+
   const clientSettings = await queryOne<{ rating_label: string }>(
     'SELECT rating_label FROM user_settings WHERE user_id = $1',
     [clientId]

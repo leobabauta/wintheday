@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/auth';
-import { query, queryOne } from '@/lib/db';
+import { query, queryOne, execute } from '@/lib/db';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
@@ -66,6 +66,14 @@ export default async function ClientJournalPage({ params }: { params: Promise<{ 
     [clientId, session.userId]
   );
   if (!clientInfo) notFound();
+
+  // Mark all of this client's unopened journal entries as seen — the coach
+  // is here to read them. Drops the matching rows from the inbox UNION.
+  await execute(
+    `UPDATE journal_entries SET coach_opened_at = NOW()
+     WHERE user_id = $1 AND coach_opened_at IS NULL AND content <> ''`,
+    [clientId]
+  );
 
   const user = await queryOne<{ name: string }>('SELECT name FROM users WHERE id = $1', [clientId]);
 

@@ -7,10 +7,34 @@ import Button from '@/components/ui/Button';
 import MutedMono from '@/components/ui/MutedMono';
 import ClientTable from '@/components/coach/ClientTable';
 
-function statusFor(ratio: number): 'on-track' | 'steady' | 'struggling' {
-  if (ratio >= 0.8) return 'on-track';
-  if (ratio >= 0.5) return 'steady';
+type ClientStatus = 'on-track' | 'steady' | 'struggling' | 'starting-up';
+
+function statusFor(ratio: number): Exclude<ClientStatus, 'starting-up'> {
+  if (ratio >= 0.7) return 'on-track';
+  if (ratio >= 0.3) return 'steady';
   return 'struggling';
+}
+
+function daysSince(iso: string | null): number | null {
+  if (!iso) return null;
+  const d = new Date(iso.includes('T') ? iso : iso + 'T12:00:00');
+  if (isNaN(d.getTime())) return null;
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
+}
+
+function startingUpStatus(args: {
+  signOnDate: string | null;
+  createdAt: string | null;
+  hasSetup: boolean;
+  hasCheckIns: boolean;
+}): ClientStatus | null {
+  // Returns 'starting-up' or 'struggling' for new clients in their first
+  // week, or null when they're past the window and the ratio rule applies.
+  const age = daysSince(args.signOnDate) ?? daysSince(args.createdAt);
+  if (age === null || age >= 7) return null;
+  const engaged = args.hasSetup || args.hasCheckIns;
+  if (!engaged && age >= 3) return 'struggling';
+  return 'starting-up';
 }
 
 function lastEntryLabel(dateStr: string | null, today: string): string {
@@ -56,10 +80,16 @@ export default async function DashboardPage() {
     avatar_url: string | null;
     last_active_at: string | null;
     closing_date: string | null;
+    sign_on_date: string | null;
+    client_info_created_at: string | null;
+    onboarded: number | null;
   }>(
-    `SELECT u.id, u.name, u.avatar_url, u.last_active_at, ci.closing_date
+    `SELECT u.id, u.name, u.avatar_url, u.last_active_at,
+            ci.closing_date, ci.sign_on_date, ci.created_at AS client_info_created_at,
+            us.onboarded
      FROM users u
      JOIN client_info ci ON ci.user_id = u.id
+     LEFT JOIN user_settings us ON us.user_id = u.id
      WHERE ci.coach_id = $1
      ORDER BY u.name`,
     [session.userId]
@@ -114,12 +144,28 @@ export default async function DashboardPage() {
 
     const ratio = total7 > 0 ? done7 / total7 : 0;
 
+    const hasCommitment = await queryOne<{ count: string }>(
+      'SELECT COUNT(*) AS count FROM commitments WHERE user_id = $1 LIMIT 1',
+      [client.id]
+    );
+    const hasSetup =
+      client.onboarded === 1 || parseInt(hasCommitment?.count || '0') > 0;
+    const hasCheckIns = !!lastEntry || total7 > 0 || done7 > 0;
+
+    const startingStatus = startingUpStatus({
+      signOnDate: client.sign_on_date,
+      createdAt: client.client_info_created_at,
+      hasSetup,
+      hasCheckIns,
+    });
+    const status: ClientStatus = startingStatus ?? statusFor(ratio);
+
     const daysLeft = daysUntilClose(client.closing_date);
     return {
       id: String(client.id),
       name: client.name,
       avatarUrl: client.avatar_url,
-      status: statusFor(ratio),
+      status,
       streak,
       commitmentsDone7: done7,
       commitmentsTotal7: Math.max(total7, 1),

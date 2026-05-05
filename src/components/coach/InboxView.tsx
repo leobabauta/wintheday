@@ -10,10 +10,13 @@ interface InboxItem {
   id: string;
   messageId?: number;
   meetingId?: number;
+  journalId?: number;
+  completionUserId?: number;
+  completionDate?: string;
   clientId: string;
   clientName: string;
   clientAvatarUrl?: string | null;
-  kind: 'reflection' | 'message' | 'quiet' | 'pre_coaching';
+  kind: 'reflection' | 'message' | 'quiet' | 'pre_coaching' | 'completion';
   at: string;
   preview: string;
   meta: string;
@@ -29,6 +32,7 @@ function kindLabel(kind: InboxItem['kind']) {
   if (kind === 'reflection') return 'Reflection';
   if (kind === 'message') return 'Message';
   if (kind === 'pre_coaching') return 'Pre-coaching';
+  if (kind === 'completion') return 'All done';
   return 'Quiet';
 }
 
@@ -85,9 +89,12 @@ export default function InboxView({ items, onMarkAttended, onReply }: Props) {
       ) : visible.map(it => {
         const isReplying = replyingTo === it.id;
         const canReply = it.kind === 'message';
-        const primaryHref = it.kind === 'pre_coaching' && it.meetingId
-          ? `/dashboard/clients/${it.clientId}/sessions/${it.meetingId}`
-          : `/dashboard/clients/${it.clientId}`;
+        const primaryHref =
+          it.kind === 'pre_coaching' && it.meetingId
+            ? `/dashboard/clients/${it.clientId}/sessions/${it.meetingId}`
+            : it.kind === 'reflection'
+              ? `/dashboard/clients/${it.clientId}/journal`
+              : `/dashboard/clients/${it.clientId}`;
         return (
           <div key={it.id} className="grid grid-cols-[44px_1fr_auto] gap-4 py-6 border-b border-border items-start">
             <Avatar name={it.clientName} avatarUrl={it.clientAvatarUrl} size={44} textSize={12} />
@@ -140,10 +147,14 @@ export default function InboxView({ items, onMarkAttended, onReply }: Props) {
               )}
               <Link href={primaryHref}>
                 <Button size="sm" variant={it.kind === 'pre_coaching' ? 'filled' : 'outline'}>
-                  {it.kind === 'pre_coaching' ? 'Read form' : 'Open'}
+                  {it.kind === 'pre_coaching'
+                    ? 'Read form'
+                    : it.kind === 'reflection'
+                      ? 'Read entry'
+                      : 'Open'}
                 </Button>
               </Link>
-              {it.kind === 'message' && (
+              {(it.kind === 'message' || it.kind === 'reflection' || it.kind === 'completion') && (
                 <button className="text-[11px] text-text-muted hover:text-text" onClick={() => mark(it)}>
                   Mark attended
                 </button>

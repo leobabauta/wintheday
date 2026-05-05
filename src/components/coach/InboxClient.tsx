@@ -8,10 +8,13 @@ interface InboxItem {
   id: string;
   messageId?: number;
   meetingId?: number;
+  journalId?: number;
+  completionUserId?: number;
+  completionDate?: string;
   clientId: string;
   clientName: string;
   clientAvatarUrl?: string | null;
-  kind: 'reflection' | 'message' | 'quiet' | 'pre_coaching';
+  kind: 'reflection' | 'message' | 'quiet' | 'pre_coaching' | 'completion';
   at: string;
   preview: string;
   meta: string;
@@ -26,6 +29,18 @@ export default function InboxClient({ items }: { items: InboxItem[] }) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: [item.messageId] }),
+      });
+    } else if (item.kind === 'reflection' && item.journalId) {
+      await fetch('/api/journal', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [item.journalId] }),
+      });
+    } else if (item.kind === 'completion' && item.completionUserId && item.completionDate) {
+      await fetch('/api/daily-completions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows: [{ userId: item.completionUserId, date: item.completionDate }] }),
       });
     }
     // Pre-coaching items leave the inbox on their own once opened (opened_at

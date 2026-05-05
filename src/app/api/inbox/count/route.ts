@@ -14,6 +14,14 @@ export async function GET(request: NextRequest) {
          +
          (SELECT COUNT(*) FROM pre_coaching_logs
           WHERE coach_id = $1 AND submitted_at IS NOT NULL AND opened_at IS NULL)
+         +
+         (SELECT COUNT(*) FROM journal_entries je
+          JOIN client_info ci ON ci.user_id = je.user_id
+          WHERE ci.coach_id = $1 AND je.content <> '' AND je.coach_opened_at IS NULL)
+         +
+         (SELECT COUNT(*) FROM daily_completions dc
+          JOIN client_info ci ON ci.user_id = dc.user_id
+          WHERE ci.coach_id = $1 AND dc.coach_opened_at IS NULL)
          AS count`,
       [auth.userId]
     );

@@ -6,7 +6,7 @@ interface Client {
   id: string;
   name: string;
   avatarUrl?: string | null;
-  status: 'on-track' | 'steady' | 'struggling';
+  status: 'on-track' | 'steady' | 'struggling' | 'starting-up';
   streak: number;
   commitmentsDone7: number;
   commitmentsTotal7: number;
@@ -26,11 +26,13 @@ const STATUS_LABEL = {
   'on-track': 'On track',
   'steady': 'Steady',
   'struggling': 'Needs care',
+  'starting-up': 'Starting up',
 };
 const STATUS_COLOR = {
   'on-track': 'text-accent',
   'steady': 'text-text-secondary',
   'struggling': 'text-destructive',
+  'starting-up': 'text-text-secondary',
 };
 
 const GRID_COLS = 'grid-cols-[1fr_110px_80px_130px_90px_100px_24px]';

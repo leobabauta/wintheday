@@ -13,6 +13,29 @@ function relativeAt(iso: string): string {
   return `${Math.round(diff / 1440)}d ago`;
 }
 
+// Mirrors TodayClient.tsx extractReflectionPreview: new entries are
+// {body}, legacy entries are {well, challenge, learn, tomorrow}. Strip
+// **Heading:** markers and collapse whitespace for a one-line preview.
+function reflectionPreview(content: string): string {
+  let raw = '';
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed && typeof parsed === 'object') {
+      if (typeof parsed.body === 'string' && parsed.body.trim()) {
+        raw = parsed.body;
+      } else {
+        raw = ['well', 'challenge', 'learn', 'tomorrow']
+          .map(k => (typeof parsed[k] === 'string' ? parsed[k] : ''))
+          .filter(Boolean)
+          .join(' · ');
+      }
+    }
+  } catch {
+    raw = content;
+  }
+  return raw.replace(/\*\*([^*]+)\*\*/g, '').replace(/\s+/g, ' ').trim();
+}
+
 export default async function InboxPage() {
   const session = await getSession();
   if (!session || session.role !== 'coach') redirect('/login');
@@ -57,6 +80,47 @@ export default async function InboxPage() {
     [session.userId]
   );
 
+  const journals = await query<{
+    id: number;
+    client_id: number;
+    client_name: string;
+    client_avatar: string | null;
+    date: string;
+    content: string;
+    updated_at: string;
+  }>(
+    `SELECT je.id, je.user_id AS client_id, je.date, je.content, je.updated_at,
+            u.name AS client_name, u.avatar_url AS client_avatar
+     FROM journal_entries je
+     JOIN client_info ci ON ci.user_id = je.user_id
+     JOIN users u ON u.id = je.user_id
+     WHERE ci.coach_id = $1
+       AND je.content <> ''
+       AND je.coach_opened_at IS NULL
+     ORDER BY je.updated_at DESC
+     LIMIT 100`,
+    [session.userId]
+  );
+
+  const completions = await query<{
+    user_id: number;
+    client_name: string;
+    client_avatar: string | null;
+    date: string;
+    completed_at: string;
+  }>(
+    `SELECT dc.user_id, dc.date, dc.completed_at,
+            u.name AS client_name, u.avatar_url AS client_avatar
+     FROM daily_completions dc
+     JOIN client_info ci ON ci.user_id = dc.user_id
+     JOIN users u ON u.id = dc.user_id
+     WHERE ci.coach_id = $1
+       AND dc.coach_opened_at IS NULL
+     ORDER BY dc.completed_at DESC
+     LIMIT 100`,
+    [session.userId]
+  );
+
   const messageItems = messages.map(m => ({
     id: `msg-${m.id}`,
     messageId: m.id,
@@ -83,9 +147,44 @@ export default async function InboxPage() {
     createdAt: l.submitted_at,
   }));
 
+  const journalItems = journals.map(j => {
+    const preview = reflectionPreview(j.content);
+    return {
+      id: `jrn-${j.id}`,
+      journalId: j.id,
+      clientId: String(j.client_id),
+      clientName: j.client_name,
+      clientAvatarUrl: j.client_avatar,
+      kind: 'reflection' as const,
+      at: relativeAt(j.updated_at),
+      preview: preview.length > 240 ? preview.slice(0, 240) + '…' : preview,
+      meta: `Reflection for ${j.date}`,
+      createdAt: j.updated_at,
+    };
+  });
+
+  const completionItems = completions.map(c => {
+    const dateLabel = new Date(c.date + 'T12:00:00').toLocaleDateString('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric',
+    });
+    return {
+      id: `dc-${c.user_id}-${c.date}`,
+      completionUserId: c.user_id,
+      completionDate: c.date,
+      clientId: String(c.user_id),
+      clientName: c.client_name,
+      clientAvatarUrl: c.client_avatar,
+      kind: 'completion' as const,
+      at: relativeAt(c.completed_at),
+      preview: `${c.client_name.split(' ')[0]} completed all commitments and practices for ${dateLabel}.`,
+      meta: 'Won the day',
+      createdAt: c.completed_at,
+    };
+  });
+
   // Merge + sort so newest submissions interleave with newest messages.
   // createdAt comes back from pg as a Date — use getTime, not localeCompare.
-  const items = [...messageItems, ...preCoachingItems]
+  const items = [...messageItems, ...preCoachingItems, ...journalItems, ...completionItems]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .map(({ createdAt: _createdAt, ...rest }) => rest);
 
