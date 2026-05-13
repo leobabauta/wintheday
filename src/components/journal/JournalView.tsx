@@ -48,6 +48,7 @@ export interface JournalEntry {
   rating?: number;
   commitmentsWon?: number;
   commitmentsTotal?: number;
+  coachHearted?: boolean;
 }
 
 interface Props {
@@ -270,6 +271,11 @@ export default function JournalView({ entries, today, ratingLabel, onCreate, onE
                       <span className={`font-mono text-[10px] tracking-[0.22em] uppercase ${active ? 'text-[var(--color-accent)]' : 'text-text-muted'}`}>
                         {monthShort(e.date)}
                       </span>
+                      {e.coachHearted && (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" className="text-accent" aria-hidden>
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                      )}
                     </div>
                     <span className={`font-mono text-[9px] tracking-[0.22em] uppercase mt-[2px] block ${active ? 'text-text-secondary' : 'text-text-muted'}`}>
                       {daysAgoLabel(e.date, today)}
@@ -308,7 +314,8 @@ export default function JournalView({ entries, today, ratingLabel, onCreate, onE
                   </div>
 
                   {(typeof selected.rating === 'number' ||
-                    typeof selected.commitmentsWon === 'number') && (
+                    typeof selected.commitmentsWon === 'number' ||
+                    selected.coachHearted) && (
                     <div className="flex items-center gap-5 mt-4 flex-wrap">
                       {typeof selected.rating === 'number' && (
                         <div className="flex items-center gap-[10px]">
@@ -324,6 +331,14 @@ export default function JournalView({ entries, today, ratingLabel, onCreate, onE
                             {selected.commitmentsWon}/{selected.commitmentsTotal} won
                           </MutedMono>
                         )}
+                      {selected.coachHearted && (
+                        <div className="flex items-center gap-[8px] text-accent" title="Your coach hearted this">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                          </svg>
+                          <MutedMono>Coach loved this</MutedMono>
+                        </div>
+                      )}
                     </div>
                   )}
 

@@ -20,6 +20,21 @@ interface Props {
   onOpenReflection: () => void;
   // null → user hasn't picked a daily quality yet; suppress the eyebrow suffix.
   rating?: string | null;
+  coachHeartedToday?: boolean;
+  coachHeartBanner?: { date: string; heartedAt: string } | null;
+}
+
+function HeartGlyph({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+  );
+}
+
+function bannerDateLabel(iso: string): string {
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'long' });
 }
 
 function Check({ size = 11 }: { size?: number }) {
@@ -69,6 +84,7 @@ const CARD_BG_WIN = 'bg-[var(--color-accent-light)]';
 
 export default function DailyWins({
   userName, commitments, reflection, onToggle, onAddCommitment, onOpenReflection, rating,
+  coachHeartedToday, coachHeartBanner,
 }: Props) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
@@ -104,6 +120,19 @@ export default function DailyWins({
       {/* Next session — quiet, renders only when one exists */}
       <NextSessionCard />
 
+      {/* Yesterday-or-earlier coach-heart banner — persists for 24h after the
+          heart so the love survives midnight and doesn't vanish from view. */}
+      {coachHeartBanner && (
+        <div className={`${CARD} bg-[var(--color-accent-light)] flex items-center gap-[12px]`}>
+          <span className="text-[var(--color-accent)] flex-shrink-0">
+            <HeartGlyph size={18} />
+          </span>
+          <p className="text-[14px] text-text font-light leading-[1.45]">
+            Your coach loved that you won {bannerDateLabel(coachHeartBanner.date)}.
+          </p>
+        </div>
+      )}
+
       {/* Progress card */}
       <div className={`${CARD} ${allDone ? CARD_BG_WIN : CARD_BG}`}>
         <div className="flex items-baseline justify-between mb-[10px]">
@@ -119,9 +148,16 @@ export default function DailyWins({
           />
         </div>
         {allDone && (
-          <p className="font-display italic text-[15px] text-[var(--color-accent)] mt-3">
-            You won the day.
-          </p>
+          <div className="flex items-center gap-[8px] mt-3 text-[var(--color-accent)]">
+            <p className="font-display italic text-[15px]">
+              You won the day.
+            </p>
+            {coachHeartedToday && (
+              <span title="Your coach loved this">
+                <HeartGlyph size={14} />
+              </span>
+            )}
+          </div>
         )}
       </div>
 

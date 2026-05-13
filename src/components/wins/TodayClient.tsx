@@ -41,6 +41,11 @@ function extractReflectionPreview(content: unknown): string {
   return content.trim();
 }
 
+interface HeartState {
+  todayHearted: boolean;
+  banner: { date: string; heartedAt: string } | null;
+}
+
 export default function TodayClient({ userName, ratingLabel }: Props) {
   const [date] = useState(getLocalDate);
   const [wins, setWins] = useState<WinItem[] | null>(null);
@@ -52,25 +57,40 @@ export default function TodayClient({ userName, ratingLabel }: Props) {
   // Locally mirror the rating label so the prompt can hide immediately on
   // save without round-tripping a router.refresh().
   const [currentLabel, setCurrentLabel] = useState<string | null>(ratingLabel);
+  const [hearts, setHearts] = useState<HeartState>({ todayHearted: false, banner: null });
 
   useEffect(() => {
     async function load() {
-      const [winsRes, journalRes] = await Promise.all([
+      const [winsRes, journalRes, heartsRes] = await Promise.all([
         fetch(`/api/wins?date=${date}`),
         fetch(`/api/journal?date=${date}`),
+        fetch(`/api/daily-completions?date=${date}`),
       ]);
       const winsData = await winsRes.json();
       const journalData = await journalRes.json();
+      const heartsData = await heartsRes.json();
       setWins(winsData);
       setReflectionContent(typeof journalData?.content === 'string' ? journalData.content : '');
       setRating(journalData?.rating ? Number(journalData.rating) : 0);
+      setHearts({
+        todayHearted: !!heartsData?.todayHearted,
+        banner: heartsData?.banner ?? null,
+      });
     }
     load();
   }, [date]);
 
   const reload = async () => {
-    const winsRes = await fetch(`/api/wins?date=${date}`);
+    const [winsRes, heartsRes] = await Promise.all([
+      fetch(`/api/wins?date=${date}`),
+      fetch(`/api/daily-completions?date=${date}`),
+    ]);
     setWins(await winsRes.json());
+    const heartsData = await heartsRes.json();
+    setHearts({
+      todayHearted: !!heartsData?.todayHearted,
+      banner: heartsData?.banner ?? null,
+    });
   };
 
   const onToggle = async (id: string) => {
@@ -127,6 +147,8 @@ export default function TodayClient({ userName, ratingLabel }: Props) {
         onAddCommitment={onAddCommitment}
         onOpenReflection={() => setModalOpen(true)}
         rating={currentLabel}
+        coachHeartedToday={hearts.todayHearted}
+        coachHeartBanner={hearts.banner}
       />
       {modalOpen && (
         <ReflectionModal

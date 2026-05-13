@@ -26,6 +26,15 @@ interface Props {
   items: InboxItem[];
   onMarkAttended: (item: InboxItem) => Promise<void>;
   onReply: (item: InboxItem, content: string) => Promise<void>;
+  onHeart: (item: InboxItem) => Promise<void>;
+}
+
+function HeartIcon({ filled = false }: { filled?: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+  );
 }
 
 function kindLabel(kind: InboxItem['kind']) {
@@ -36,7 +45,7 @@ function kindLabel(kind: InboxItem['kind']) {
   return 'Quiet';
 }
 
-export default function InboxView({ items, onMarkAttended, onReply }: Props) {
+export default function InboxView({ items, onMarkAttended, onReply, onHeart }: Props) {
   const [locallyDone, setLocallyDone] = useState<Set<string>>(new Set());
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -46,6 +55,11 @@ export default function InboxView({ items, onMarkAttended, onReply }: Props) {
   const mark = async (it: InboxItem) => {
     setLocallyDone(prev => new Set([...prev, it.id]));
     await onMarkAttended(it);
+  };
+
+  const heart = async (it: InboxItem) => {
+    setLocallyDone(prev => new Set([...prev, it.id]));
+    await onHeart(it);
   };
 
   const send = async (item: InboxItem) => {
@@ -154,6 +168,16 @@ export default function InboxView({ items, onMarkAttended, onReply }: Props) {
                       : 'Open'}
                 </Button>
               </Link>
+              {(it.kind === 'reflection' || it.kind === 'completion') && (
+                <button
+                  type="button"
+                  onClick={() => heart(it)}
+                  title={it.kind === 'reflection' ? 'Heart this reflection' : 'Congratulate on winning the day'}
+                  className="text-accent hover:text-accent-dark transition-colors p-1 -mr-1"
+                >
+                  <HeartIcon />
+                </button>
+              )}
               {(it.kind === 'message' || it.kind === 'reflection' || it.kind === 'completion') && (
                 <button className="text-[11px] text-text-muted hover:text-text" onClick={() => mark(it)}>
                   Mark attended

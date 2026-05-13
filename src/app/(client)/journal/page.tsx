@@ -35,7 +35,7 @@ export default async function JournalPage() {
 
   const today = getDateString();
 
-  const allEntries = await query<{ id: number; date: string; content: string; rating: number | null; updated_at: string }>(
+  const allEntries = await query<{ id: number; date: string; content: string; rating: number | null; coach_heart_at: string | null; updated_at: string }>(
     'SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 30',
     [session.userId]
   );
@@ -67,8 +67,9 @@ export default async function JournalPage() {
       rating: e.rating ? Number(e.rating) : undefined,
       commitmentsWon: winsByDate[e.date]?.won,
       commitmentsTotal: winsByDate[e.date]?.total,
+      coachHearted: !!e.coach_heart_at,
     }))
-    .filter(e => Object.values(e.responses).some(v => v && v.trim().length > 0));
+    .filter(e => Object.values(e.responses).some(v => typeof v === 'string' && v.trim().length > 0));
 
   return <JournalClient entries={mapped} today={today} ratingLabel={settings.rating_label} />;
 }

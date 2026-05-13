@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne, execute } from '@/lib/db';
 import { requireAuth, requireCoachOwnsClient, handleAuthError } from '@/lib/api-auth';
-import { notifyJournalSubmitted } from '@/lib/coach-activity-notifications';
+import { notifyJournalSubmitted, notifyJournalHearted } from '@/lib/coach-activity-notifications';
 
 export async function GET(request: NextRequest) {
   try {
@@ -81,22 +81,51 @@ export async function POST(request: NextRequest) {
 }
 
 // Coach-only: mark journal entries as seen so they drop from the inbox.
+// With { heart: true } also stamps coach_heart_at and pushes a love-note
+// to the client. Heart is one-way — no un-heart.
 export async function PATCH(request: NextRequest) {
   try {
     const auth = requireAuth(request, 'coach');
-    const { ids } = await request.json();
+    const { ids, heart } = await request.json();
 
     if (!Array.isArray(ids) || ids.length === 0) {
       return NextResponse.json({ error: 'ids required' }, { status: 400 });
     }
 
     const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
-    await execute(
-      `UPDATE journal_entries SET coach_opened_at = NOW()
-       WHERE id IN (${placeholders})
-         AND user_id IN (SELECT user_id FROM client_info WHERE coach_id = $${ids.length + 1})`,
-      [...ids, auth.userId]
-    );
+    const setClause = heart
+      ? `coach_opened_at = NOW(), coach_heart_at = COALESCE(coach_heart_at, NOW())`
+      : `coach_opened_at = NOW()`;
+
+    if (heart) {
+      // Look up entries that were not yet hearted, so we only notify on
+      // the transition (no spam if the coach clicks twice).
+      const fresh = await query<{ user_id: number; date: string }>(
+        `SELECT user_id, date FROM journal_entries
+         WHERE id IN (${placeholders})
+           AND coach_heart_at IS NULL
+           AND user_id IN (SELECT user_id FROM client_info WHERE coach_id = $${ids.length + 1})`,
+        [...ids, auth.userId]
+      );
+
+      await execute(
+        `UPDATE journal_entries SET ${setClause}
+         WHERE id IN (${placeholders})
+           AND user_id IN (SELECT user_id FROM client_info WHERE coach_id = $${ids.length + 1})`,
+        [...ids, auth.userId]
+      );
+
+      for (const f of fresh) {
+        void notifyJournalHearted({ clientId: f.user_id, date: f.date });
+      }
+    } else {
+      await execute(
+        `UPDATE journal_entries SET ${setClause}
+         WHERE id IN (${placeholders})
+           AND user_id IN (SELECT user_id FROM client_info WHERE coach_id = $${ids.length + 1})`,
+        [...ids, auth.userId]
+      );
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

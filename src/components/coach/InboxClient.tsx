@@ -49,6 +49,27 @@ export default function InboxClient({ items }: { items: InboxItem[] }) {
     window.dispatchEvent(new CustomEvent(INBOX_REFRESH_EVENT));
   };
 
+  const onHeart = async (item: InboxItem) => {
+    if (item.kind === 'reflection' && item.journalId) {
+      await fetch('/api/journal', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [item.journalId], heart: true }),
+      });
+    } else if (item.kind === 'completion' && item.completionUserId && item.completionDate) {
+      await fetch('/api/daily-completions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rows: [{ userId: item.completionUserId, date: item.completionDate }],
+          heart: true,
+        }),
+      });
+    }
+    router.refresh();
+    window.dispatchEvent(new CustomEvent(INBOX_REFRESH_EVENT));
+  };
+
   const onReply = async (item: InboxItem, content: string) => {
     if (!item.messageId) return;
     await fetch('/api/messages', {
@@ -70,5 +91,5 @@ export default function InboxClient({ items }: { items: InboxItem[] }) {
     window.dispatchEvent(new CustomEvent(INBOX_REFRESH_EVENT));
   };
 
-  return <InboxView items={items} onMarkAttended={onMarkAttended} onReply={onReply} />;
+  return <InboxView items={items} onMarkAttended={onMarkAttended} onReply={onReply} onHeart={onHeart} />;
 }

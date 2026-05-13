@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS journal_entries (
   content TEXT NOT NULL DEFAULT '',
   rating NUMERIC,
   coach_opened_at TIMESTAMPTZ,
+  coach_heart_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -75,6 +76,7 @@ CREATE TABLE IF NOT EXISTS daily_completions (
   date TEXT NOT NULL,
   completed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   coach_opened_at TIMESTAMPTZ,
+  coach_heart_at TIMESTAMPTZ,
   PRIMARY KEY (user_id, date)
 );
 
