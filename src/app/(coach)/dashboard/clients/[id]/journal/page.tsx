@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import MutedMono from '@/components/ui/MutedMono';
 import StarRating from '@/components/ui/StarRating';
+import JournalEntryHeart from '@/components/coach/JournalEntryHeart';
 
 const PROMPTS = [
   { key: 'well', label: 'What went well today?' },
@@ -77,7 +78,7 @@ export default async function ClientJournalPage({ params }: { params: Promise<{ 
 
   const user = await queryOne<{ name: string }>('SELECT name FROM users WHERE id = $1', [clientId]);
 
-  const entries = await query<{ id: number; date: string; content: string; rating: number | null; updated_at: string }>(
+  const entries = await query<{ id: number; date: string; content: string; rating: number | null; coach_heart_at: string | null; updated_at: string }>(
     'SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 30',
     [clientId]
   );
@@ -126,7 +127,10 @@ export default async function ClientJournalPage({ params }: { params: Promise<{ 
                     <span className="font-display text-[24px] text-text leading-none">{day}</span>
                     <span className="text-[10px] text-text-muted uppercase ml-1">{month}</span>
                   </div>
-                  <span className="text-[10px] text-text/30 uppercase ml-auto">{ago}</span>
+                  <div className="ml-auto flex items-center gap-4">
+                    <JournalEntryHeart entryId={entry.id} hearted={!!entry.coach_heart_at} />
+                    <span className="text-[10px] text-text/30 uppercase">{ago}</span>
+                  </div>
                 </div>
                 <Card>
                   {entry.rating != null && entry.rating > 0 && (
