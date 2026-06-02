@@ -10,6 +10,8 @@ interface DbRow {
   sender_name: string;
   content: string;
   created_at: string;
+  attachment_url?: string | null;
+  attachment_type?: string | null;
 }
 
 interface Props {
@@ -20,7 +22,6 @@ interface Props {
   coachAvatarUrl?: string | null;
 }
 
-// Initial from the first word only — avoids turning "Leo (Coach)" into "L(".
 function initialOf(name: string) {
   const first = name.trim().split(/\s+/)[0] || '';
   return first[0]?.toUpperCase() || '';
@@ -79,14 +80,23 @@ export default function MessageThreadClient({ initial, clientUserId, coachUserId
       text: r.content,
       date,
       time,
+      attachmentUrl: r.attachment_url,
+      attachmentType: r.attachment_type,
     };
   });
 
-  const onSend = async (text: string) => {
+  const onSend = async (text: string, attachment?: { url: string; type: string }) => {
     const res = await fetch('/api/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ recipientId: coachUserId, type: 'question', content: text }),
+      credentials: 'include',
+      body: JSON.stringify({
+        recipientId: coachUserId,
+        type: 'question',
+        content: text,
+        attachmentUrl: attachment?.url,
+        attachmentType: attachment?.type,
+      }),
     });
     if (res.ok) {
       const saved = await res.json();
@@ -97,6 +107,8 @@ export default function MessageThreadClient({ initial, clientUserId, coachUserId
         sender_name: '',
         content: text,
         created_at: saved.created_at || new Date().toISOString(),
+        attachment_url: attachment?.url || null,
+        attachment_type: attachment?.type || null,
       }]);
     }
   };

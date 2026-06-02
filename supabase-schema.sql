@@ -89,7 +89,9 @@ CREATE TABLE IF NOT EXISTS messages (
   parent_id INTEGER REFERENCES messages(id),
   read INTEGER NOT NULL DEFAULT 0,
   archived INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now(),
+  attachment_url TEXT,
+  attachment_type TEXT
 );
 
 CREATE TABLE IF NOT EXISTS user_settings (
@@ -101,7 +103,16 @@ CREATE TABLE IF NOT EXISTS user_settings (
   reflection_snoozed_until TIMESTAMPTZ,
   reflection_skipped_date TEXT,
   rating_label TEXT DEFAULT 'inner peace',
-  timezone TEXT DEFAULT 'Pacific/Honolulu'
+  timezone TEXT DEFAULT 'Pacific/Honolulu',
+  nudges_enabled INTEGER NOT NULL DEFAULT 1,
+  nudges_morning_on INTEGER NOT NULL DEFAULT 1,
+  nudges_morning_time TEXT NOT NULL DEFAULT '07:00',
+  nudges_morning_days TEXT NOT NULL DEFAULT 'mon,tue,wed,thu,fri',
+  nudges_evening_on INTEGER NOT NULL DEFAULT 1,
+  nudges_evening_time TEXT NOT NULL DEFAULT '21:00',
+  nudges_evening_days TEXT NOT NULL DEFAULT 'mon,tue,wed,thu,fri,sat,sun',
+  nudges_tone TEXT NOT NULL DEFAULT 'soft',
+  nudges_quiet_mode INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS coach_integrations (

@@ -42,15 +42,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const auth = requireAuth(request);
-    const { recipientId, type, content, parentId } = await request.json();
+    const { recipientId, type, content, parentId, attachmentUrl, attachmentType } = await request.json();
 
     if (!recipientId || !type) {
       return NextResponse.json({ error: 'Recipient and type required' }, { status: 400 });
     }
 
-    const result = await insertReturning<{ id: number }>(
-      'INSERT INTO messages (sender_id, recipient_id, type, content, parent_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-      [auth.userId, recipientId, type, content || '', parentId || null]
+    const result = await insertReturning<{ id: number; created_at: string }>(
+      `INSERT INTO messages (sender_id, recipient_id, type, content, parent_id, attachment_url, attachment_type)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, created_at`,
+      [auth.userId, recipientId, type, content || '', parentId || null, attachmentUrl || null, attachmentType || null]
     );
 
     // Coach replying anywhere (inbox, client detail chat) counts as attending
@@ -62,10 +64,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fire-and-forget email notification; throttled inside the helper.
-    notifyNewMessage(auth.userId, recipientId, content || '').catch(() => {});
+    const notifyContent = attachmentUrl && !content ? '📷 Photo' : (content || '');
+    notifyNewMessage(auth.userId, recipientId, notifyContent).catch(() => {});
 
-    return NextResponse.json({ id: result.id, ok: true });
+    return NextResponse.json({ id: result.id, created_at: result.created_at, ok: true });
   } catch (error) {
     return handleAuthError(error);
   }

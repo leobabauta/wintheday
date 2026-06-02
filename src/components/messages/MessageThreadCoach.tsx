@@ -11,6 +11,8 @@ interface DbRow {
   sender_name: string;
   content: string;
   created_at: string;
+  attachment_url?: string | null;
+  attachment_type?: string | null;
 }
 
 interface Props {
@@ -27,7 +29,13 @@ interface UiMessage {
   text: string;
   date: string;
   time: string;
+  attachmentUrl?: string | null;
 }
+
+type UploadState =
+  | { status: 'idle' }
+  | { status: 'uploading'; previewUrl: string }
+  | { status: 'ready'; previewUrl: string; url: string; type: string };
 
 function toParts(iso: string) {
   const d = new Date(iso);
@@ -53,7 +61,9 @@ function dateLabel(iso: string, today: string) {
 export default function MessageThreadCoach({ initial, coachUserId, clientUserId, clientName, clientAvatarUrl }: Props) {
   const [rows, setRows] = useState<DbRow[]>([...initial].reverse());
   const [draft, setDraft] = useState('');
+  const [upload, setUpload] = useState<UploadState>({ status: 'idle' });
   const endRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const today = todayLocal();
 
   useEffect(() => {
@@ -98,17 +108,60 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
       text: r.content,
       date,
       time,
+      attachmentUrl: r.attachment_url,
     };
   });
 
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    const previewUrl = URL.createObjectURL(file);
+    setUpload({ status: 'uploading', previewUrl });
+
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/messages/upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: form,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const { url } = await res.json();
+      setUpload({ status: 'ready', previewUrl, url, type: file.type });
+    } catch {
+      URL.revokeObjectURL(previewUrl);
+      setUpload({ status: 'idle' });
+    }
+  };
+
+  const clearAttachment = () => {
+    if (upload.status !== 'idle') URL.revokeObjectURL(upload.previewUrl);
+    setUpload({ status: 'idle' });
+  };
+
   const send = async () => {
     const text = draft.trim();
-    if (!text) return;
+    const hasAttachment = upload.status === 'ready';
+    if (!text && !hasAttachment) return;
+
+    const attachment = hasAttachment ? { url: upload.url, type: upload.type } : undefined;
     setDraft('');
+    clearAttachment();
+
     const res = await fetch('/api/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ recipientId: clientUserId, type: 'reply', content: text }),
+      credentials: 'include',
+      body: JSON.stringify({
+        recipientId: clientUserId,
+        type: 'reply',
+        content: text,
+        attachmentUrl: attachment?.url,
+        attachmentType: attachment?.type,
+      }),
     });
     if (res.ok) {
       const saved = await res.json();
@@ -119,9 +172,13 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
         sender_name: '',
         content: text,
         created_at: saved.created_at || new Date().toISOString(),
+        attachment_url: attachment?.url || null,
+        attachment_type: attachment?.type || null,
       }]);
     }
   };
+
+  const canSend = (draft.trim() || upload.status === 'ready') && upload.status !== 'uploading';
 
   const groups: { date: string; items: UiMessage[] }[] = [];
   for (const m of messages) {
@@ -148,46 +205,106 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
             <div className="text-center my-3">
               <MutedMono>{dateLabel(g.date, today)}</MutedMono>
             </div>
-            {g.items.map(m => (
-              <div key={m.id} className={`flex ${m.fromCoach ? 'justify-end' : 'justify-start'} mb-1.5`}>
-                <div className="max-w-[80%]">
-                  <div
-                    className={`py-2 px-3.5 text-[14px] leading-[1.5] font-light ${
-                      m.fromCoach
-                        ? 'bg-accent text-bg rounded-2xl rounded-br-[4px]'
-                        : 'bg-surface border border-border rounded-2xl rounded-bl-[4px]'
-                    }`}
-                  >
-                    {m.text}
-                  </div>
-                  <div className={`px-1.5 pt-1 ${m.fromCoach ? 'text-right' : 'text-left'}`}>
-                    <MutedMono>{m.time}</MutedMono>
+            {g.items.map(m => {
+              const isCoach = m.fromCoach;
+              const roundedClass = isCoach ? 'rounded-2xl rounded-br-[4px]' : 'rounded-2xl rounded-bl-[4px]';
+              const colorClass = isCoach ? 'bg-accent text-bg' : 'bg-surface border border-border';
+              return (
+                <div key={m.id} className={`flex ${isCoach ? 'justify-end' : 'justify-start'} mb-1.5`}>
+                  <div className="max-w-[80%]">
+                    <div className={`overflow-hidden text-[14px] leading-[1.5] font-light ${colorClass} ${roundedClass}`}>
+                      {m.attachmentUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={m.attachmentUrl} alt="" className="block w-full max-w-[280px] object-cover" />
+                      )}
+                      {m.text && (
+                        <div className={`py-2 px-3.5 ${m.attachmentUrl ? 'border-t border-black/10' : ''}`}>
+                          {m.text}
+                        </div>
+                      )}
+                      {!m.attachmentUrl && !m.text && (
+                        <div className="py-2 px-3.5">&nbsp;</div>
+                      )}
+                    </div>
+                    <div className={`px-1.5 pt-1 ${isCoach ? 'text-right' : 'text-left'}`}>
+                      <MutedMono>{m.time}</MutedMono>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ))}
       </div>
 
-      <div className="px-4 pt-2 pb-4 border-t border-border flex items-end gap-2">
-        <textarea
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-          placeholder={`Write to ${clientName.split(' ')[0]}…`}
-          rows={1}
-          className="flex-1 rounded-[20px] py-2.5 px-4 text-[14px] min-h-[40px] max-h-[120px]"
-        />
-        <button
-          onClick={send}
-          disabled={!draft.trim()}
-          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${draft.trim() ? 'bg-accent text-bg' : 'bg-border text-text-muted'}`}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M3 7H11M11 7L7 3M11 7L7 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </button>
+      <div className="px-4 pt-2 pb-4 border-t border-border">
+        {upload.status !== 'idle' && (
+          <div className="mb-2">
+            <div className="relative inline-block">
+              {upload.status === 'uploading' ? (
+                <div className="w-14 h-14 rounded-[8px] bg-surface border border-border flex items-center justify-center">
+                  <svg className="animate-spin text-text-muted" width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="28" strokeDashoffset="10" />
+                  </svg>
+                </div>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={upload.previewUrl} alt="" className="w-14 h-14 rounded-[8px] object-cover" />
+              )}
+              {upload.status === 'ready' && (
+                <button
+                  onClick={clearAttachment}
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-text text-bg flex items-center justify-center"
+                >
+                  <svg width="7" height="7" viewBox="0 0 8 8" fill="none">
+                    <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-end gap-2">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={upload.status !== 'idle'}
+            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-text-muted hover:text-text transition-colors disabled:opacity-40"
+          >
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" strokeLinejoin="round">
+              <path d="M6.5 3H11.5L13 5H16C16.55 5 17 5.45 17 6V14C17 14.55 16.55 15 16 15H2C1.45 15 1 14.55 1 14V6C1 5.45 1.45 5 2 5H5L6.5 3Z" stroke="currentColor" strokeWidth="1.2"/>
+              <circle cx="9" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.2"/>
+            </svg>
+          </button>
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onFileChange}
+          />
+
+          <textarea
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+            placeholder={`Write to ${clientName.split(' ')[0]}…`}
+            rows={1}
+            className="flex-1 rounded-[20px] py-2.5 px-4 text-[14px] min-h-[40px] max-h-[120px]"
+          />
+
+          <button
+            onClick={send}
+            disabled={!canSend}
+            className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${canSend ? 'bg-accent text-bg' : 'bg-border text-text-muted'}`}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M3 7H11M11 7L7 3M11 7L7 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );

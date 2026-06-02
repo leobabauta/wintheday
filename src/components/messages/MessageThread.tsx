@@ -9,6 +9,8 @@ interface Message {
   text: string;
   date: string; // YYYY-MM-DD
   time: string; // "8:12 AM"
+  attachmentUrl?: string | null;
+  attachmentType?: string | null;
 }
 
 interface Props {
@@ -16,9 +18,14 @@ interface Props {
   coachInitials: string;
   coachAvatarUrl?: string | null;
   messages: Message[];
-  onSend: (text: string) => Promise<void>;
+  onSend: (text: string, attachment?: { url: string; type: string }) => Promise<void>;
   today: string;
 }
+
+type UploadState =
+  | { status: 'idle' }
+  | { status: 'uploading'; previewUrl: string }
+  | { status: 'ready'; previewUrl: string; url: string; type: string };
 
 function dateLabel(iso: string, today: string) {
   if (iso === today) return 'Today';
@@ -41,18 +48,56 @@ function groupByDate(msgs: Message[]) {
 
 export default function MessageThread({ coachName, coachInitials, coachAvatarUrl, messages, onSend, today }: Props) {
   const [draft, setDraft] = useState('');
+  const [upload, setUpload] = useState<UploadState>({ status: 'idle' });
   const endRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (endRef.current) endRef.current.scrollTop = endRef.current.scrollHeight;
   }, [messages.length]);
 
-  const send = async () => {
-    if (!draft.trim()) return;
-    await onSend(draft.trim());
-    setDraft('');
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    const previewUrl = URL.createObjectURL(file);
+    setUpload({ status: 'uploading', previewUrl });
+
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/messages/upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: form,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const { url } = await res.json();
+      setUpload({ status: 'ready', previewUrl, url, type: file.type });
+    } catch {
+      URL.revokeObjectURL(previewUrl);
+      setUpload({ status: 'idle' });
+    }
   };
 
+  const clearAttachment = () => {
+    if (upload.status !== 'idle') URL.revokeObjectURL(upload.previewUrl);
+    setUpload({ status: 'idle' });
+  };
+
+  const send = async () => {
+    const text = draft.trim();
+    const hasAttachment = upload.status === 'ready';
+    if (!text && !hasAttachment) return;
+
+    const attachment = hasAttachment ? { url: upload.url, type: upload.type } : undefined;
+    setDraft('');
+    clearAttachment();
+    await onSend(text, attachment);
+  };
+
+  const canSend = (draft.trim() || upload.status === 'ready') && upload.status !== 'uploading';
   const groups = groupByDate(messages);
 
   return (
@@ -60,11 +105,7 @@ export default function MessageThread({ coachName, coachInitials, coachAvatarUrl
       <div className="px-6 py-4 border-b border-border flex items-center gap-3">
         {coachAvatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={coachAvatarUrl}
-            alt=""
-            className="w-9 h-9 rounded-full object-cover"
-          />
+          <img src={coachAvatarUrl} alt="" className="w-9 h-9 rounded-full object-cover" />
         ) : (
           <div className="w-9 h-9 rounded-full bg-accent-light text-accent flex items-center justify-center text-[13px]">
             {coachInitials}
@@ -87,24 +128,74 @@ export default function MessageThread({ coachName, coachInitials, coachAvatarUrl
         ))}
       </div>
 
-      <div className="px-4 pt-2 pb-5 border-t border-border flex items-end gap-2">
-        <textarea
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-          placeholder={`Write to ${coachName.split(' ')[0]}…`}
-          rows={1}
-          className="flex-1 rounded-[20px] py-2.5 px-4 text-[14px] min-h-[40px] max-h-[120px]"
-        />
-        <button
-          onClick={send}
-          disabled={!draft.trim()}
-          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${draft.trim() ? 'bg-accent text-bg' : 'bg-border text-text-muted'}`}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M3 7H11M11 7L7 3M11 7L7 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </button>
+      <div className="px-4 pt-2 pb-5 border-t border-border">
+        {upload.status !== 'idle' && (
+          <div className="mb-2">
+            <div className="relative inline-block">
+              {upload.status === 'uploading' ? (
+                <div className="w-16 h-16 rounded-[10px] bg-surface border border-border flex items-center justify-center">
+                  <svg className="animate-spin text-text-muted" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="28" strokeDashoffset="10" />
+                  </svg>
+                </div>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={upload.previewUrl} alt="" className="w-16 h-16 rounded-[10px] object-cover" />
+              )}
+              {upload.status === 'ready' && (
+                <button
+                  onClick={clearAttachment}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-text text-bg flex items-center justify-center"
+                >
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                    <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-end gap-2">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={upload.status !== 'idle'}
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-text-muted hover:text-text transition-colors disabled:opacity-40"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" strokeLinejoin="round">
+              <path d="M6.5 3H11.5L13 5H16C16.55 5 17 5.45 17 6V14C17 14.55 16.55 15 16 15H2C1.45 15 1 14.55 1 14V6C1 5.45 1.45 5 2 5H5L6.5 3Z" stroke="currentColor" strokeWidth="1.2"/>
+              <circle cx="9" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.2"/>
+            </svg>
+          </button>
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onFileChange}
+          />
+
+          <textarea
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+            placeholder={`Write to ${coachName.split(' ')[0]}…`}
+            rows={1}
+            className="flex-1 rounded-[20px] py-2.5 px-4 text-[14px] min-h-[40px] max-h-[120px]"
+          />
+
+          <button
+            onClick={send}
+            disabled={!canSend}
+            className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${canSend ? 'bg-accent text-bg' : 'bg-border text-text-muted'}`}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M3 7H11M11 7L7 3M11 7L7 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -112,17 +203,25 @@ export default function MessageThread({ coachName, coachInitials, coachAvatarUrl
 
 function Bubble({ msg }: { msg: Message }) {
   const isClient = msg.from === 'client';
+  const roundedClass = isClient ? 'rounded-2xl rounded-br-[4px]' : 'rounded-2xl rounded-bl-[4px]';
+  const colorClass = isClient ? 'bg-accent text-bg' : 'bg-surface border border-border';
+
   return (
     <div className={`flex ${isClient ? 'justify-end' : 'justify-start'} mb-1.5`}>
       <div className="max-w-[80%]">
-        <div
-          className={`py-2 px-3.5 text-[14px] leading-[1.5] font-light ${
-            isClient
-              ? 'bg-accent text-bg rounded-2xl rounded-br-[4px]'
-              : 'bg-surface border border-border rounded-2xl rounded-bl-[4px]'
-          }`}
-        >
-          {msg.text}
+        <div className={`overflow-hidden text-[14px] leading-[1.5] font-light ${colorClass} ${roundedClass}`}>
+          {msg.attachmentUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={msg.attachmentUrl} alt="" className="block w-full max-w-[280px] object-cover" />
+          )}
+          {msg.text && (
+            <div className={`py-2 px-3.5 ${msg.attachmentUrl ? 'border-t border-black/10' : ''}`}>
+              {msg.text}
+            </div>
+          )}
+          {!msg.attachmentUrl && !msg.text && (
+            <div className="py-2 px-3.5">&nbsp;</div>
+          )}
         </div>
         <div className={`px-1.5 pt-1 ${isClient ? 'text-right' : 'text-left'}`}>
           <MutedMono>{msg.time}</MutedMono>
