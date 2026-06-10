@@ -25,6 +25,7 @@ interface Props {
   coachAvatarUrl?: string | null;
   messages: Message[];
   onSend: (text: string, attachment?: { url: string; type: string }) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
   today: string;
 }
 
@@ -60,9 +61,10 @@ function showTimeFor(items: Message[], i: number): boolean {
   return new Date(next.createdAt).getTime() - new Date(cur.createdAt).getTime() > 5 * 60 * 1000;
 }
 
-export default function MessageThread({ coachName, coachInitials, coachAvatarUrl, messages, onSend, today }: Props) {
+export default function MessageThread({ coachName, coachInitials, coachAvatarUrl, messages, onSend, onDelete, today }: Props) {
   const [draft, setDraft] = useState('');
   const [upload, setUpload] = useState<UploadState>({ status: 'idle' });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const voice = useVoiceRecorder(text => setDraft(prev => prev ? prev + ' ' + text : text));
@@ -132,13 +134,22 @@ export default function MessageThread({ coachName, coachInitials, coachAvatarUrl
         </div>
       </div>
 
-      <div ref={endRef} className="flex-1 overflow-y-auto px-6 py-4">
+      <div ref={endRef} className="flex-1 overflow-y-auto px-6 py-4" onClick={() => setSelectedId(null)}>
         {groups.map(g => (
           <div key={g.date} className="mb-4">
             <div className="text-center my-3">
               <MutedMono>{dateLabel(g.date, today)}</MutedMono>
             </div>
-            {g.items.map((m, i) => <Bubble key={m.id} msg={m} showTime={showTimeFor(g.items, i)} />)}
+            {g.items.map((m, i) => (
+              <Bubble
+                key={m.id}
+                msg={m}
+                showTime={showTimeFor(g.items, i)}
+                isSelected={selectedId === m.id}
+                onSelect={id => setSelectedId(prev => prev === id ? null : id)}
+                onDelete={onDelete && m.from === 'client' ? onDelete : undefined}
+              />
+            ))}
           </div>
         ))}
       </div>
@@ -171,6 +182,9 @@ export default function MessageThread({ coachName, coachInitials, coachAvatarUrl
           </div>
         )}
 
+        {voice.error && (
+          <p className="text-[12px] text-red-500 mb-2 px-1">{voice.error}</p>
+        )}
         <div className="flex items-end gap-2">
           <button
             type="button"
@@ -241,13 +255,22 @@ export default function MessageThread({ coachName, coachInitials, coachAvatarUrl
   );
 }
 
-function Bubble({ msg, showTime }: { msg: Message; showTime: boolean }) {
+function Bubble({ msg, showTime, isSelected, onSelect, onDelete }: {
+  msg: Message;
+  showTime: boolean;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+  onDelete?: (id: string) => Promise<void>;
+}) {
   const isClient = msg.from === 'client';
   const roundedClass = isClient ? 'rounded-2xl rounded-br-[4px]' : 'rounded-2xl rounded-bl-[4px]';
   const colorClass = isClient ? 'bg-accent text-bg' : 'bg-surface border border-border';
 
   return (
-    <div className={`flex ${isClient ? 'justify-end' : 'justify-start'} ${showTime ? 'mb-3' : 'mb-1.5'}`}>
+    <div
+      className={`flex ${isClient ? 'justify-end' : 'justify-start'} ${showTime ? 'mb-3' : 'mb-1.5'}`}
+      onClick={e => { e.stopPropagation(); if (onDelete) onSelect(msg.id); }}
+    >
       <div className="max-w-[80%]">
         <div className={`overflow-hidden text-[14px] leading-[1.5] font-light ${colorClass} ${roundedClass}`}>
           {msg.attachmentUrl && (
@@ -266,6 +289,16 @@ function Bubble({ msg, showTime }: { msg: Message; showTime: boolean }) {
         {showTime && (
           <div className={`px-1.5 pt-1 ${isClient ? 'text-right' : 'text-left'}`}>
             <MutedMono>{msg.time}</MutedMono>
+          </div>
+        )}
+        {isSelected && onDelete && (
+          <div className={`pt-1 ${isClient ? 'text-right' : 'text-left'}`}>
+            <button
+              onClick={e => { e.stopPropagation(); onDelete(msg.id); }}
+              className="text-[12px] text-red-500 px-1.5 hover:opacity-70 transition-opacity"
+            >
+              Delete
+            </button>
           </div>
         )}
       </div>

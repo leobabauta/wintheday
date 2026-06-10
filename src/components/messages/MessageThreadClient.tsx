@@ -86,6 +86,11 @@ export default function MessageThreadClient({ initial, clientUserId, coachUserId
     };
   });
 
+  const onDelete = async (id: string) => {
+    const res = await fetch(`/api/messages/${id}`, { method: 'DELETE', credentials: 'include' });
+    if (res.ok) setRows(prev => prev.filter(r => String(r.id) !== id));
+  };
+
   const onSend = async (text: string, attachment?: { url: string; type: string }) => {
     const res = await fetch('/api/messages', {
       method: 'POST',
@@ -121,6 +126,7 @@ export default function MessageThreadClient({ initial, clientUserId, coachUserId
       coachAvatarUrl={coachAvatarUrl || null}
       messages={messages}
       onSend={onSend}
+      onDelete={onDelete}
       today={todayLocal()}
     />
   );

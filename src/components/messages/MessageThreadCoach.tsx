@@ -186,7 +186,13 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
   };
 
   const voice = useVoiceRecorder(text => setDraft(prev => prev ? prev + ' ' + text : text));
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const canSend = (draft.trim() || upload.status === 'ready') && upload.status !== 'uploading';
+
+  const onDelete = async (id: string) => {
+    const res = await fetch(`/api/messages/${id}`, { method: 'DELETE', credentials: 'include' });
+    if (res.ok) setRows(prev => prev.filter(r => String(r.id) !== id));
+  };
 
   const groups: { date: string; items: UiMessage[] }[] = [];
   for (const m of messages) {
@@ -205,7 +211,7 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
         </div>
       </div>
 
-      <div ref={endRef} className="flex-1 overflow-y-auto px-5 py-4">
+      <div ref={endRef} className="flex-1 overflow-y-auto px-5 py-4" onClick={() => setSelectedId(null)}>
         {messages.length === 0 ? (
           <p className="text-[13px] text-text-muted text-center py-6">No messages yet.</p>
         ) : groups.map(g => (
@@ -220,8 +226,13 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
               const next = g.items[i + 1];
               const showTime = !next || next.fromCoach !== m.fromCoach ||
                 new Date(next.createdAt).getTime() - new Date(m.createdAt).getTime() > 5 * 60 * 1000;
+              const isSelected = selectedId === m.id;
               return (
-                <div key={m.id} className={`flex ${isCoach ? 'justify-end' : 'justify-start'} ${showTime ? 'mb-3' : 'mb-1.5'}`}>
+                <div
+                  key={m.id}
+                  className={`flex ${isCoach ? 'justify-end' : 'justify-start'} ${showTime ? 'mb-3' : 'mb-1.5'}`}
+                  onClick={e => { e.stopPropagation(); if (isCoach) setSelectedId(prev => prev === m.id ? null : m.id); }}
+                >
                   <div className="max-w-[80%]">
                     <div className={`overflow-hidden text-[14px] leading-[1.5] font-light ${colorClass} ${roundedClass}`}>
                       {m.attachmentUrl && (
@@ -240,6 +251,16 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
                     {showTime && (
                       <div className={`px-1.5 pt-1 ${isCoach ? 'text-right' : 'text-left'}`}>
                         <MutedMono>{m.time}</MutedMono>
+                      </div>
+                    )}
+                    {isSelected && isCoach && (
+                      <div className="pt-1 text-right">
+                        <button
+                          onClick={e => { e.stopPropagation(); onDelete(m.id); }}
+                          className="text-[12px] text-red-500 px-1.5 hover:opacity-70 transition-opacity"
+                        >
+                          Delete
+                        </button>
                       </div>
                     )}
                   </div>
@@ -278,6 +299,9 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
           </div>
         )}
 
+        {voice.error && (
+          <p className="text-[12px] text-red-500 mb-2 px-1">{voice.error}</p>
+        )}
         <div className="flex items-end gap-2">
           <button
             type="button"
