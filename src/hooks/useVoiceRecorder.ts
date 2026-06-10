@@ -10,12 +10,9 @@ function openNativeSettings() {
   if (platform === 'ios') {
     window.open('app-settings:', '_system');
   } else if (platform === 'android') {
-    // Opens this app's permission settings page directly
-    window.open(
-      'intent://settings/#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;' +
-      'data=package:work.wintheday.app;end',
-      '_system'
-    );
+    // AndroidNative is a JavascriptInterface registered in MainActivity.java
+    (window as unknown as { AndroidNative?: { openSettings(): void } })
+      .AndroidNative?.openSettings();
   }
 }
 
@@ -46,20 +43,6 @@ export function useVoiceRecorder(onTranscribed: (text: string) => void) {
     if (typeof MediaRecorder === 'undefined') {
       showError('Voice recording not supported. Try Safari 17.4+ on iOS.');
       return;
-    }
-
-    // Pre-check permission state so we can give a helpful message without
-    // triggering a redundant getUserMedia call when already denied.
-    if (navigator.permissions) {
-      try {
-        const perm = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-        if (perm.state === 'denied') {
-          showError('Microphone access is blocked. Enable it in your settings.', true);
-          return;
-        }
-      } catch {
-        // Some browsers don't support querying microphone permission — proceed anyway.
-      }
     }
 
     try {
