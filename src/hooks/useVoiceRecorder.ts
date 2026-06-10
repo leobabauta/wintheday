@@ -46,7 +46,16 @@ export function useVoiceRecorder(onTranscribed: (text: string) => void) {
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Disable audio processing on Android WebView — echo cancellation and
+      // noise suppression conflict with the WebView audio session and cause
+      // NotReadableError even when RECORD_AUDIO permission is granted.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
+      });
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/mp4')
@@ -103,7 +112,7 @@ export function useVoiceRecorder(onTranscribed: (text: string) => void) {
       } else if (name === 'NotFoundError') {
         showError('No microphone found.');
       } else {
-        showError(`Could not start recording (${name || (err as Error)?.message || 'unknown'}).`);
+        showError('Could not start recording. Please try again.');
       }
     }
   };
