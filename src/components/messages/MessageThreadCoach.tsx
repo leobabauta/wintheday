@@ -29,6 +29,7 @@ interface UiMessage {
   text: string;
   date: string;
   time: string;
+  createdAt: string;
   attachmentUrl?: string | null;
 }
 
@@ -108,6 +109,7 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
       text: r.content,
       date,
       time,
+      createdAt: r.created_at,
       attachmentUrl: r.attachment_url,
     };
   });
@@ -205,12 +207,15 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
             <div className="text-center my-3">
               <MutedMono>{dateLabel(g.date, today)}</MutedMono>
             </div>
-            {g.items.map(m => {
+            {g.items.map((m, i) => {
               const isCoach = m.fromCoach;
               const roundedClass = isCoach ? 'rounded-2xl rounded-br-[4px]' : 'rounded-2xl rounded-bl-[4px]';
               const colorClass = isCoach ? 'bg-accent text-bg' : 'bg-surface border border-border';
+              const next = g.items[i + 1];
+              const showTime = !next || next.fromCoach !== m.fromCoach ||
+                new Date(next.createdAt).getTime() - new Date(m.createdAt).getTime() > 5 * 60 * 1000;
               return (
-                <div key={m.id} className={`flex ${isCoach ? 'justify-end' : 'justify-start'} mb-1.5`}>
+                <div key={m.id} className={`flex ${isCoach ? 'justify-end' : 'justify-start'} ${showTime ? 'mb-3' : 'mb-1.5'}`}>
                   <div className="max-w-[80%]">
                     <div className={`overflow-hidden text-[14px] leading-[1.5] font-light ${colorClass} ${roundedClass}`}>
                       {m.attachmentUrl && (
@@ -218,7 +223,7 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
                         <img src={m.attachmentUrl} alt="" className="block w-full max-w-[280px] object-cover" />
                       )}
                       {m.text && (
-                        <div className={`py-2 px-3.5 ${m.attachmentUrl ? 'border-t border-black/10' : ''}`}>
+                        <div className={`py-2 px-3.5 whitespace-pre-wrap ${m.attachmentUrl ? 'border-t border-black/10' : ''}`}>
                           {m.text}
                         </div>
                       )}
@@ -226,9 +231,11 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
                         <div className="py-2 px-3.5">&nbsp;</div>
                       )}
                     </div>
-                    <div className={`px-1.5 pt-1 ${isCoach ? 'text-right' : 'text-left'}`}>
-                      <MutedMono>{m.time}</MutedMono>
-                    </div>
+                    {showTime && (
+                      <div className={`px-1.5 pt-1 ${isCoach ? 'text-right' : 'text-left'}`}>
+                        <MutedMono>{m.time}</MutedMono>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

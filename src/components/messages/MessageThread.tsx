@@ -9,6 +9,7 @@ interface Message {
   text: string;
   date: string; // YYYY-MM-DD
   time: string; // "8:12 AM"
+  createdAt: string;
   attachmentUrl?: string | null;
   attachmentType?: string | null;
 }
@@ -44,6 +45,14 @@ function groupByDate(msgs: Message[]) {
     cur.items.push(m);
   }
   return groups;
+}
+
+function showTimeFor(items: Message[], i: number): boolean {
+  const cur = items[i];
+  const next = items[i + 1];
+  if (!next) return true;
+  if (next.from !== cur.from) return true;
+  return new Date(next.createdAt).getTime() - new Date(cur.createdAt).getTime() > 5 * 60 * 1000;
 }
 
 export default function MessageThread({ coachName, coachInitials, coachAvatarUrl, messages, onSend, today }: Props) {
@@ -123,7 +132,7 @@ export default function MessageThread({ coachName, coachInitials, coachAvatarUrl
             <div className="text-center my-3">
               <MutedMono>{dateLabel(g.date, today)}</MutedMono>
             </div>
-            {g.items.map(m => <Bubble key={m.id} msg={m} />)}
+            {g.items.map((m, i) => <Bubble key={m.id} msg={m} showTime={showTimeFor(g.items, i)} />)}
           </div>
         ))}
       </div>
@@ -201,13 +210,13 @@ export default function MessageThread({ coachName, coachInitials, coachAvatarUrl
   );
 }
 
-function Bubble({ msg }: { msg: Message }) {
+function Bubble({ msg, showTime }: { msg: Message; showTime: boolean }) {
   const isClient = msg.from === 'client';
   const roundedClass = isClient ? 'rounded-2xl rounded-br-[4px]' : 'rounded-2xl rounded-bl-[4px]';
   const colorClass = isClient ? 'bg-accent text-bg' : 'bg-surface border border-border';
 
   return (
-    <div className={`flex ${isClient ? 'justify-end' : 'justify-start'} mb-1.5`}>
+    <div className={`flex ${isClient ? 'justify-end' : 'justify-start'} ${showTime ? 'mb-3' : 'mb-1.5'}`}>
       <div className="max-w-[80%]">
         <div className={`overflow-hidden text-[14px] leading-[1.5] font-light ${colorClass} ${roundedClass}`}>
           {msg.attachmentUrl && (
@@ -215,7 +224,7 @@ function Bubble({ msg }: { msg: Message }) {
             <img src={msg.attachmentUrl} alt="" className="block w-full max-w-[280px] object-cover" />
           )}
           {msg.text && (
-            <div className={`py-2 px-3.5 ${msg.attachmentUrl ? 'border-t border-black/10' : ''}`}>
+            <div className={`py-2 px-3.5 whitespace-pre-wrap ${msg.attachmentUrl ? 'border-t border-black/10' : ''}`}>
               {msg.text}
             </div>
           )}
@@ -223,9 +232,11 @@ function Bubble({ msg }: { msg: Message }) {
             <div className="py-2 px-3.5">&nbsp;</div>
           )}
         </div>
-        <div className={`px-1.5 pt-1 ${isClient ? 'text-right' : 'text-left'}`}>
-          <MutedMono>{msg.time}</MutedMono>
-        </div>
+        {showTime && (
+          <div className={`px-1.5 pt-1 ${isClient ? 'text-right' : 'text-left'}`}>
+            <MutedMono>{msg.time}</MutedMono>
+          </div>
+        )}
       </div>
     </div>
   );

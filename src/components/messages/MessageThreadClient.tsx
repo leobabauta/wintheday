@@ -80,6 +80,7 @@ export default function MessageThreadClient({ initial, clientUserId, coachUserId
       text: r.content,
       date,
       time,
+      createdAt: r.created_at,
       attachmentUrl: r.attachment_url,
       attachmentType: r.attachment_type,
     };
