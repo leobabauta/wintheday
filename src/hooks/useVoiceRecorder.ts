@@ -103,7 +103,7 @@ export function useVoiceRecorder(onTranscribed: (text: string) => void) {
       } else if (name === 'NotFoundError') {
         showError('No microphone found.');
       } else {
-        showError('Could not start recording.');
+        showError(`Could not start recording (${name || (err as Error)?.message || 'unknown'}).`);
       }
     }
   };
