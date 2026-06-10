@@ -2,6 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import MutedMono from '@/components/ui/MutedMono';
+import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
+
+function fmtElapsed(s: number) {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
 
 interface Message {
   id: string;
@@ -60,6 +65,7 @@ export default function MessageThread({ coachName, coachInitials, coachAvatarUrl
   const [upload, setUpload] = useState<UploadState>({ status: 'idle' });
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const voice = useVoiceRecorder(text => setDraft(prev => prev ? prev + ' ' + text : text));
 
   useEffect(() => {
     if (endRef.current) endRef.current.scrollTop = endRef.current.scrollHeight;
@@ -185,6 +191,31 @@ export default function MessageThread({ coachName, coachInitials, coachAvatarUrl
             className="hidden"
             onChange={onFileChange}
           />
+
+          <button
+            type="button"
+            onClick={voice.toggle}
+            disabled={upload.status !== 'idle'}
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-40"
+            aria-label={voice.status === 'recording' ? 'Stop recording' : 'Record voice message'}
+          >
+            {voice.status === 'transcribing' ? (
+              <svg className="animate-spin text-text-muted" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="28" strokeDashoffset="10" />
+              </svg>
+            ) : voice.status === 'recording' ? (
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-[11px] font-mono text-red-500 leading-none">{fmtElapsed(voice.elapsed)}</span>
+              </span>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-text-muted hover:text-text transition-colors">
+                <rect x="5" y="1" width="6" height="9" rx="3" stroke="currentColor" strokeWidth="1.3"/>
+                <path d="M2 8c0 3.314 2.686 5 6 5s6-1.686 6-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                <line x1="8" y1="13" x2="8" y2="15" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+              </svg>
+            )}
+          </button>
 
           <textarea
             value={draft}
