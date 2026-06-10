@@ -183,7 +183,14 @@ export default function MessageThread({ coachName, coachInitials, coachAvatarUrl
         )}
 
         {voice.error && (
-          <p className="text-[12px] text-red-500 mb-2 px-1">{voice.error}</p>
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <p className="text-[12px] text-red-500 flex-1">{voice.error}</p>
+            {voice.canOpenSettings && (
+              <button onClick={voice.openSettings} className="text-[12px] text-accent underline flex-shrink-0">
+                Open Settings
+              </button>
+            )}
+          </div>
         )}
         <div className="flex items-end gap-2">
           <button

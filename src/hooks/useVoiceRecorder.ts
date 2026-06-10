@@ -1,22 +1,39 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 
 export type RecordStatus = 'idle' | 'recording' | 'transcribing';
+
+function openNativeSettings() {
+  const platform = Capacitor.getPlatform();
+  if (platform === 'ios') {
+    window.open('app-settings:', '_system');
+  } else if (platform === 'android') {
+    // Opens this app's permission settings page directly
+    window.open(
+      'intent://settings/#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;' +
+      'data=package:work.wintheday.app;end',
+      '_system'
+    );
+  }
+}
 
 export function useVoiceRecorder(onTranscribed: (text: string) => void) {
   const [status, setStatus] = useState<RecordStatus>('idle');
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [canOpenSettings, setCanOpenSettings] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const showError = (msg: string) => {
+  const showError = (msg: string, withSettings = false) => {
     setError(msg);
+    setCanOpenSettings(withSettings && Capacitor.isNativePlatform());
     if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-    errorTimerRef.current = setTimeout(() => setError(null), 4000);
+    errorTimerRef.current = setTimeout(() => { setError(null); setCanOpenSettings(false); }, 6000);
   };
 
   const start = async () => {
@@ -27,8 +44,22 @@ export function useVoiceRecorder(onTranscribed: (text: string) => void) {
       return;
     }
     if (typeof MediaRecorder === 'undefined') {
-      showError('Voice recording not supported on this browser. Try Safari 17.4+ on iOS.');
+      showError('Voice recording not supported. Try Safari 17.4+ on iOS.');
       return;
+    }
+
+    // Pre-check permission state so we can give a helpful message without
+    // triggering a redundant getUserMedia call when already denied.
+    if (navigator.permissions) {
+      try {
+        const perm = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        if (perm.state === 'denied') {
+          showError('Microphone access is blocked. Enable it in your settings.', true);
+          return;
+        }
+      } catch {
+        // Some browsers don't support querying microphone permission — proceed anyway.
+      }
     }
 
     try {
@@ -85,7 +116,7 @@ export function useVoiceRecorder(onTranscribed: (text: string) => void) {
       setStatus('idle');
       const name = (err as Error)?.name;
       if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-        showError('Microphone access denied. Check your browser or app settings.');
+        showError('Microphone access denied. Enable it in your settings.', true);
       } else if (name === 'NotFoundError') {
         showError('No microphone found.');
       } else {
@@ -105,5 +136,5 @@ export function useVoiceRecorder(onTranscribed: (text: string) => void) {
     else if (status === 'idle') start();
   };
 
-  return { status, elapsed, error, toggle };
+  return { status, elapsed, error, canOpenSettings, openSettings: openNativeSettings, toggle };
 }
