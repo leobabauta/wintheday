@@ -10,7 +10,6 @@ function openNativeSettings() {
   if (platform === 'ios') {
     window.open('app-settings:', '_system');
   } else if (platform === 'android') {
-    // AndroidNative is a JavascriptInterface registered in MainActivity.java
     (window as unknown as { AndroidNative?: { openSettings(): void } })
       .AndroidNative?.openSettings();
   }
@@ -45,76 +44,95 @@ export function useVoiceRecorder(onTranscribed: (text: string) => void) {
       return;
     }
 
+    // Phase 1: acquire audio stream.
+    // Try with processing disabled first (avoids NotReadableError on Android WebView),
+    // then fall back to plain { audio: true } if that also fails.
+    let stream: MediaStream;
     try {
-      // Disable audio processing on Android WebView — echo cancellation and
-      // noise suppression conflict with the WebView audio session and cause
-      // NotReadableError even when RECORD_AUDIO permission is granted.
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-        },
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       });
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/mp4')
-          ? 'audio/mp4'
-          : '';
-      const recorder = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream);
-      const actualMime = recorder.mimeType || 'audio/webm';
-      chunksRef.current = [];
-
-      recorder.ondataavailable = e => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
-      recorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
-        if (chunksRef.current.length === 0) { setStatus('idle'); return; }
-        setStatus('transcribing');
+    } catch (e1) {
+      const n1 = (e1 as Error)?.name;
+      if (n1 === 'NotReadableError') {
         try {
-          const blob = new Blob(chunksRef.current, { type: actualMime });
-          const ext = actualMime.includes('mp4') ? 'mp4' : actualMime.includes('ogg') ? 'ogg' : 'webm';
-          const form = new FormData();
-          form.append('file', blob, `audio.${ext}`);
-          const res = await fetch('/api/messages/transcribe', {
-            method: 'POST',
-            credentials: 'include',
-            body: form,
-          });
-          if (res.ok) {
-            const { text } = await res.json();
-            if (text?.trim()) onTranscribed(text.trim());
-          } else {
-            showError('Transcription failed. Please try again.');
-          }
-        } catch {
-          showError('Transcription failed. Please try again.');
-        } finally {
-          setStatus('idle');
-          setElapsed(0);
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (e2) {
+          const n2 = (e2 as Error)?.name;
+          showError(`Microphone unavailable (${n2 || 'NotReadableError'}) — is another app using it?`);
+          return;
         }
-      };
-
-      recorderRef.current = recorder;
-      recorder.start();
-      setElapsed(0);
-      setStatus('recording');
-      timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000);
-    } catch (err) {
-      setStatus('idle');
-      const name = (err as Error)?.name;
-      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+      } else if (n1 === 'NotAllowedError' || n1 === 'PermissionDeniedError') {
         showError('Microphone access denied. Enable it in your settings.', true);
-      } else if (name === 'NotFoundError') {
+        return;
+      } else if (n1 === 'NotFoundError') {
         showError('No microphone found.');
+        return;
       } else {
-        showError('Could not start recording. Please try again.');
+        showError(`Could not access microphone (${n1 || 'unknown'}).`);
+        return;
       }
     }
+
+    // Phase 2: create MediaRecorder, with mimeType fallback.
+    let recorder: MediaRecorder;
+    let actualMime: string;
+    try {
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
+      try {
+        recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      } catch {
+        recorder = new MediaRecorder(stream);
+      }
+      actualMime = recorder.mimeType || 'audio/webm';
+    } catch (recErr) {
+      stream.getTracks().forEach(t => t.stop());
+      showError(`Recording format not supported (${(recErr as Error)?.name || 'unknown'}).`);
+      return;
+    }
+
+    // Phase 3: wire up and start.
+    chunksRef.current = [];
+
+    recorder.ondataavailable = e => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
+    };
+
+    recorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      if (chunksRef.current.length === 0) { setStatus('idle'); return; }
+      setStatus('transcribing');
+      try {
+        const blob = new Blob(chunksRef.current, { type: actualMime });
+        const ext = actualMime.includes('mp4') ? 'mp4' : actualMime.includes('ogg') ? 'ogg' : 'webm';
+        const form = new FormData();
+        form.append('file', blob, `audio.${ext}`);
+        const res = await fetch('/api/messages/transcribe', {
+          method: 'POST',
+          credentials: 'include',
+          body: form,
+        });
+        if (res.ok) {
+          const { text } = await res.json();
+          if (text?.trim()) onTranscribed(text.trim());
+        } else {
+          showError('Transcription failed. Please try again.');
+        }
+      } catch {
+        showError('Transcription failed. Please try again.');
+      } finally {
+        setStatus('idle');
+        setElapsed(0);
+      }
+    };
+
+    recorderRef.current = recorder;
+    recorder.start();
+    setElapsed(0);
+    setStatus('recording');
+    timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000);
   };
 
   const stop = () => {
