@@ -20,7 +20,7 @@ interface ClientInfoData {
   payment_amount: number | null;
   payment_frequency: string | null;
   renewal_day: number | null;
-  rating_label: string;
+  rating_label: string | null;
   status?: string;
 }
 
@@ -109,7 +109,9 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
         payment_frequency: form.payment_frequency || null,
         renewal_day: form.renewal_day || null,
         status: form.status === 'inactive' ? 'inactive' : 'active',
-        rating_label: form.rating_label || 'inner peace',
+        // Blank clears it back to null rather than stamping a default the
+        // client never chose — see rating_label notes in the detail page.
+        rating_label: form.rating_label?.trim() || null,
         ...(newPassword.length >= 6 ? { password: newPassword } : {}),
       }),
     });
@@ -253,7 +255,12 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
             )}
           </div>
         </div>
-        <Input label="Daily Quality Label" value={form.rating_label || ''} onChange={e => setForm({ ...form, rating_label: e.target.value })} placeholder="e.g., inner peace, confidence" />
+        <div>
+          <Input label="Daily Quality Label" value={form.rating_label || ''} onChange={e => setForm({ ...form, rating_label: e.target.value })} placeholder="Leave blank — the client picks this" />
+          <p className="text-[11px] text-text-muted mt-1">
+            Blank means they haven&apos;t chosen yet, and they&apos;ll be prompted in the app.
+          </p>
+        </div>
         <div className="border-t border-border pt-3 mt-1">
           <MutedMono className="block mb-3">Password</MutedMono>
           <Input label="Set New Password" type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Leave blank to keep current" />

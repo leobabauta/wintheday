@@ -88,7 +88,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     [clientId]
   );
 
-  const clientSettings = await queryOne<{ rating_label: string }>(
+  const clientSettings = await queryOne<{ rating_label: string | null }>(
     'SELECT rating_label FROM user_settings WHERE user_id = $1',
     [clientId]
   );
@@ -161,7 +161,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             payment_frequency: clientInfo.payment_frequency,
             renewal_day: clientInfo.renewal_day,
             status: clientInfo.status,
-            rating_label: clientSettings?.rating_label || 'inner peace',
+            // Empty means "not set yet" and must stay that way — seeding a
+            // default here would suppress the client's own pick-a-quality
+            // prompt, which keys off rating_label being null.
+            rating_label: clientSettings?.rating_label ?? '',
           }}
         />
 
