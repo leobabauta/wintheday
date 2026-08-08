@@ -3,20 +3,20 @@
 import { useState } from 'react';
 import SettingRow from './SettingRow';
 
-const TIMES = [
-  { value: 15, label: '3:00 PM' },
-  { value: 16, label: '4:00 PM' },
-  { value: 17, label: '5:00 PM' },
-  { value: 18, label: '6:00 PM' },
-  { value: 19, label: '7:00 PM' },
-  { value: 20, label: '8:00 PM' },
-  { value: 21, label: '9:00 PM' },
-];
+const TIMES = [15, 16, 17, 18, 19, 20, 21];
+
+function label(hour: number) {
+  const h12 = ((hour + 11) % 12) + 1;
+  return `${h12}:00 ${hour >= 12 ? 'PM' : 'AM'}`;
+}
 
 export default function ReflectionTimeSetting({ initialTime }: { initialTime: number }) {
   const [time, setTime] = useState(initialTime);
   const [saved, setSaved] = useState(true);
 
+  // This picker and the Nudges card edit the same underlying evening time.
+  // `nudges_evening_time` is what the cron reads; `reflection_time` is kept in
+  // step so the two controls never disagree on load.
   const handleChange = async (newTime: number) => {
     setTime(newTime);
     setSaved(false);
@@ -24,11 +24,18 @@ export default function ReflectionTimeSetting({ initialTime }: { initialTime: nu
       await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reflection_time: newTime }),
+        body: JSON.stringify({
+          reflection_time: newTime,
+          nudges_evening_time: `${String(newTime).padStart(2, '0')}:00`,
+        }),
       });
       setSaved(true);
     } catch { /* ignore */ }
   };
+
+  // A time set from the Nudges card can fall outside this row's presets
+  // (it allows any minute). Surface it rather than showing nothing selected.
+  const options = TIMES.includes(time) ? TIMES : [...TIMES, time].sort((a, b) => a - b);
 
   return (
     <SettingRow
@@ -40,22 +47,23 @@ export default function ReflectionTimeSetting({ initialTime }: { initialTime: nu
       }
     >
       <p className="text-[13px] text-text-muted mb-3 reflection-text">
-        When should the evening prompt appear?
+        When should the evening prompt appear? This is also when your evening
+        nudge arrives.
       </p>
       <div className="flex flex-wrap gap-2">
-        {TIMES.map(t => {
-          const active = time === t.value;
+        {options.map(t => {
+          const active = time === t;
           return (
             <button
-              key={t.value}
-              onClick={() => handleChange(t.value)}
+              key={t}
+              onClick={() => handleChange(t)}
               className={`px-3 py-1.5 rounded-full text-[12px] font-mono tabular-nums transition-colors border ${
                 active
                   ? 'border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent-light)]'
                   : 'border-border text-text-muted hover:text-text hover:border-text-muted'
               }`}
             >
-              {t.label}
+              {label(t)}
             </button>
           );
         })}

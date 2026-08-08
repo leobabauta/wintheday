@@ -49,6 +49,9 @@ export default function NudgeSettingsCard() {
           nudges_morning_days: n.morning.days.join(','),
           nudges_evening_on: n.evening.on ? 1 : 0,
           nudges_evening_time: n.evening.time,
+          // Keep the Reflection-time picker (which edits the same value) in
+          // step. Truncated to the hour — that control is hour-granular.
+          reflection_time: parseInt(n.evening.time.split(':')[0], 10) || 21,
           nudges_evening_days: n.evening.days.join(','),
           nudges_tone: n.tone,
           nudges_quiet_mode: n.quietMode ? 1 : 0,

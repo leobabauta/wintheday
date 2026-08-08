@@ -63,7 +63,12 @@ export default async function SettingsPage() {
         <h2 className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted mb-4">Reflection</h2>
         <div>
           <RatingLabelSetting initialLabel={settings.rating_label ?? ''} />
-          <ReflectionTimeSetting initialTime={settings.reflection_time} />
+          {/* Seeded from the evening nudge time, not `reflection_time` — the
+              two controls edit the same value and the nudge column is what
+              the cron actually reads. */}
+          <ReflectionTimeSetting
+            initialTime={parseInt(settings.nudges_evening_time.split(':')[0], 10) || settings.reflection_time}
+          />
         </div>
       </section>
 

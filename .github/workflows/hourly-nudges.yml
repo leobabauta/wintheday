@@ -1,0 +1,31 @@
+name: Hourly nudges
+
+# Vercel Hobby caps scheduled functions at one cron per day, but per-user
+# nudge times need an hourly tick. This workflow supplies that tick; the
+# daily 04:00 UTC Vercel cron still owns GCal sync + meeting reminders.
+#
+# Safe to miss a run: the endpoint dedupes per user/slot/local-day and will
+# still deliver anything due within the last 90 minutes on the next tick.
+#
+# Requires repo secret CRON_SECRET, matching the Vercel env var of the
+# same name.
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  nudge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger nudge run
+        run: |
+          code=$(curl -sS -o /tmp/out.json -w '%{http_code}' \
+            --max-time 120 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://www.wintheday.work/api/cron/daily-reminder?nudgesOnly=1")
+          echo "HTTP $code"
+          cat /tmp/out.json
+          echo
+          test "$code" = "200"

@@ -112,7 +112,11 @@ CREATE TABLE IF NOT EXISTS user_settings (
   nudges_evening_time TEXT NOT NULL DEFAULT '21:00',
   nudges_evening_days TEXT NOT NULL DEFAULT 'mon,tue,wed,thu,fri,sat,sun',
   nudges_tone TEXT NOT NULL DEFAULT 'soft',
-  nudges_quiet_mode INTEGER NOT NULL DEFAULT 0
+  nudges_quiet_mode INTEGER NOT NULL DEFAULT 0,
+  -- Local date (YYYY-MM-DD) of the last nudge sent for each slot. Dedupes the
+  -- hourly nudge run so a client gets at most one per slot per day.
+  nudges_morning_sent_date TEXT,
+  nudges_evening_sent_date TEXT
 );
 
 CREATE TABLE IF NOT EXISTS coach_integrations (

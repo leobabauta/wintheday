@@ -1,26 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query, queryOne } from '@/lib/db';
+import { query, queryOne, execute } from '@/lib/db';
 import { Resend } from 'resend';
 import { syncAllCoachCalendars } from '@/lib/gcal-sync';
 import { sendMeetingReminders } from '@/lib/meeting-reminders';
 import { sendPushToUser } from '@/lib/push';
 
-// At 4 AM UTC, local hours by timezone region:
-//   US Pacific  = 21 (9 PM)   → evening slot
-//   US Mountain = 22 (10 PM)  → evening slot
-//   US Central  = 23 (11 PM)  → evening slot
-//   US Eastern  =  0 (midnight) → evening slot (hour 0 treated as late evening)
-//   Hawaii      = 18 (6 PM)   → evening slot
-//   UK / BST    =  5 (5 AM)   → morning slot
-//   Central EU  =  6 (6 AM)   → morning slot
-// A single daily cron covers both regions.
-function activeSlot(localHour: number): 'morning' | 'evening' | null {
-  if (localHour >= 5 && localHour <= 11) return 'morning';
-  if (localHour >= 18 || localHour === 0) return 'evening';
-  return null;
-}
+// This endpoint is hit twice on different schedules:
+//   - Vercel's own cron, once daily at 04:00 UTC → full run (GCal sync +
+//     meeting reminders + nudges). Vercel Hobby caps us at one cron/day.
+//   - An external scheduler, hourly, with `?nudgesOnly=1` → nudges only.
+//     Hobby can't schedule hourly itself, and per-user nudge times are
+//     meaningless without an hourly tick.
+// Nudges are deduped per user per slot per LOCAL day via
+// `user_settings.nudges_{morning,evening}_sent_date`, so the overlap between
+// the two schedules at 04:00 UTC never double-sends.
+
+// How late a nudge may still go out after its configured time. Absorbs
+// scheduler drift (Vercel Hobby crons routinely fire 30-60 min late) without
+// pinging someone at 2am for a 9pm slot they missed.
+const CATCHUP_MINUTES = 90;
 
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+type DayKey = typeof DAY_KEYS[number];
+
+// Everything about "when is it for this user" in one pass, so the date, the
+// weekday and the wall-clock minute can never disagree across a midnight or
+// DST boundary.
+function localNow(nowUtc: Date, tz: string): { date: string; minutes: number; day: DayKey } {
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+      weekday: 'short',
+    }).formatToParts(nowUtc);
+    const get = (t: string) => parts.find(p => p.type === t)?.value ?? '';
+    const day = get('weekday').toLowerCase().slice(0, 3) as DayKey;
+    return {
+      date: `${get('year')}-${get('month')}-${get('day')}`,
+      minutes: parseInt(get('hour'), 10) * 60 + parseInt(get('minute'), 10),
+      day: DAY_KEYS.includes(day) ? day : DAY_KEYS[nowUtc.getUTCDay()],
+    };
+  } catch {
+    return {
+      date: nowUtc.toISOString().split('T')[0],
+      minutes: nowUtc.getUTCHours() * 60 + nowUtc.getUTCMinutes(),
+      day: DAY_KEYS[nowUtc.getUTCDay()],
+    };
+  }
+}
+
+// 'HH:MM' → minutes past local midnight.
+function parseHHMM(t: string, fallbackMinutes: number): number {
+  const m = /^(\d{1,2}):(\d{2})$/.exec((t || '').trim());
+  if (!m) return fallbackMinutes;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return fallbackMinutes;
+  return h * 60 + min;
+}
 
 function buildMessage(hasWins: boolean, hasJournal: boolean, tone: string, firstName: string): string {
   let core: string;
@@ -41,9 +79,12 @@ export async function GET(request: NextRequest) {
   }
 
   const dryRun = request.nextUrl.searchParams.get('dryRun') === '1';
+  // The hourly external tick passes this so we don't hammer the Google
+  // Calendar API 24x/day or re-walk the meeting-reminder table every hour.
+  const nudgesOnly = request.nextUrl.searchParams.get('nudgesOnly') === '1';
 
-  const gcalSync = await syncAllCoachCalendars();
-  const meetingReminders = await sendMeetingReminders({ dryRun });
+  const gcalSync = nudgesOnly ? null : await syncAllCoachCalendars();
+  const meetingReminders = nudgesOnly ? null : await sendMeetingReminders({ dryRun });
 
   const resend = new Resend(process.env.RESEND_API_KEY);
   const nowUtc = new Date();
@@ -62,6 +103,8 @@ export async function GET(request: NextRequest) {
     nudges_evening_days: string;
     nudges_tone: string;
     nudges_quiet_mode: number;
+    nudges_morning_sent_date: string | null;
+    nudges_evening_sent_date: string | null;
   }>(
     `SELECT u.id, u.name, u.email,
             COALESCE(us.timezone, 'Pacific/Honolulu') as timezone,
@@ -73,7 +116,9 @@ export async function GET(request: NextRequest) {
             COALESCE(us.nudges_evening_time, '21:00') as nudges_evening_time,
             COALESCE(us.nudges_evening_days, 'mon,tue,wed,thu,fri,sat,sun') as nudges_evening_days,
             COALESCE(us.nudges_tone, 'soft') as nudges_tone,
-            COALESCE(us.nudges_quiet_mode, 0) as nudges_quiet_mode
+            COALESCE(us.nudges_quiet_mode, 0) as nudges_quiet_mode,
+            us.nudges_morning_sent_date,
+            us.nudges_evening_sent_date
      FROM users u
      JOIN client_info ci ON ci.user_id = u.id
      LEFT JOIN user_settings us ON us.user_id = u.id
@@ -82,38 +127,43 @@ export async function GET(request: NextRequest) {
 
   let sent = 0;
   let skipped = 0;
+  const sentBySlot = { morning: 0, evening: 0 };
 
   for (const client of clients) {
     if (!client.nudges_enabled) { skipped++; continue; }
 
     const tz = client.timezone || 'Pacific/Honolulu';
+    const local = localNow(nowUtc, tz);
+    const today = local.date;
 
-    let today: string;
-    let localHour: number;
-    let localDayOfWeek: number;
-    try {
-      const dateFmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz });
-      today = dateFmt.format(nowUtc);
-      const hourFmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false });
-      localHour = parseInt(hourFmt.format(nowUtc), 10);
-      const dayFmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' });
-      const dayStr = dayFmt.format(nowUtc).toLowerCase().slice(0, 3); // 'mon', 'tue', etc.
-      localDayOfWeek = DAY_KEYS.indexOf(dayStr as typeof DAY_KEYS[number]);
-    } catch {
-      today = nowUtc.toISOString().split('T')[0];
-      localHour = nowUtc.getUTCHours();
-      localDayOfWeek = nowUtc.getUTCDay();
-    }
+    // At most one nudge per user per run. Morning is checked first so that a
+    // long outage can't let a stale evening slot pre-empt today's morning.
+    const due = ([
+      {
+        name: 'morning' as const,
+        on: client.nudges_morning_on,
+        time: client.nudges_morning_time,
+        days: client.nudges_morning_days,
+        sentDate: client.nudges_morning_sent_date,
+        fallback: 7 * 60,
+      },
+      {
+        name: 'evening' as const,
+        on: client.nudges_evening_on,
+        time: client.nudges_evening_time,
+        days: client.nudges_evening_days,
+        sentDate: client.nudges_evening_sent_date,
+        fallback: 21 * 60,
+      },
+    ]).find(s => {
+      if (!s.on) return false;
+      if (s.sentDate === today) return false;
+      if (!s.days.split(',').map(d => d.trim()).includes(local.day)) return false;
+      const elapsed = local.minutes - parseHHMM(s.time, s.fallback);
+      return elapsed >= 0 && elapsed <= CATCHUP_MINUTES;
+    });
 
-    const slot = activeSlot(localHour);
-    if (!slot) { skipped++; continue; }
-
-    const slotOn = slot === 'morning' ? client.nudges_morning_on : client.nudges_evening_on;
-    if (!slotOn) { skipped++; continue; }
-
-    const slotDays = (slot === 'morning' ? client.nudges_morning_days : client.nudges_evening_days).split(',');
-    const todayKey = DAY_KEYS[localDayOfWeek];
-    if (todayKey && !slotDays.includes(todayKey)) { skipped++; continue; }
+    if (!due) { skipped++; continue; }
 
     const wins = await queryOne<{ count: string }>(
       'SELECT COUNT(*) as count FROM win_entries WHERE user_id = $1 AND date = $2 AND completed = 1',
@@ -130,7 +180,7 @@ export async function GET(request: NextRequest) {
     // Quiet mode: skip the nudge if they've already done both.
     if (client.nudges_quiet_mode && hasWins && hasJournal) { skipped++; continue; }
 
-    if (dryRun) { sent++; continue; }
+    if (dryRun) { sentBySlot[due.name]++; sent++; continue; }
 
     const firstName = client.name.split(' ')[0];
     const message = buildMessage(hasWins, hasJournal, client.nudges_tone, firstName);
@@ -159,8 +209,22 @@ export async function GET(request: NextRequest) {
       }).catch((err: unknown) => console.error(`Failed to send reminder email to ${client.email}:`, err)),
     ]);
 
+    // Stamp unconditionally after the attempt, not on success. Push and email
+    // are fire-and-forget and a persistently failing channel must not turn
+    // into an hourly retry loop against the same client.
+    await execute(
+      due.name === 'morning'
+        ? 'UPDATE user_settings SET nudges_morning_sent_date = $1 WHERE user_id = $2'
+        : 'UPDATE user_settings SET nudges_evening_sent_date = $1 WHERE user_id = $2',
+      [today, client.id]
+    );
+
+    sentBySlot[due.name]++;
     sent++;
   }
 
-  return NextResponse.json({ ok: true, sent, skipped, checked: clients.length, gcalSync, meetingReminders, dryRun });
+  return NextResponse.json({
+    ok: true, sent, sentBySlot, skipped, checked: clients.length,
+    gcalSync, meetingReminders, nudgesOnly, dryRun,
+  });
 }
