@@ -117,3 +117,48 @@ export default function ClientTable({ clients }: Props) {
     </div>
   );
 }
+
+interface InactiveClient {
+  id: string;
+  name: string;
+  avatarUrl?: string | null;
+  lastActive: string;
+  since: string;
+}
+
+const INACTIVE_GRID_COLS = 'grid-cols-[1fr_120px_100px_24px]';
+
+// Former clients keep their full detail page — this row is just a way back
+// into it. Deliberately omits the stats columns: sparkbars and 7-day ratios
+// for someone who left are stale noise, not signal.
+export function InactiveClientTable({ clients }: { clients: InactiveClient[] }) {
+  return (
+    <div className="border border-border rounded-[14px] overflow-hidden">
+      <div className={`grid ${INACTIVE_GRID_COLS} gap-4 px-5 py-3 bg-surface border-b border-border`}>
+        <MutedMono>Client</MutedMono>
+        <MutedMono>Inactive since</MutedMono>
+        <MutedMono>Last active</MutedMono>
+        <div />
+      </div>
+      {clients.map(c => (
+        <Link
+          key={c.id}
+          href={`/dashboard/clients/${c.id}`}
+          className={`grid ${INACTIVE_GRID_COLS} gap-4 px-5 py-3.5 items-center border-b border-border last:border-b-0 transition-colors hover:bg-surface`}
+        >
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="opacity-60">
+              <Avatar name={c.name} avatarUrl={c.avatarUrl} size={30} textSize={11} />
+            </div>
+            <div className="text-[14px] text-text-secondary truncate">{c.name}</div>
+          </div>
+          <MutedMono>{c.since}</MutedMono>
+          <MutedMono>{c.lastActive}</MutedMono>
+          <svg width="10" height="10" viewBox="0 0 10 10" className="text-text-muted">
+            <path d="M3 1L7 5L3 9" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+          </svg>
+        </Link>
+      ))}
+    </div>
+  );
+}

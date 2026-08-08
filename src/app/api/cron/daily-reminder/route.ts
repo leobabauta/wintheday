@@ -122,7 +122,9 @@ export async function GET(request: NextRequest) {
      FROM users u
      JOIN client_info ci ON ci.user_id = u.id
      LEFT JOIN user_settings us ON us.user_id = u.id
-     WHERE u.role = 'client'`
+     WHERE u.role = 'client'
+       -- Former clients keep every record but stop being nudged.
+       AND ci.status = 'active'`
   );
 
   let sent = 0;

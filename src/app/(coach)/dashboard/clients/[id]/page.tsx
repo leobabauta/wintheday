@@ -72,6 +72,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     sign_on_date: string; closing_date: string | null;
     coaching_day: string; coaching_time: string; coaching_frequency: string;
     payment_amount: number | null; payment_frequency: string | null; renewal_day: number | null;
+    status: string;
   }>(
     'SELECT * FROM client_info WHERE user_id = $1 AND coach_id = $2',
     [clientId, session.userId]
@@ -159,6 +160,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             payment_amount: clientInfo.payment_amount,
             payment_frequency: clientInfo.payment_frequency,
             renewal_day: clientInfo.renewal_day,
+            status: clientInfo.status,
             rating_label: clientSettings?.rating_label || 'inner peace',
           }}
         />

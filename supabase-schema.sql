@@ -36,6 +36,10 @@ CREATE TABLE IF NOT EXISTS client_info (
   payment_amount NUMERIC,
   payment_frequency TEXT CHECK(payment_frequency IN ('monthly','yearly')),
   renewal_day INTEGER,
+  -- Roster status, independent of engagement. 'inactive' keeps all records
+  -- but drops the client out of nudges and off the main dashboard list.
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+  status_changed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

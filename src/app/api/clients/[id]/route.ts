@@ -75,6 +75,21 @@ export async function PUT(
       await execute('UPDATE users SET avatar_url = $1 WHERE id = $2', [body.avatar_url, clientId]);
     }
 
+    // Status is handled separately so we can stamp status_changed_at only on
+    // an actual transition, and reject anything the CHECK would 500 on.
+    if (body.status !== undefined) {
+      if (body.status !== 'active' && body.status !== 'inactive') {
+        return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+      }
+      await execute(
+        `UPDATE client_info
+         SET status = $1,
+             status_changed_at = CASE WHEN status IS DISTINCT FROM $1 THEN now() ELSE status_changed_at END
+         WHERE user_id = $2`,
+        [body.status, clientId]
+      );
+    }
+
     const fields = ['sign_on_date', 'closing_date', 'coaching_day', 'coaching_time', 'coaching_frequency', 'payment_amount', 'payment_frequency', 'renewal_day'];
     for (const field of fields) {
       if (body[field] !== undefined) {

@@ -21,6 +21,7 @@ interface ClientInfoData {
   payment_frequency: string | null;
   renewal_day: number | null;
   rating_label: string;
+  status?: string;
 }
 
 // Resize to a 200×200 JPEG data URL so avatars stay small enough to live
@@ -107,6 +108,7 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
         payment_amount: form.payment_amount || null,
         payment_frequency: form.payment_frequency || null,
         renewal_day: form.renewal_day || null,
+        status: form.status === 'inactive' ? 'inactive' : 'active',
         rating_label: form.rating_label || 'inner peace',
         ...(newPassword.length >= 6 ? { password: newPassword } : {}),
       }),
@@ -139,6 +141,12 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
           </div>
         </div>
         <div className="space-y-2 text-[13px]">
+          <div className="flex justify-between">
+            <span className="text-text-secondary">Status</span>
+            <span className={data.status === 'inactive' ? 'text-text-muted' : 'text-accent'}>
+              {data.status === 'inactive' ? 'Inactive' : 'Active'}
+            </span>
+          </div>
           <div className="flex justify-between">
             <span className="text-text-secondary">Sign-on Date</span>
             <span className="text-text">{formatDate(data.sign_on_date)}</span>
@@ -202,6 +210,20 @@ export default function ClientInfoEditor({ clientId, data }: { clientId: number;
             />
             <p className="text-[11px] text-text-muted">Saves immediately. Stored at 200×200 JPEG.</p>
           </div>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[13px] text-text-secondary">Status</label>
+          <select
+            className="rounded-[12px] border border-border bg-bg px-4 py-2.5 text-text outline-none focus:border-accent transition-colors"
+            value={form.status === 'inactive' ? 'inactive' : 'active'}
+            onChange={e => setForm({ ...form, status: e.target.value })}
+          >
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          <p className="text-[11px] text-text-muted">
+            Inactive keeps all records but stops nudges and moves them below the active list.
+          </p>
         </div>
         <Input label="Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
         <Input label="Email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />

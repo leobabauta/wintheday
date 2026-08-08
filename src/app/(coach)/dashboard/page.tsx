@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import MutedMono from '@/components/ui/MutedMono';
-import ClientTable from '@/components/coach/ClientTable';
+import ClientTable, { InactiveClientTable } from '@/components/coach/ClientTable';
 
 type ClientStatus = 'on-track' | 'steady' | 'struggling' | 'starting-up';
 
@@ -83,10 +83,12 @@ export default async function DashboardPage() {
     sign_on_date: string | null;
     client_info_created_at: string | null;
     onboarded: number | null;
+    status: string;
+    status_changed_at: string | null;
   }>(
     `SELECT u.id, u.name, u.avatar_url, u.last_active_at,
             ci.closing_date, ci.sign_on_date, ci.created_at AS client_info_created_at,
-            us.onboarded
+            us.onboarded, ci.status, ci.status_changed_at
      FROM users u
      JOIN client_info ci ON ci.user_id = u.id
      LEFT JOIN user_settings us ON us.user_id = u.id
@@ -97,7 +99,22 @@ export default async function DashboardPage() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  const enriched = await Promise.all(clients.map(async client => {
+  // Split before enrichment — the per-client stats pass runs a handful of
+  // queries each, and none of it is rendered for a former client.
+  const activeClients = clients.filter(c => c.status !== 'inactive');
+  const inactiveClients = clients
+    .filter(c => c.status === 'inactive')
+    .map(c => ({
+      id: String(c.id),
+      name: c.name,
+      avatarUrl: c.avatar_url,
+      lastActive: lastActiveLabel(c.last_active_at),
+      since: c.status_changed_at
+        ? new Date(c.status_changed_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+        : '—',
+    }));
+
+  const enriched = await Promise.all(activeClients.map(async client => {
     const winHistory = await getClientWinHistory(client.id, 14);
     const last7 = winHistory.slice(-7);
     const done7 = last7.reduce((s, d) => s + d.completed, 0);
@@ -189,10 +206,24 @@ export default async function DashboardPage() {
           <Button variant="filled" size="sm">+ Add Client</Button>
         </Link>
       </div>
-      {enriched.length === 0 ? (
+      {enriched.length === 0 && inactiveClients.length === 0 ? (
         <p className="text-[13px] text-text-muted">No clients yet.</p>
       ) : (
-        <ClientTable clients={enriched} />
+        <>
+          {enriched.length > 0 ? (
+            <ClientTable clients={enriched} />
+          ) : (
+            <p className="text-[13px] text-text-muted">No active clients.</p>
+          )}
+          {inactiveClients.length > 0 && (
+            <section className="mt-10">
+              <h2 className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-muted mb-4">
+                Inactive clients
+              </h2>
+              <InactiveClientTable clients={inactiveClients} />
+            </section>
+          )}
+        </>
       )}
     </div>
   );
