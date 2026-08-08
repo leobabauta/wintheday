@@ -7,7 +7,7 @@ Coaching app for daily commitments, journaling, and client-coach communication.
 - Hosted on **Vercel** — auto-deploys on push to `main` (GitHub App integration). Manual override: `vercel --prod --yes`.
 - Live at **https://www.wintheday.work/**
 - Supabase project ref: `tkhwiukylohjfnocjqyy`
-- Vercel Hobby plan — cron jobs limited to once daily
+- Vercel Hobby plan — cron jobs limited to once daily. The 04:00 UTC Vercel cron owns GCal sync + meeting reminders. Per-user **nudges** need an hourly tick, so `.github/workflows/hourly-nudges.yml` calls the same endpoint hourly with `?nudgesOnly=1` (auth via the `CRON_SECRET` repo secret). Nudges dedupe per user/slot/local-day, so the two schedules overlapping is harmless.
 
 ## Tech Stack
 
