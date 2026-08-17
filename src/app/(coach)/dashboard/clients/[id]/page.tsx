@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/auth';
 import { query, queryOne, execute } from '@/lib/db';
 import { getClientWinHistory } from '@/lib/client-stats';
+import { REACTIONS_SELECT } from '@/lib/message-queries';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
@@ -115,8 +116,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const messages = await query<{
     id: number; sender_id: number; recipient_id: number; sender_name: string;
     type: string; content: string; parent_id: number | null; read: number; created_at: string;
+    reactions: { emoji: string; userId: number }[];
   }>(
-    `SELECT m.*, u.name as sender_name FROM messages m
+    `SELECT m.*, u.name as sender_name, ${REACTIONS_SELECT} FROM messages m
      JOIN users u ON u.id = m.sender_id
      WHERE (m.sender_id = $1 OR m.recipient_id = $1)
        AND (m.sender_id = $2 OR m.recipient_id = $2)

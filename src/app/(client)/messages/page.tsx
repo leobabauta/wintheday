@@ -1,5 +1,6 @@
 import { getSession } from '@/lib/auth';
 import { query, queryOne, execute } from '@/lib/db';
+import { REACTIONS_SELECT } from '@/lib/message-queries';
 import { redirect } from 'next/navigation';
 import MessageThreadClient from '@/components/messages/MessageThreadClient';
 
@@ -29,9 +30,10 @@ export default async function MessagesPage() {
   const messages = await query<{
     id: number; sender_id: number; recipient_id: number; sender_name: string;
     content: string; created_at: string; attachment_url: string | null; attachment_type: string | null;
+    reactions: { emoji: string; userId: number }[];
   }>(
     `SELECT m.id, m.sender_id, m.recipient_id, u.name as sender_name, m.content, m.created_at,
-            m.attachment_url, m.attachment_type
+            m.attachment_url, m.attachment_type, ${REACTIONS_SELECT}
      FROM messages m
      JOIN users u ON u.id = m.sender_id
      WHERE (m.sender_id = $1 OR m.recipient_id = $1)

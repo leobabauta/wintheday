@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import MutedMono from '@/components/ui/MutedMono';
 import Avatar from '@/components/ui/Avatar';
 import Linkify from '@/components/ui/Linkify';
+import { ReactionPicker, ReactionChips } from './Reactions';
+import { groupReactions, toggleReaction, type GroupedReaction, type RawReaction } from '@/lib/reactions';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 
 function fmtElapsed(s: number) {
@@ -19,6 +21,7 @@ interface DbRow {
   created_at: string;
   attachment_url?: string | null;
   attachment_type?: string | null;
+  reactions?: RawReaction[];
 }
 
 interface Props {
@@ -37,6 +40,7 @@ interface UiMessage {
   time: string;
   createdAt: string;
   attachmentUrl?: string | null;
+  reactions: GroupedReaction[];
 }
 
 type UploadState =
@@ -117,8 +121,26 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
       time,
       createdAt: r.created_at,
       attachmentUrl: r.attachment_url,
+      reactions: groupReactions(r.reactions, coachUserId),
     };
   });
+
+  // Optimistic: flip the chip now, POST behind it. A failed toggle is undone
+  // here, and the 4s poll is the backstop either way.
+  const onReact = (id: string, emoji: string) => {
+    const apply = (prev: DbRow[]) => prev.map(r =>
+      String(r.id) === id ? { ...r, reactions: toggleReaction(r.reactions, coachUserId, emoji) } : r
+    );
+    setRows(apply);
+    fetch(`/api/messages/${id}/reactions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ emoji }),
+    })
+      .then(res => { if (!res.ok) setRows(apply); })
+      .catch(() => setRows(apply));
+  };
 
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -182,6 +204,7 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
         created_at: saved.created_at || new Date().toISOString(),
         attachment_url: attachment?.url || null,
         attachment_type: attachment?.type || null,
+        reactions: [],
       }]);
     }
   };
@@ -232,9 +255,17 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
                 <div
                   key={m.id}
                   className={`flex ${isCoach ? 'justify-end' : 'justify-start'} ${showTime ? 'mb-3' : 'mb-1.5'}`}
-                  onClick={e => { e.stopPropagation(); if (isCoach) setSelectedId(prev => prev === m.id ? null : m.id); }}
+                  onClick={e => { e.stopPropagation(); setSelectedId(prev => prev === m.id ? null : m.id); }}
                 >
                   <div className="max-w-[80%]">
+                    {isSelected && (
+                      <div className="pb-1">
+                        <ReactionPicker
+                          align={isCoach ? 'right' : 'left'}
+                          onPick={emoji => { setSelectedId(null); onReact(m.id, emoji); }}
+                        />
+                      </div>
+                    )}
                     <div className={`overflow-hidden text-[14px] leading-[1.5] font-light ${colorClass} ${roundedClass}`}>
                       {m.attachmentUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -249,6 +280,11 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
                         <div className="py-2 px-3.5">&nbsp;</div>
                       )}
                     </div>
+                    <ReactionChips
+                      reactions={m.reactions}
+                      align={isCoach ? 'right' : 'left'}
+                      onToggle={emoji => onReact(m.id, emoji)}
+                    />
                     {showTime && (
                       <div className={`px-1.5 pt-1 ${isCoach ? 'text-right' : 'text-left'}`}>
                         <MutedMono>{m.time}</MutedMono>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import MessageThread from './MessageThread';
+import { groupReactions, toggleReaction, type RawReaction } from '@/lib/reactions';
 
 interface DbRow {
   id: number;
@@ -12,6 +13,7 @@ interface DbRow {
   created_at: string;
   attachment_url?: string | null;
   attachment_type?: string | null;
+  reactions?: RawReaction[];
 }
 
 interface Props {
@@ -83,8 +85,26 @@ export default function MessageThreadClient({ initial, clientUserId, coachUserId
       createdAt: r.created_at,
       attachmentUrl: r.attachment_url,
       attachmentType: r.attachment_type,
+      reactions: groupReactions(r.reactions, clientUserId),
     };
   });
+
+  // Optimistic: flip the chip now, POST behind it. A failed toggle is undone
+  // here, and the 4s poll is the backstop either way.
+  const onReact = (id: string, emoji: string) => {
+    const apply = (prev: DbRow[]) => prev.map(r =>
+      String(r.id) === id ? { ...r, reactions: toggleReaction(r.reactions, clientUserId, emoji) } : r
+    );
+    setRows(apply);
+    fetch(`/api/messages/${id}/reactions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ emoji }),
+    })
+      .then(res => { if (!res.ok) setRows(apply); })
+      .catch(() => setRows(apply));
+  };
 
   const onDelete = async (id: string) => {
     const res = await fetch(`/api/messages/${id}`, { method: 'DELETE', credentials: 'include' });
@@ -115,6 +135,7 @@ export default function MessageThreadClient({ initial, clientUserId, coachUserId
         created_at: saved.created_at || new Date().toISOString(),
         attachment_url: attachment?.url || null,
         attachment_type: attachment?.type || null,
+        reactions: [],
       }]);
     }
   };
@@ -127,6 +148,7 @@ export default function MessageThreadClient({ initial, clientUserId, coachUserId
       messages={messages}
       onSend={onSend}
       onDelete={onDelete}
+      onReact={onReact}
       today={todayLocal()}
     />
   );

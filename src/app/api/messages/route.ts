@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query, execute, insertReturning } from '@/lib/db';
 import { requireAuth, handleAuthError } from '@/lib/api-auth';
 import { notifyNewMessage } from '@/lib/message-notifications';
+import { REACTIONS_SELECT } from '@/lib/message-queries';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     if (auth.role === 'coach' && clientId) {
       messages = await query(
-        `SELECT m.*, u.name as sender_name
+        `SELECT m.*, u.name as sender_name, ${REACTIONS_SELECT}
          FROM messages m
          JOIN users u ON u.id = m.sender_id
          WHERE (m.sender_id = $1 AND m.recipient_id = $2)
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
       );
     } else {
       messages = await query(
-        `SELECT m.*, u.name as sender_name
+        `SELECT m.*, u.name as sender_name, ${REACTIONS_SELECT}
          FROM messages m
          JOIN users u ON u.id = m.sender_id
          WHERE m.sender_id = $1 OR m.recipient_id = $1

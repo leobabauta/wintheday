@@ -98,6 +98,14 @@ CREATE TABLE IF NOT EXISTS messages (
   attachment_type TEXT
 );
 
+CREATE TABLE IF NOT EXISTS message_reactions (
+  id SERIAL PRIMARY KEY,
+  message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  emoji TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS user_settings (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL UNIQUE REFERENCES users(id),
@@ -170,6 +178,8 @@ CREATE INDEX IF NOT EXISTS idx_meetings_starts_status ON meetings(starts_at, sta
 CREATE INDEX IF NOT EXISTS idx_commitments_user_active ON commitments(user_id, active);
 CREATE INDEX IF NOT EXISTS idx_messages_recipient_read ON messages(recipient_id, read);
 CREATE INDEX IF NOT EXISTS idx_messages_archived ON messages(recipient_id, archived, read);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_message_reactions_unique ON message_reactions(message_id, user_id, emoji);
+CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON message_reactions(message_id);
 CREATE INDEX IF NOT EXISTS idx_journal_user_date ON journal_entries(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_client_info_coach ON client_info(coach_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_win_entries_unique ON win_entries(user_id, commitment_id, date);

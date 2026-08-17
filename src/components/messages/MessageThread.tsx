@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import MutedMono from '@/components/ui/MutedMono';
 import Linkify from '@/components/ui/Linkify';
+import { ReactionPicker, ReactionChips } from './Reactions';
+import type { GroupedReaction } from '@/lib/reactions';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 
 function fmtElapsed(s: number) {
@@ -18,6 +20,7 @@ interface Message {
   createdAt: string;
   attachmentUrl?: string | null;
   attachmentType?: string | null;
+  reactions: GroupedReaction[];
 }
 
 interface Props {
@@ -27,6 +30,7 @@ interface Props {
   messages: Message[];
   onSend: (text: string, attachment?: { url: string; type: string }) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
+  onReact: (id: string, emoji: string) => void;
   today: string;
 }
 
@@ -62,7 +66,7 @@ function showTimeFor(items: Message[], i: number): boolean {
   return new Date(next.createdAt).getTime() - new Date(cur.createdAt).getTime() > 5 * 60 * 1000;
 }
 
-export default function MessageThread({ coachName, coachInitials, coachAvatarUrl, messages, onSend, onDelete, today }: Props) {
+export default function MessageThread({ coachName, coachInitials, coachAvatarUrl, messages, onSend, onDelete, onReact, today }: Props) {
   const [draft, setDraft] = useState('');
   const [upload, setUpload] = useState<UploadState>({ status: 'idle' });
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -149,6 +153,7 @@ export default function MessageThread({ coachName, coachInitials, coachAvatarUrl
                 isSelected={selectedId === m.id}
                 onSelect={id => setSelectedId(prev => prev === id ? null : id)}
                 onDelete={onDelete && m.from === 'client' ? onDelete : undefined}
+                onReact={(id, emoji) => { setSelectedId(null); onReact(id, emoji); }}
               />
             ))}
           </div>
@@ -263,23 +268,30 @@ export default function MessageThread({ coachName, coachInitials, coachAvatarUrl
   );
 }
 
-function Bubble({ msg, showTime, isSelected, onSelect, onDelete }: {
+function Bubble({ msg, showTime, isSelected, onSelect, onDelete, onReact }: {
   msg: Message;
   showTime: boolean;
   isSelected: boolean;
   onSelect: (id: string) => void;
   onDelete?: (id: string) => Promise<void>;
+  onReact: (id: string, emoji: string) => void;
 }) {
   const isClient = msg.from === 'client';
+  const align = isClient ? 'right' : 'left';
   const roundedClass = isClient ? 'rounded-2xl rounded-br-[4px]' : 'rounded-2xl rounded-bl-[4px]';
   const colorClass = isClient ? 'bg-accent text-bg' : 'bg-surface border border-border';
 
   return (
     <div
       className={`flex ${isClient ? 'justify-end' : 'justify-start'} ${showTime ? 'mb-3' : 'mb-1.5'}`}
-      onClick={e => { e.stopPropagation(); if (onDelete) onSelect(msg.id); }}
+      onClick={e => { e.stopPropagation(); onSelect(msg.id); }}
     >
       <div className="max-w-[80%]">
+        {isSelected && (
+          <div className="pb-1">
+            <ReactionPicker align={align} onPick={emoji => onReact(msg.id, emoji)} />
+          </div>
+        )}
         <div className={`overflow-hidden text-[14px] leading-[1.5] font-light ${colorClass} ${roundedClass}`}>
           {msg.attachmentUrl && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -294,6 +306,11 @@ function Bubble({ msg, showTime, isSelected, onSelect, onDelete }: {
             <div className="py-2 px-3.5">&nbsp;</div>
           )}
         </div>
+        <ReactionChips
+          reactions={msg.reactions}
+          align={align}
+          onToggle={emoji => onReact(msg.id, emoji)}
+        />
         {showTime && (
           <div className={`px-1.5 pt-1 ${isClient ? 'text-right' : 'text-left'}`}>
             <MutedMono>{msg.time}</MutedMono>
