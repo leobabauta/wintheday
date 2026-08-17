@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import MutedMono from '@/components/ui/MutedMono';
 import Avatar from '@/components/ui/Avatar';
+import Linkify from '@/components/ui/Linkify';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 
 function fmtElapsed(s: number) {
@@ -241,7 +242,7 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
                       )}
                       {m.text && (
                         <div className={`py-2 px-3.5 whitespace-pre-wrap ${m.attachmentUrl ? 'border-t border-black/10' : ''}`}>
-                          {m.text}
+                          <Linkify text={m.text} />
                         </div>
                       )}
                       {!m.attachmentUrl && !m.text && (

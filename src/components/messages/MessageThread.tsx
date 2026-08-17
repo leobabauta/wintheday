@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import MutedMono from '@/components/ui/MutedMono';
+import Linkify from '@/components/ui/Linkify';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 
 function fmtElapsed(s: number) {
@@ -286,7 +287,7 @@ function Bubble({ msg, showTime, isSelected, onSelect, onDelete }: {
           )}
           {msg.text && (
             <div className={`py-2 px-3.5 whitespace-pre-wrap ${msg.attachmentUrl ? 'border-t border-black/10' : ''}`}>
-              {msg.text}
+              <Linkify text={msg.text} />
             </div>
           )}
           {!msg.attachmentUrl && !msg.text && (
