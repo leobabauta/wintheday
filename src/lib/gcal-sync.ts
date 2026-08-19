@@ -1,3 +1,4 @@
+import type { calendar_v3 } from 'googleapis';
 import { query, execute } from './db';
 import { getCalendarClient } from './google';
 
@@ -16,6 +17,7 @@ export type SyncResult = {
   events_scanned: number;
   meetings_upserted: number;
   meetings_cancelled: number;
+  meetings_stale_cancelled: number;
   error?: string;
 };
 
@@ -37,6 +39,7 @@ export async function syncAllCoachCalendars(): Promise<SyncResult[]> {
         events_scanned: 0,
         meetings_upserted: 0,
         meetings_cancelled: 0,
+        meetings_stale_cancelled: 0,
         error: message,
       });
     }
@@ -60,16 +63,29 @@ async function syncCoachCalendar(coachUserId: number, refreshToken: string): Pro
   const now = new Date();
   const sixtyDays = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
 
-  const res = await calendar.events.list({
-    calendarId: 'primary',
-    timeMin: now.toISOString(),
-    timeMax: sixtyDays.toISOString(),
-    singleEvents: true,
-    orderBy: 'startTime',
-    maxResults: 250,
-  });
+  const windowStart = now.toISOString();
+  const windowEnd = sixtyDays.toISOString();
 
-  const events = res.data.items ?? [];
+  // Paginate to exhaustion. The reconciliation pass below cancels meetings
+  // whose event is absent from this list, so a page-truncated list would
+  // cancel real, still-scheduled meetings.
+  const events: calendar_v3.Schema$Event[] = [];
+  let pageToken: string | undefined;
+  do {
+    const res = await calendar.events.list({
+      calendarId: 'primary',
+      timeMin: windowStart,
+      timeMax: windowEnd,
+      singleEvents: true,
+      orderBy: 'startTime',
+      maxResults: 250,
+      pageToken,
+    });
+    events.push(...(res.data.items ?? []));
+    pageToken = res.data.nextPageToken ?? undefined;
+  } while (pageToken);
+
+  const seenEventIds = new Set<string>();
   let upserted = 0;
   let cancelled = 0;
 
@@ -107,8 +123,35 @@ async function syncCoachCalendar(coachUserId: number, refreshToken: string): Pro
       [coachUserId, matchedClientId, startIso, endIso, ev.id, status]
     );
 
+    seenEventIds.add(ev.id);
     if (isCancelled) cancelled++;
     else upserted++;
+  }
+
+  // Google only returns events that still exist, so anything previously synced
+  // into this window that we did not see this run was deleted outright or fell
+  // off the end of a shortened recurrence (the usual case: an RRULE rewritten
+  // with an earlier UNTIL). Left alone, those rows sit at 'scheduled' forever,
+  // showing as upcoming sessions and firing day-before reminders and
+  // pre-coaching forms for calls that are not happening. If an event comes
+  // back, the upsert above flips it to 'scheduled' again.
+  //
+  // Skipped when nothing matched a client: an empty set is far more likely a
+  // partial API result than a genuinely emptied calendar, and reconciling
+  // against it would cancel every upcoming session the coach has.
+  let staleCancelled = 0;
+  if (seenEventIds.size > 0) {
+    const stale = await execute(
+      `UPDATE meetings SET status = 'cancelled', updated_at = now()
+       WHERE coach_id = $1
+         AND status = 'scheduled'
+         AND google_event_id IS NOT NULL
+         AND starts_at >= $2
+         AND starts_at < $3
+         AND NOT (google_event_id = ANY($4))`,
+      [coachUserId, windowStart, windowEnd, [...seenEventIds]]
+    );
+    staleCancelled = stale.rowCount;
   }
 
   await execute(
@@ -121,5 +164,6 @@ async function syncCoachCalendar(coachUserId: number, refreshToken: string): Pro
     events_scanned: events.length,
     meetings_upserted: upserted,
     meetings_cancelled: cancelled,
+    meetings_stale_cancelled: staleCancelled,
   };
 }
