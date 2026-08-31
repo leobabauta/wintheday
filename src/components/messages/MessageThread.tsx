@@ -3,13 +3,10 @@
 import { useState, useRef, useEffect } from 'react';
 import MutedMono from '@/components/ui/MutedMono';
 import Linkify from '@/components/ui/Linkify';
+import MessageComposer from './MessageComposer';
+import ImageLightbox from './ImageLightbox';
 import { ReactionPicker, ReactionChips } from './Reactions';
 import type { GroupedReaction } from '@/lib/reactions';
-import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
-
-function fmtElapsed(s: number) {
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
 
 interface Message {
   id: string;
@@ -33,11 +30,6 @@ interface Props {
   onReact: (id: string, emoji: string) => void;
   today: string;
 }
-
-type UploadState =
-  | { status: 'idle' }
-  | { status: 'uploading'; previewUrl: string }
-  | { status: 'ready'; previewUrl: string; url: string; type: string };
 
 function dateLabel(iso: string, today: string) {
   if (iso === today) return 'Today';
@@ -67,59 +59,27 @@ function showTimeFor(items: Message[], i: number): boolean {
 }
 
 export default function MessageThread({ coachName, coachInitials, coachAvatarUrl, messages, onSend, onDelete, onReact, today }: Props) {
-  const [draft, setDraft] = useState('');
-  const [upload, setUpload] = useState<UploadState>({ status: 'idle' });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const voice = useVoiceRecorder(text => setDraft(prev => prev ? prev + ' ' + text : text));
+  const didInit = useRef(false);
 
+  // First paint jumps to the newest message; after that only follow along if
+  // the reader is already at the bottom, so a poll can't yank them out of
+  // history they're scrolled back into.
   useEffect(() => {
-    if (endRef.current) endRef.current.scrollTop = endRef.current.scrollHeight;
+    const el = endRef.current;
+    if (!el) return;
+    if (!didInit.current) {
+      didInit.current = true;
+      el.scrollTop = el.scrollHeight;
+      return;
+    }
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 150) {
+      el.scrollTop = el.scrollHeight;
+    }
   }, [messages.length]);
 
-  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = '';
-
-    const previewUrl = URL.createObjectURL(file);
-    setUpload({ status: 'uploading', previewUrl });
-
-    try {
-      const form = new FormData();
-      form.append('file', file);
-      const res = await fetch('/api/messages/upload', {
-        method: 'POST',
-        credentials: 'include',
-        body: form,
-      });
-      if (!res.ok) throw new Error('Upload failed');
-      const { url } = await res.json();
-      setUpload({ status: 'ready', previewUrl, url, type: file.type });
-    } catch {
-      URL.revokeObjectURL(previewUrl);
-      setUpload({ status: 'idle' });
-    }
-  };
-
-  const clearAttachment = () => {
-    if (upload.status !== 'idle') URL.revokeObjectURL(upload.previewUrl);
-    setUpload({ status: 'idle' });
-  };
-
-  const send = async () => {
-    const text = draft.trim();
-    const hasAttachment = upload.status === 'ready';
-    if (!text && !hasAttachment) return;
-
-    const attachment = hasAttachment ? { url: upload.url, type: upload.type } : undefined;
-    setDraft('');
-    clearAttachment();
-    await onSend(text, attachment);
-  };
-
-  const canSend = (draft.trim() || upload.status === 'ready') && upload.status !== 'uploading';
   const groups = groupByDate(messages);
 
   return (
@@ -154,127 +114,32 @@ export default function MessageThread({ coachName, coachInitials, coachAvatarUrl
                 onSelect={id => setSelectedId(prev => prev === id ? null : id)}
                 onDelete={onDelete && m.from === 'client' ? onDelete : undefined}
                 onReact={(id, emoji) => { setSelectedId(null); onReact(id, emoji); }}
+                onOpenImage={setLightboxSrc}
               />
             ))}
           </div>
         ))}
       </div>
 
-      <div className="px-4 pt-2 pb-5 border-t border-border">
-        {upload.status !== 'idle' && (
-          <div className="mb-2">
-            <div className="relative inline-block">
-              {upload.status === 'uploading' ? (
-                <div className="w-16 h-16 rounded-[10px] bg-surface border border-border flex items-center justify-center">
-                  <svg className="animate-spin text-text-muted" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="28" strokeDashoffset="10" />
-                  </svg>
-                </div>
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={upload.previewUrl} alt="" className="w-16 h-16 rounded-[10px] object-cover" />
-              )}
-              {upload.status === 'ready' && (
-                <button
-                  onClick={clearAttachment}
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-text text-bg flex items-center justify-center"
-                >
-                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                    <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+      <MessageComposer
+        placeholder={`Write to ${coachName.split(' ')[0]}…`}
+        onSend={onSend}
+        paddingBottom="pb-5"
+      />
 
-        {voice.error && (
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <p className="text-[12px] text-red-500 flex-1">{voice.error}</p>
-            {voice.canOpenSettings && (
-              <button onClick={voice.openSettings} className="text-[12px] text-accent underline flex-shrink-0">
-                Open Settings
-              </button>
-            )}
-          </div>
-        )}
-        <div className="flex items-end gap-2">
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={upload.status !== 'idle'}
-            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-text-muted hover:text-text transition-colors disabled:opacity-40"
-          >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" strokeLinejoin="round">
-              <path d="M6.5 3H11.5L13 5H16C16.55 5 17 5.45 17 6V14C17 14.55 16.55 15 16 15H2C1.45 15 1 14.55 1 14V6C1 5.45 1.45 5 2 5H5L6.5 3Z" stroke="currentColor" strokeWidth="1.2"/>
-              <circle cx="9" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.2"/>
-            </svg>
-          </button>
-
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={onFileChange}
-          />
-
-          <button
-            type="button"
-            onClick={voice.toggle}
-            disabled={upload.status !== 'idle'}
-            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-40"
-            aria-label={voice.status === 'recording' ? 'Stop recording' : 'Record voice message'}
-          >
-            {voice.status === 'transcribing' ? (
-              <svg className="animate-spin text-text-muted" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="28" strokeDashoffset="10" />
-              </svg>
-            ) : voice.status === 'recording' ? (
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-[11px] font-mono text-red-500 leading-none">{fmtElapsed(voice.elapsed)}</span>
-              </span>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-text-muted hover:text-text transition-colors">
-                <rect x="5" y="1" width="6" height="9" rx="3" stroke="currentColor" strokeWidth="1.3"/>
-                <path d="M2 8c0 3.314 2.686 5 6 5s6-1.686 6-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                <line x1="8" y1="13" x2="8" y2="15" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-              </svg>
-            )}
-          </button>
-
-          <textarea
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-            placeholder={`Write to ${coachName.split(' ')[0]}…`}
-            rows={1}
-            className="flex-1 rounded-[20px] py-2.5 px-4 text-[14px] min-h-[40px] max-h-[120px]"
-          />
-
-          <button
-            onClick={send}
-            disabled={!canSend}
-            className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${canSend ? 'bg-accent text-bg' : 'bg-border text-text-muted'}`}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M3 7H11M11 7L7 3M11 7L7 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </button>
-        </div>
-      </div>
+      {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
     </div>
   );
 }
 
-function Bubble({ msg, showTime, isSelected, onSelect, onDelete, onReact }: {
+function Bubble({ msg, showTime, isSelected, onSelect, onDelete, onReact, onOpenImage }: {
   msg: Message;
   showTime: boolean;
   isSelected: boolean;
   onSelect: (id: string) => void;
   onDelete?: (id: string) => Promise<void>;
   onReact: (id: string, emoji: string) => void;
+  onOpenImage: (src: string) => void;
 }) {
   const isClient = msg.from === 'client';
   const align = isClient ? 'right' : 'left';
@@ -295,7 +160,12 @@ function Bubble({ msg, showTime, isSelected, onSelect, onDelete, onReact }: {
         <div className={`overflow-hidden text-[14px] leading-[1.5] font-light ${colorClass} ${roundedClass}`}>
           {msg.attachmentUrl && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={msg.attachmentUrl} alt="" className="block w-full max-w-[280px] object-cover" />
+            <img
+              src={msg.attachmentUrl}
+              alt=""
+              onClick={e => { e.stopPropagation(); onOpenImage(msg.attachmentUrl!); }}
+              className="block w-full max-w-[280px] object-cover cursor-zoom-in"
+            />
           )}
           {msg.text && (
             <div className={`py-2 px-3.5 whitespace-pre-wrap ${msg.attachmentUrl ? 'border-t border-black/10' : ''}`}>

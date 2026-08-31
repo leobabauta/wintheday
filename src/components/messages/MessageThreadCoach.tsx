@@ -4,13 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import MutedMono from '@/components/ui/MutedMono';
 import Avatar from '@/components/ui/Avatar';
 import Linkify from '@/components/ui/Linkify';
+import MessageComposer from './MessageComposer';
+import ImageLightbox from './ImageLightbox';
 import { ReactionPicker, ReactionChips } from './Reactions';
 import { groupReactions, toggleReaction, type GroupedReaction, type RawReaction } from '@/lib/reactions';
-import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
-
-function fmtElapsed(s: number) {
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
 
 interface DbRow {
   id: number;
@@ -30,6 +27,8 @@ interface Props {
   clientUserId: number;
   clientName: string;
   clientAvatarUrl?: string | null;
+  /** Message the coach arrived here to read (deep link from the inbox). */
+  focusMessageId?: string;
 }
 
 interface UiMessage {
@@ -42,11 +41,6 @@ interface UiMessage {
   attachmentUrl?: string | null;
   reactions: GroupedReaction[];
 }
-
-type UploadState =
-  | { status: 'idle' }
-  | { status: 'uploading'; previewUrl: string }
-  | { status: 'ready'; previewUrl: string; url: string; type: string };
 
 function toParts(iso: string) {
   const d = new Date(iso);
@@ -69,12 +63,14 @@ function dateLabel(iso: string, today: string) {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).toUpperCase();
 }
 
-export default function MessageThreadCoach({ initial, coachUserId, clientUserId, clientName, clientAvatarUrl }: Props) {
+export default function MessageThreadCoach({ initial, coachUserId, clientUserId, clientName, clientAvatarUrl, focusMessageId }: Props) {
   const [rows, setRows] = useState<DbRow[]>([...initial].reverse());
-  const [draft, setDraft] = useState('');
-  const [upload, setUpload] = useState<UploadState>({ status: 'idle' });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(focusMessageId ?? null);
   const endRef = useRef<HTMLDivElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const didInit = useRef(false);
+  const didFocus = useRef(false);
   const today = todayLocal();
 
   useEffect(() => {
@@ -107,9 +103,33 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
     };
   }, [clientUserId]);
 
+  // Deep link from the inbox: bring the exact message into view (which also
+  // scrolls the page down to the thread) and flash it, once.
   useEffect(() => {
-    if (endRef.current) endRef.current.scrollTop = endRef.current.scrollHeight;
-  }, [rows.length]);
+    if (!focusMessageId || didFocus.current) return;
+    const el = document.getElementById(`msg-${focusMessageId}`);
+    if (!el) return;
+    didFocus.current = true;
+    el.scrollIntoView({ block: 'center' });
+    const t = setTimeout(() => setHighlightId(null), 2400);
+    return () => clearTimeout(t);
+  }, [focusMessageId, rows.length]);
+
+  // First paint jumps to the newest message unless we're deep-linking to an
+  // older one; after that only follow along if already at the bottom.
+  useEffect(() => {
+    const el = endRef.current;
+    if (!el) return;
+    if (!didInit.current) {
+      didInit.current = true;
+      if (focusMessageId) return;
+      el.scrollTop = el.scrollHeight;
+      return;
+    }
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 150) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [rows.length, focusMessageId]);
 
   const messages: UiMessage[] = rows.map(r => {
     const { date, time } = toParts(r.created_at);
@@ -142,45 +162,7 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
       .catch(() => setRows(apply));
   };
 
-  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = '';
-
-    const previewUrl = URL.createObjectURL(file);
-    setUpload({ status: 'uploading', previewUrl });
-
-    try {
-      const form = new FormData();
-      form.append('file', file);
-      const res = await fetch('/api/messages/upload', {
-        method: 'POST',
-        credentials: 'include',
-        body: form,
-      });
-      if (!res.ok) throw new Error('Upload failed');
-      const { url } = await res.json();
-      setUpload({ status: 'ready', previewUrl, url, type: file.type });
-    } catch {
-      URL.revokeObjectURL(previewUrl);
-      setUpload({ status: 'idle' });
-    }
-  };
-
-  const clearAttachment = () => {
-    if (upload.status !== 'idle') URL.revokeObjectURL(upload.previewUrl);
-    setUpload({ status: 'idle' });
-  };
-
-  const send = async () => {
-    const text = draft.trim();
-    const hasAttachment = upload.status === 'ready';
-    if (!text && !hasAttachment) return;
-
-    const attachment = hasAttachment ? { url: upload.url, type: upload.type } : undefined;
-    setDraft('');
-    clearAttachment();
-
+  const onSend = async (text: string, attachment?: { url: string; type: string }) => {
     const res = await fetch('/api/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -208,10 +190,6 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
       }]);
     }
   };
-
-  const voice = useVoiceRecorder(text => setDraft(prev => prev ? prev + ' ' + text : text));
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const canSend = (draft.trim() || upload.status === 'ready') && upload.status !== 'uploading';
 
   const onDelete = async (id: string) => {
     const res = await fetch(`/api/messages/${id}`, { method: 'DELETE', credentials: 'include' });
@@ -254,7 +232,8 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
               return (
                 <div
                   key={m.id}
-                  className={`flex ${isCoach ? 'justify-end' : 'justify-start'} ${showTime ? 'mb-3' : 'mb-1.5'}`}
+                  id={`msg-${m.id}`}
+                  className={`flex ${isCoach ? 'justify-end' : 'justify-start'} ${showTime ? 'mb-3' : 'mb-1.5'} scroll-mt-6`}
                   onClick={e => { e.stopPropagation(); setSelectedId(prev => prev === m.id ? null : m.id); }}
                 >
                   <div className="max-w-[80%]">
@@ -266,10 +245,15 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
                         />
                       </div>
                     )}
-                    <div className={`overflow-hidden text-[14px] leading-[1.5] font-light ${colorClass} ${roundedClass}`}>
+                    <div className={`overflow-hidden text-[14px] leading-[1.5] font-light ${colorClass} ${roundedClass} ${highlightId === m.id ? 'animate-msg-focus' : ''}`}>
                       {m.attachmentUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={m.attachmentUrl} alt="" className="block w-full max-w-[280px] object-cover" />
+                        <img
+                          src={m.attachmentUrl}
+                          alt=""
+                          onClick={e => { e.stopPropagation(); setLightboxSrc(m.attachmentUrl!); }}
+                          className="block w-full max-w-[280px] object-cover cursor-zoom-in"
+                        />
                       )}
                       {m.text && (
                         <div className={`py-2 px-3.5 whitespace-pre-wrap ${m.attachmentUrl ? 'border-t border-black/10' : ''}`}>
@@ -308,110 +292,12 @@ export default function MessageThreadCoach({ initial, coachUserId, clientUserId,
         ))}
       </div>
 
-      <div className="px-4 pt-2 pb-4 border-t border-border">
-        {upload.status !== 'idle' && (
-          <div className="mb-2">
-            <div className="relative inline-block">
-              {upload.status === 'uploading' ? (
-                <div className="w-14 h-14 rounded-[8px] bg-surface border border-border flex items-center justify-center">
-                  <svg className="animate-spin text-text-muted" width="14" height="14" viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="28" strokeDashoffset="10" />
-                  </svg>
-                </div>
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={upload.previewUrl} alt="" className="w-14 h-14 rounded-[8px] object-cover" />
-              )}
-              {upload.status === 'ready' && (
-                <button
-                  onClick={clearAttachment}
-                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-text text-bg flex items-center justify-center"
-                >
-                  <svg width="7" height="7" viewBox="0 0 8 8" fill="none">
-                    <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+      <MessageComposer
+        placeholder={`Write to ${clientName.split(' ')[0]}…`}
+        onSend={onSend}
+      />
 
-        {voice.error && (
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <p className="text-[12px] text-red-500 flex-1">{voice.error}</p>
-            {voice.canOpenSettings && (
-              <button onClick={voice.openSettings} className="text-[12px] text-accent underline flex-shrink-0">
-                Open Settings
-              </button>
-            )}
-          </div>
-        )}
-        <div className="flex items-end gap-2">
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={upload.status !== 'idle'}
-            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-text-muted hover:text-text transition-colors disabled:opacity-40"
-          >
-            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" strokeLinejoin="round">
-              <path d="M6.5 3H11.5L13 5H16C16.55 5 17 5.45 17 6V14C17 14.55 16.55 15 16 15H2C1.45 15 1 14.55 1 14V6C1 5.45 1.45 5 2 5H5L6.5 3Z" stroke="currentColor" strokeWidth="1.2"/>
-              <circle cx="9" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.2"/>
-            </svg>
-          </button>
-
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={onFileChange}
-          />
-
-          <button
-            type="button"
-            onClick={voice.toggle}
-            disabled={upload.status !== 'idle'}
-            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-40"
-            aria-label={voice.status === 'recording' ? 'Stop recording' : 'Record voice message'}
-          >
-            {voice.status === 'transcribing' ? (
-              <svg className="animate-spin text-text-muted" width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="28" strokeDashoffset="10" />
-              </svg>
-            ) : voice.status === 'recording' ? (
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-[11px] font-mono text-red-500 leading-none">{fmtElapsed(voice.elapsed)}</span>
-              </span>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-text-muted hover:text-text transition-colors">
-                <rect x="5" y="1" width="6" height="9" rx="3" stroke="currentColor" strokeWidth="1.3"/>
-                <path d="M2 8c0 3.314 2.686 5 6 5s6-1.686 6-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                <line x1="8" y1="13" x2="8" y2="15" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-              </svg>
-            )}
-          </button>
-
-          <textarea
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-            placeholder={`Write to ${clientName.split(' ')[0]}…`}
-            rows={1}
-            className="flex-1 rounded-[20px] py-2.5 px-4 text-[14px] min-h-[40px] max-h-[120px]"
-          />
-
-          <button
-            onClick={send}
-            disabled={!canSend}
-            className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${canSend ? 'bg-accent text-bg' : 'bg-border text-text-muted'}`}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M3 7H11M11 7L7 3M11 7L7 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </button>
-        </div>
-      </div>
+      {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
     </div>
   );
 }
