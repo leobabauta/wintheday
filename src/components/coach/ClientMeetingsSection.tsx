@@ -111,7 +111,7 @@ export default function ClientMeetingsSection({ clientId }: { clientId: number }
                       onChange={(e) => setNote(e.target.value)}
                       placeholder="Optional note to the client…"
                       rows={3}
-                      className="w-full text-[13px] p-2 rounded-[8px] border border-border bg-bg"
+                      className="w-full text-[16px] p-2 rounded-[8px] border border-border bg-bg"
                     />
                     <div className="flex gap-2 justify-end">
                       <Button variant="text" size="sm" onClick={() => { setOpenId(null); setNote(''); }}>

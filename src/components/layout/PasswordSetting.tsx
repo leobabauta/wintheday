@@ -40,7 +40,7 @@ export default function PasswordSetting() {
   };
 
   const inputCls =
-    'w-full bg-transparent border-0 border-b border-border focus:border-[var(--color-accent)] py-1 text-[15px] text-text outline-none transition-colors';
+    'w-full bg-transparent border-0 border-b border-border focus:border-[var(--color-accent)] py-1 text-[16px] text-text outline-none transition-colors';
 
   if (!open) {
     return (

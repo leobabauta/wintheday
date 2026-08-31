@@ -13,7 +13,7 @@ export default function Input({ label, className = '', ...props }: InputProps) {
         </label>
       )}
       <input
-        className={`bg-transparent border-0 border-b border-border focus:border-[var(--color-accent)] py-1 text-[15px] text-text outline-none transition-colors ${className}`}
+        className={`bg-transparent border-0 border-b border-border focus:border-[var(--color-accent)] py-1 text-[16px] text-text outline-none transition-colors ${className}`}
         {...props}
       />
     </div>

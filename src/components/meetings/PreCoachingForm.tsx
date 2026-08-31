@@ -107,7 +107,7 @@ export default function PreCoachingForm({ meetingId, meetingStartsAt, coachName 
               onChange={e => setResponses({ ...responses, [p.key]: e.target.value })}
               rows={3}
               placeholder="…"
-              className="w-full px-0 py-[10px] border-0 border-t border-b border-border bg-transparent text-text font-display italic font-light text-[15px] leading-[1.55] resize-y outline-none focus:border-text-secondary"
+              className="w-full px-0 py-[10px] border-0 border-t border-b border-border bg-transparent text-text font-display italic font-light text-[16px] leading-[1.55] resize-y outline-none focus:border-text-secondary"
             />
           </div>
         ))}

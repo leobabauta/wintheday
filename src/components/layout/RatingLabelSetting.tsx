@@ -50,7 +50,7 @@ export default function RatingLabelSetting({ initialLabel }: { initialLabel: str
         value={label}
         onChange={e => setLabel(e.target.value)}
         placeholder="inner peace, confidence, joy…"
-        className="w-full bg-transparent border-0 border-b border-border focus:border-[var(--color-accent)] py-1 text-[15px] text-text outline-none transition-colors"
+        className="w-full bg-transparent border-0 border-b border-border focus:border-[var(--color-accent)] py-1 text-[16px] text-text outline-none transition-colors"
       />
       <p className="text-[12px] text-text-muted mt-2 italic reflection-text">
         Preview: &ldquo;How much did you experience <strong className="font-display not-italic">{label}</strong> today?&rdquo;

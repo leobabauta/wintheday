@@ -115,7 +115,7 @@ export default function AcknowledgeButton({
         value={draft}
         onChange={e => setDraft(e.target.value)}
         rows={3}
-        className="w-full text-[14px] leading-[1.5] font-light"
+        className="w-full text-[16px] leading-[1.5] font-light"
       />
       <div className="flex items-center gap-3 mt-3 flex-wrap">
         <Button size="sm" onClick={send} disabled={sending || !draft.trim()}>

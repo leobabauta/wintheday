@@ -217,7 +217,7 @@ export default function CommitmentEditor({ initialCommitments, userId }: Props) 
                 value={form.title}
                 onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="e.g., Morning meditation (10 min)"
-                className="w-full bg-transparent border-0 border-b border-border focus:border-[var(--color-accent)] py-1 text-[15px] text-text outline-none transition-colors"
+                className="w-full bg-transparent border-0 border-b border-border focus:border-[var(--color-accent)] py-1 text-[16px] text-text outline-none transition-colors"
               />
             </div>
 
