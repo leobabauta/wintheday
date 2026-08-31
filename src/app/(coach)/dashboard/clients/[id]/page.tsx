@@ -12,6 +12,7 @@ import MessageThreadCoach from '@/components/messages/MessageThreadCoach';
 import ClientInfoEditor from '@/components/coach/ClientInfoEditor';
 import ClientMeetingsSection from '@/components/coach/ClientMeetingsSection';
 import PreCoachingLogView from '@/components/coach/PreCoachingLogView';
+import ClientDetailTabs from '@/components/coach/ClientDetailTabs';
 
 const PROMPTS = [
   { key: 'well', label: 'What went well today?' },
@@ -62,11 +63,17 @@ function displayAnswers(content: string): { label: string | null; text: string }
     .map(p => ({ label: p.label, text: answers[p.key] }));
 }
 
-export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClientDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ message?: string; tab?: string }>;
+}) {
   const session = await getSession();
   if (!session || session.role !== 'coach') redirect('/login');
 
-  const { id } = await params;
+  const [{ id }, { message: focusMessageId, tab }] = await Promise.all([params, searchParams]);
   const clientId = parseInt(id);
 
   const clientInfo = await queryOne<{
@@ -81,55 +88,51 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   if (!clientInfo) notFound();
 
-  // Mark unopened daily-completion rows as seen — landing on the client
-  // page is the closest thing to "I read your win-the-day notification."
-  await execute(
-    `UPDATE daily_completions SET coach_opened_at = NOW()
-     WHERE user_id = $1 AND coach_opened_at IS NULL`,
-    [clientId]
-  );
-
-  const clientSettings = await queryOne<{ rating_label: string | null }>(
-    'SELECT rating_label FROM user_settings WHERE user_id = $1',
-    [clientId]
-  );
-
-  const user = await queryOne<{ id: number; name: string; email: string; avatar_url: string | null; created_at: string }>(
-    'SELECT * FROM users WHERE id = $1',
-    [clientId]
-  );
-
-  const commitments = await query<{
-    id: number; title: string; type: string; days_of_week: string; active: number;
-  }>(
-    'SELECT * FROM commitments WHERE user_id = $1 AND active = 1 ORDER BY type, title',
-    [clientId]
-  );
-
-  const winHistory = await getClientWinHistory(clientId, 14);
-
-  const journalEntries = await query<{ id: number; date: string; content: string; updated_at: string }>(
-    'SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 2',
-    [clientId]
-  );
-
-  const messages = await query<{
-    id: number; sender_id: number; recipient_id: number; sender_name: string;
-    type: string; content: string; parent_id: number | null; read: number; created_at: string;
-    reactions: { emoji: string; userId: number }[];
-  }>(
-    `SELECT m.*, u.name as sender_name, ${REACTIONS_SELECT} FROM messages m
-     JOIN users u ON u.id = m.sender_id
-     WHERE (m.sender_id = $1 OR m.recipient_id = $1)
-       AND (m.sender_id = $2 OR m.recipient_id = $2)
-     ORDER BY m.created_at DESC LIMIT 20`,
-    [clientId, session.userId]
-  );
-
-  await execute(
-    'UPDATE messages SET read = 1 WHERE recipient_id = $1 AND sender_id = $2 AND read = 0',
-    [session.userId, clientId]
-  );
+  // Everything below is independent, so it goes out in one round of queries
+  // rather than nine sequential ones — this page is the landing spot for the
+  // inbox's "Open" and used to spend most of its time waiting on the DB.
+  const [clientSettings, user, commitments, winHistory, journalEntries, messages] = await Promise.all([
+    queryOne<{ rating_label: string | null }>(
+      'SELECT rating_label FROM user_settings WHERE user_id = $1',
+      [clientId]
+    ),
+    queryOne<{ id: number; name: string; email: string; avatar_url: string | null; created_at: string }>(
+      'SELECT * FROM users WHERE id = $1',
+      [clientId]
+    ),
+    query<{ id: number; title: string; type: string; days_of_week: string; active: number }>(
+      'SELECT * FROM commitments WHERE user_id = $1 AND active = 1 ORDER BY type, title',
+      [clientId]
+    ),
+    getClientWinHistory(clientId, 14),
+    query<{ id: number; date: string; content: string; updated_at: string }>(
+      'SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 2',
+      [clientId]
+    ),
+    query<{
+      id: number; sender_id: number; recipient_id: number; sender_name: string;
+      type: string; content: string; parent_id: number | null; read: number; created_at: string;
+      reactions: { emoji: string; userId: number }[];
+    }>(
+      `SELECT m.*, u.name as sender_name, ${REACTIONS_SELECT} FROM messages m
+       JOIN users u ON u.id = m.sender_id
+       WHERE (m.sender_id = $1 OR m.recipient_id = $1)
+         AND (m.sender_id = $2 OR m.recipient_id = $2)
+       ORDER BY m.created_at DESC LIMIT 20`,
+      [clientId, session.userId]
+    ),
+    // Mark unopened daily-completion rows as seen — landing on the client
+    // page is the closest thing to "I read your win-the-day notification."
+    execute(
+      `UPDATE daily_completions SET coach_opened_at = NOW()
+       WHERE user_id = $1 AND coach_opened_at IS NULL`,
+      [clientId]
+    ),
+    execute(
+      'UPDATE messages SET read = 1 WHERE recipient_id = $1 AND sender_id = $2 AND read = 0',
+      [session.userId, clientId]
+    ),
+  ]);
 
   const DAYS = [
     { key: 'mon', label: 'M' }, { key: 'tue', label: 'T' }, { key: 'wed', label: 'W' },
@@ -141,13 +144,26 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-5">
         <Link href="/dashboard" className="text-[13px] text-text-secondary hover:text-text block mb-3.5">← Clients</Link>
-        <h1 className="font-display text-[30px]">{user!.name}</h1>
-        <p className="text-[13px] text-text-muted mt-1">{user!.email}</p>
+        <h1 className="font-display text-[26px] md:text-[30px]">{user!.name}</h1>
+        <p className="text-[13px] text-text-muted mt-1 break-all">{user!.email}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <ClientDetailTabs
+        initialTab={focusMessageId || tab === 'messages' ? 'messages' : 'main'}
+        messages={
+          <MessageThreadCoach
+            initial={messages}
+            coachUserId={session.userId}
+            clientUserId={clientId}
+            clientName={user!.name}
+            clientAvatarUrl={user!.avatar_url}
+            focusMessageId={focusMessageId}
+          />
+        }
+        main={
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ClientInfoEditor
           clientId={clientId}
           data={{
@@ -305,17 +321,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           )}
         </Card>
 
-        <div className="md:col-span-2">
-          <MessageThreadCoach
-            initial={messages}
-            coachUserId={session.userId}
-            clientUserId={clientId}
-            clientName={user!.name}
-            clientAvatarUrl={user!.avatar_url}
-          />
         </div>
-
-      </div>
+        }
+      />
     </div>
   );
 }

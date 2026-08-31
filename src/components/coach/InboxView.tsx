@@ -5,28 +5,17 @@ import { useState } from 'react';
 import Button from '@/components/ui/Button';
 import MutedMono from '@/components/ui/MutedMono';
 import Avatar from '@/components/ui/Avatar';
-
-interface InboxItem {
-  id: string;
-  messageId?: number;
-  meetingId?: number;
-  journalId?: number;
-  completionUserId?: number;
-  completionDate?: string;
-  clientId: string;
-  clientName: string;
-  clientAvatarUrl?: string | null;
-  kind: 'reflection' | 'message' | 'quiet' | 'pre_coaching' | 'completion';
-  at: string;
-  preview: string;
-  meta: string;
-}
+import type { InboxItem, InboxPayload } from '@/lib/inbox';
 
 interface Props {
   items: InboxItem[];
-  onMarkAttended: (item: InboxItem) => Promise<void>;
-  onReply: (item: InboxItem, content: string) => Promise<void>;
-  onHeart: (item: InboxItem) => Promise<void>;
+  avatars: InboxPayload['avatars'];
+  /** 'archive' swaps the per-row actions for a single "Return to inbox". */
+  mode?: 'inbox' | 'archive';
+  onMarkAttended?: (item: InboxItem) => Promise<void>;
+  onReply?: (item: InboxItem, content: string) => Promise<void>;
+  onHeart?: (item: InboxItem) => Promise<void>;
+  onRestore?: (item: InboxItem) => Promise<void>;
 }
 
 function HeartIcon({ filled = false }: { filled?: boolean }) {
@@ -45,21 +34,40 @@ function kindLabel(kind: InboxItem['kind']) {
   return 'Quiet';
 }
 
-export default function InboxView({ items, onMarkAttended, onReply, onHeart }: Props) {
+export function hrefFor(it: InboxItem) {
+  if (it.kind === 'pre_coaching' && it.meetingId) {
+    return `/dashboard/clients/${it.clientId}/sessions/${it.meetingId}`;
+  }
+  if (it.kind === 'reflection') return `/dashboard/clients/${it.clientId}/journal`;
+  // Land on the message itself rather than the top of a long client page
+  // the coach then has to scroll through.
+  if (it.kind === 'message' && it.messageId) {
+    return `/dashboard/clients/${it.clientId}?tab=messages&message=${it.messageId}`;
+  }
+  return `/dashboard/clients/${it.clientId}`;
+}
+
+export default function InboxView({ items, avatars, mode = 'inbox', onMarkAttended, onReply, onHeart, onRestore }: Props) {
   const [locallyDone, setLocallyDone] = useState<Set<string>>(new Set());
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const visible = items.filter(i => !locallyDone.has(i.id));
+  const isArchive = mode === 'archive';
 
   const mark = async (it: InboxItem) => {
     setLocallyDone(prev => new Set([...prev, it.id]));
-    await onMarkAttended(it);
+    await onMarkAttended?.(it);
   };
 
   const heart = async (it: InboxItem) => {
     setLocallyDone(prev => new Set([...prev, it.id]));
-    await onHeart(it);
+    await onHeart?.(it);
+  };
+
+  const restore = async (it: InboxItem) => {
+    setLocallyDone(prev => new Set([...prev, it.id]));
+    await onRestore?.(it);
   };
 
   const send = async (item: InboxItem) => {
@@ -67,7 +75,7 @@ export default function InboxView({ items, onMarkAttended, onReply, onHeart }: P
     if (!text) return;
     setSending(true);
     try {
-      await onReply(item, text);
+      await onReply?.(item, text);
       setLocallyDone(prev => new Set([...prev, item.id]));
       setReplyingTo(null);
       setDraft('');
@@ -87,33 +95,54 @@ export default function InboxView({ items, onMarkAttended, onReply, onHeart }: P
   };
 
   return (
-    <div className="max-w-[860px] mx-auto px-12 py-10 pb-20">
-      <div className="mb-7">
-        <MutedMono>Inbox</MutedMono>
-        <h1 className="font-display text-[32px] mt-1 leading-[1.15]">
-          {visible.length} {visible.length === 1 ? 'thing' : 'things'} to attend to
-        </h1>
+    <section>
+      <div className="flex items-baseline justify-between gap-4 mb-4">
+        <div className="min-w-0">
+          <MutedMono>{isArchive ? 'Archive' : 'Inbox'}</MutedMono>
+          <h2 className="font-display text-[26px] md:text-[30px] mt-1 leading-[1.15]">
+            {isArchive
+              ? `${visible.length} attended to`
+              : `${visible.length} ${visible.length === 1 ? 'thing' : 'things'} to attend to`}
+          </h2>
+        </div>
+        {isArchive ? (
+          <Link href="/dashboard" className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted hover:text-text whitespace-nowrap">
+            ← Inbox
+          </Link>
+        ) : visible.length > 0 && (
+          <Link href="/dashboard/archive" className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted hover:text-text whitespace-nowrap">
+            Archive →
+          </Link>
+        )}
       </div>
 
       {visible.length === 0 ? (
-        <div className="py-12 px-6 text-center border border-border rounded-[14px] bg-surface">
-          <p className="reflection-text text-[20px] text-accent mb-1.5">All clear.</p>
-          <MutedMono>You&apos;ve seen everyone today.</MutedMono>
+        <div className="py-10 px-6 text-center border border-border rounded-[14px] bg-surface">
+          {isArchive ? (
+            <>
+              <p className="reflection-text text-[20px] text-accent mb-1.5">Nothing archived yet.</p>
+              <MutedMono>Items you attend to land here.</MutedMono>
+            </>
+          ) : (
+            <>
+              <p className="reflection-text text-[20px] text-accent mb-1.5">All clear.</p>
+              <MutedMono>You&apos;ve seen everyone today.</MutedMono>
+              <div className="mt-4">
+                <Link href="/dashboard/archive">
+                  <Button size="sm" variant="outline">Open archive</Button>
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       ) : visible.map(it => {
         const isReplying = replyingTo === it.id;
-        const canReply = it.kind === 'message';
-        const primaryHref =
-          it.kind === 'pre_coaching' && it.meetingId
-            ? `/dashboard/clients/${it.clientId}/sessions/${it.meetingId}`
-            : it.kind === 'reflection'
-              ? `/dashboard/clients/${it.clientId}/journal`
-              : `/dashboard/clients/${it.clientId}`;
+        const canReply = !isArchive && it.kind === 'message';
         return (
-          <div key={it.id} className="grid grid-cols-[44px_1fr_auto] gap-4 py-6 border-b border-border items-start">
-            <Avatar name={it.clientName} avatarUrl={it.clientAvatarUrl} size={44} textSize={12} />
-            <div>
-              <div className="flex items-baseline gap-2.5 mb-1">
+          <div key={it.id} className="grid grid-cols-[40px_1fr] md:grid-cols-[44px_1fr_auto] gap-3 md:gap-4 py-5 md:py-6 border-b border-border items-start">
+            <Avatar name={it.clientName} avatarUrl={avatars[it.clientId]} size={40} textSize={12} />
+            <div className="min-w-0">
+              <div className="flex items-baseline gap-2.5 mb-1 flex-wrap">
                 <Link href={`/dashboard/clients/${it.clientId}`} className="text-[15px] text-text">
                   {it.clientName}
                 </Link>
@@ -133,13 +162,13 @@ export default function InboxView({ items, onMarkAttended, onReply, onHeart }: P
                     onChange={(e) => setDraft(e.target.value)}
                     placeholder={`Reply to ${it.clientName.split(' ')[0]}…`}
                     rows={3}
-                    className="w-full text-[14px]"
+                    className="w-full text-[16px]"
                     onKeyDown={(e) => {
                       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') send(it);
                       if (e.key === 'Escape') toggleReply(it.id);
                     }}
                   />
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <Button size="sm" onClick={() => send(it)} disabled={sending || !draft.trim()}>
                       {sending ? 'Sending…' : 'Send reply'}
                     </Button>
@@ -150,17 +179,20 @@ export default function InboxView({ items, onMarkAttended, onReply, onHeart }: P
                     >
                       Cancel
                     </button>
-                    <MutedMono className="ml-auto">⌘↵ to send</MutedMono>
+                    <MutedMono className="ml-auto hidden md:block">⌘↵ to send</MutedMono>
                   </div>
                 </div>
               )}
             </div>
-            <div className="flex flex-col gap-1.5 items-end">
+
+            {/* On a phone the actions sit under the text, in the content
+                column; on a wide screen they get their own right-hand rail. */}
+            <div className="col-start-2 md:col-start-3 flex flex-row md:flex-col flex-wrap items-center md:items-end gap-2 md:gap-1.5 mt-3 md:mt-0">
               {canReply && !isReplying && (
                 <Button size="sm" onClick={() => toggleReply(it.id)}>Reply</Button>
               )}
-              <Link href={primaryHref}>
-                <Button size="sm" variant={it.kind === 'pre_coaching' ? 'filled' : 'outline'}>
+              <Link href={hrefFor(it)}>
+                <Button size="sm" variant={!isArchive && it.kind === 'pre_coaching' ? 'filled' : 'outline'}>
                   {it.kind === 'pre_coaching'
                     ? 'Read form'
                     : it.kind === 'reflection'
@@ -168,25 +200,36 @@ export default function InboxView({ items, onMarkAttended, onReply, onHeart }: P
                       : 'Open'}
                 </Button>
               </Link>
-              {(it.kind === 'reflection' || it.kind === 'completion') && (
+              {isArchive ? (
                 <button
-                  type="button"
-                  onClick={() => heart(it)}
-                  title={it.kind === 'reflection' ? 'Heart this reflection' : 'Congratulate on winning the day'}
-                  className="text-accent hover:text-accent-dark transition-colors p-1 -mr-1"
+                  className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted hover:text-text"
+                  onClick={() => restore(it)}
                 >
-                  <HeartIcon />
+                  Return to inbox
                 </button>
-              )}
-              {(it.kind === 'message' || it.kind === 'reflection' || it.kind === 'completion') && (
-                <button className="text-[11px] text-text-muted hover:text-text" onClick={() => mark(it)}>
-                  Mark attended
-                </button>
+              ) : (
+                <>
+                  {(it.kind === 'reflection' || it.kind === 'completion') && (
+                    <button
+                      type="button"
+                      onClick={() => heart(it)}
+                      title={it.kind === 'reflection' ? 'Heart this reflection' : 'Congratulate on winning the day'}
+                      className="text-accent hover:text-accent-dark transition-colors p-1 md:-mr-1"
+                    >
+                      <HeartIcon />
+                    </button>
+                  )}
+                  {(it.kind === 'message' || it.kind === 'reflection' || it.kind === 'completion') && (
+                    <button className="text-[11px] text-text-muted hover:text-text" onClick={() => mark(it)}>
+                      Mark attended
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
         );
       })}
-    </div>
+    </section>
   );
 }

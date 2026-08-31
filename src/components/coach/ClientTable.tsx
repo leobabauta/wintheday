@@ -35,7 +35,11 @@ const STATUS_COLOR = {
   'starting-up': 'text-text-secondary',
 };
 
-const GRID_COLS = 'grid-cols-[1fr_110px_80px_130px_90px_100px_24px]';
+// Phones get name + status only. The stat columns from 7-day wins onward
+// need ~510px between them and used to push the table off-screen, taking the
+// client's own name down to two words per line with it.
+const GRID_COLS = 'grid-cols-[1fr_16px] md:grid-cols-[1fr_110px_80px_130px_90px_100px_24px]';
+const STAT_CELL = 'hidden md:block';
 
 function Bars14({ values }: { values: number[] }) {
   return (
@@ -52,20 +56,20 @@ function Bars14({ values }: { values: number[] }) {
 export default function ClientTable({ clients }: Props) {
   return (
     <div className="border border-border rounded-[14px] overflow-hidden">
-      <div className={`grid ${GRID_COLS} gap-4 px-5 py-3 bg-surface border-b border-border`}>
+      <div className={`grid ${GRID_COLS} gap-4 px-4 md:px-5 py-3 bg-surface border-b border-border`}>
         <MutedMono>Client</MutedMono>
-        <MutedMono>7-day wins</MutedMono>
-        <MutedMono>Streak</MutedMono>
-        <MutedMono>14-day quality</MutedMono>
-        <MutedMono>Last entry</MutedMono>
-        <MutedMono>Last active</MutedMono>
+        <MutedMono className={STAT_CELL}>7-day wins</MutedMono>
+        <MutedMono className={STAT_CELL}>Streak</MutedMono>
+        <MutedMono className={STAT_CELL}>14-day quality</MutedMono>
+        <MutedMono className={STAT_CELL}>Last entry</MutedMono>
+        <MutedMono className={STAT_CELL}>Last active</MutedMono>
         <div />
       </div>
       {clients.map(c => (
         <Link
           key={c.id}
           href={`/dashboard/clients/${c.id}`}
-          className={`grid ${GRID_COLS} gap-4 px-5 py-4 items-center border-b border-border last:border-b-0 transition-colors ${
+          className={`grid ${GRID_COLS} gap-4 px-4 md:px-5 py-4 items-center border-b border-border last:border-b-0 transition-colors ${
             c.endingSoon ? 'bg-accent-light hover:bg-accent-light/70' : 'hover:bg-surface'
           }`}
         >
@@ -95,7 +99,7 @@ export default function ClientTable({ clients }: Props) {
               </MutedMono>
             </div>
           </div>
-          <div>
+          <div className={STAT_CELL}>
             <div className="font-display text-[15px] tabular-nums">
               {c.commitmentsDone7}<span className="text-text-muted text-[13px]">/{c.commitmentsTotal7}</span>
             </div>
@@ -103,13 +107,15 @@ export default function ClientTable({ clients }: Props) {
               <div className="h-full bg-accent" style={{ width: `${(c.commitmentsDone7 / c.commitmentsTotal7) * 100}%` }} />
             </div>
           </div>
-          <div className={`font-display text-[14px] tabular-nums ${c.streak > 0 ? 'text-text' : 'text-text-muted'}`}>
+          <div className={`${STAT_CELL} font-display text-[14px] tabular-nums ${c.streak > 0 ? 'text-text' : 'text-text-muted'}`}>
             {c.streak > 0 ? `${c.streak} day${c.streak === 1 ? '' : 's'}` : '—'}
           </div>
-          <Bars14 values={c.rating14} />
-          <MutedMono>{c.lastEntry}</MutedMono>
-          <MutedMono>{c.lastActive}</MutedMono>
-          <svg width="10" height="10" viewBox="0 0 10 10" className="text-text-muted">
+          <div className={STAT_CELL}>
+            <Bars14 values={c.rating14} />
+          </div>
+          <MutedMono className={STAT_CELL}>{c.lastEntry}</MutedMono>
+          <MutedMono className={STAT_CELL}>{c.lastActive}</MutedMono>
+          <svg width="10" height="10" viewBox="0 0 10 10" className="text-text-muted flex-shrink-0">
             <path d="M3 1L7 5L3 9" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
           </svg>
         </Link>
@@ -126,7 +132,7 @@ interface InactiveClient {
   since: string;
 }
 
-const INACTIVE_GRID_COLS = 'grid-cols-[1fr_120px_100px_24px]';
+const INACTIVE_GRID_COLS = 'grid-cols-[1fr_16px] md:grid-cols-[1fr_120px_100px_24px]';
 
 // Former clients keep their full detail page — this row is just a way back
 // into it. Deliberately omits the stats columns: sparkbars and 7-day ratios
@@ -134,17 +140,17 @@ const INACTIVE_GRID_COLS = 'grid-cols-[1fr_120px_100px_24px]';
 export function InactiveClientTable({ clients }: { clients: InactiveClient[] }) {
   return (
     <div className="border border-border rounded-[14px] overflow-hidden">
-      <div className={`grid ${INACTIVE_GRID_COLS} gap-4 px-5 py-3 bg-surface border-b border-border`}>
+      <div className={`grid ${INACTIVE_GRID_COLS} gap-4 px-4 md:px-5 py-3 bg-surface border-b border-border`}>
         <MutedMono>Client</MutedMono>
-        <MutedMono>Inactive since</MutedMono>
-        <MutedMono>Last active</MutedMono>
+        <MutedMono className={STAT_CELL}>Inactive since</MutedMono>
+        <MutedMono className={STAT_CELL}>Last active</MutedMono>
         <div />
       </div>
       {clients.map(c => (
         <Link
           key={c.id}
           href={`/dashboard/clients/${c.id}`}
-          className={`grid ${INACTIVE_GRID_COLS} gap-4 px-5 py-3.5 items-center border-b border-border last:border-b-0 transition-colors hover:bg-surface`}
+          className={`grid ${INACTIVE_GRID_COLS} gap-4 px-4 md:px-5 py-3.5 items-center border-b border-border last:border-b-0 transition-colors hover:bg-surface`}
         >
           <div className="flex items-center gap-3.5 min-w-0">
             <div className="opacity-60">
@@ -152,9 +158,9 @@ export function InactiveClientTable({ clients }: { clients: InactiveClient[] }) 
             </div>
             <div className="text-[14px] text-text-secondary truncate">{c.name}</div>
           </div>
-          <MutedMono>{c.since}</MutedMono>
-          <MutedMono>{c.lastActive}</MutedMono>
-          <svg width="10" height="10" viewBox="0 0 10 10" className="text-text-muted">
+          <MutedMono className={STAT_CELL}>{c.since}</MutedMono>
+          <MutedMono className={STAT_CELL}>{c.lastActive}</MutedMono>
+          <svg width="10" height="10" viewBox="0 0 10 10" className="text-text-muted flex-shrink-0">
             <path d="M3 1L7 5L3 9" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
           </svg>
         </Link>

@@ -6,6 +6,8 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import MutedMono from '@/components/ui/MutedMono';
 import ClientTable, { InactiveClientTable } from '@/components/coach/ClientTable';
+import InboxClient from '@/components/coach/InboxClient';
+import { getInboxItems } from '@/lib/inbox';
 
 type ClientStatus = 'on-track' | 'steady' | 'struggling' | 'starting-up';
 
@@ -74,28 +76,33 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session || session.role !== 'coach') redirect('/login');
 
-  const clients = await query<{
-    id: number;
-    name: string;
-    avatar_url: string | null;
-    last_active_at: string | null;
-    closing_date: string | null;
-    sign_on_date: string | null;
-    client_info_created_at: string | null;
-    onboarded: number | null;
-    status: string;
-    status_changed_at: string | null;
-  }>(
-    `SELECT u.id, u.name, u.avatar_url, u.last_active_at,
-            ci.closing_date, ci.sign_on_date, ci.created_at AS client_info_created_at,
-            us.onboarded, ci.status, ci.status_changed_at
-     FROM users u
-     JOIN client_info ci ON ci.user_id = u.id
-     LEFT JOIN user_settings us ON us.user_id = u.id
-     WHERE ci.coach_id = $1
-     ORDER BY u.name`,
-    [session.userId]
-  );
+  // The inbox now heads this page, so it loads alongside the roster rather
+  // than after it.
+  const [inboxItems, clients] = await Promise.all([
+    getInboxItems(session.userId),
+    query<{
+      id: number;
+      name: string;
+      avatar_url: string | null;
+      last_active_at: string | null;
+      closing_date: string | null;
+      sign_on_date: string | null;
+      client_info_created_at: string | null;
+      onboarded: number | null;
+      status: string;
+      status_changed_at: string | null;
+    }>(
+      `SELECT u.id, u.name, u.avatar_url, u.last_active_at,
+              ci.closing_date, ci.sign_on_date, ci.created_at AS client_info_created_at,
+              us.onboarded, ci.status, ci.status_changed_at
+       FROM users u
+       JOIN client_info ci ON ci.user_id = u.id
+       LEFT JOIN user_settings us ON us.user_id = u.id
+       WHERE ci.coach_id = $1
+       ORDER BY u.name`,
+      [session.userId]
+    ),
+  ]);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -128,43 +135,45 @@ export default async function DashboardPage() {
       else break;
     }
 
-    const ratings14 = await query<{ date: string; rating: string | number | null }>(
-      `SELECT date, rating FROM journal_entries
-       WHERE user_id = $1 AND date >= $2
-       ORDER BY date ASC`,
-      [client.id, winHistory[0]?.date || today]
-    );
+    // These five don't depend on each other, so they go out together. Run
+    // sequentially this was five round trips deep, per client, on the page
+    // the coach lands on from every notification.
+    const [ratings14, lastEntry, unread, unopenedForm, hasCommitment] = await Promise.all([
+      query<{ date: string; rating: string | number | null }>(
+        `SELECT date, rating FROM journal_entries
+         WHERE user_id = $1 AND date >= $2
+         ORDER BY date ASC`,
+        [client.id, winHistory[0]?.date || today]
+      ),
+      queryOne<{ date: string }>(
+        `SELECT date FROM journal_entries WHERE user_id = $1 AND content != '' ORDER BY date DESC LIMIT 1`,
+        [client.id]
+      ),
+      queryOne<{ count: string }>(
+        'SELECT COUNT(*) as count FROM messages WHERE recipient_id = $1 AND sender_id = $2 AND archived = 0 AND read = 0',
+        [session.userId, client.id]
+      ),
+      queryOne<{ count: string }>(
+        `SELECT COUNT(*) AS count FROM pre_coaching_logs
+         WHERE coach_id = $1 AND client_id = $2
+           AND submitted_at IS NOT NULL AND opened_at IS NULL`,
+        [session.userId, client.id]
+      ),
+      queryOne<{ count: string }>(
+        'SELECT COUNT(*) AS count FROM commitments WHERE user_id = $1 LIMIT 1',
+        [client.id]
+      ),
+    ]);
+
     const ratingByDate: Record<string, number> = {};
     for (const r of ratings14) {
       ratingByDate[r.date] = r.rating ? Number(r.rating) : 0;
     }
     const rating14 = winHistory.map(d => ratingByDate[d.date] || 0);
-
-    const lastEntry = await queryOne<{ date: string }>(
-      `SELECT date FROM journal_entries WHERE user_id = $1 AND content != '' ORDER BY date DESC LIMIT 1`,
-      [client.id]
-    );
-
-    const unread = await queryOne<{ count: string }>(
-      'SELECT COUNT(*) as count FROM messages WHERE recipient_id = $1 AND sender_id = $2 AND archived = 0 AND read = 0',
-      [session.userId, client.id]
-    );
     const unreadMessages = parseInt(unread?.count || '0');
-
-    const unopenedForm = await queryOne<{ count: string }>(
-      `SELECT COUNT(*) AS count FROM pre_coaching_logs
-       WHERE coach_id = $1 AND client_id = $2
-         AND submitted_at IS NOT NULL AND opened_at IS NULL`,
-      [session.userId, client.id]
-    );
     const hasUnopenedForm = parseInt(unopenedForm?.count || '0') > 0;
-
     const ratio = total7 > 0 ? done7 / total7 : 0;
 
-    const hasCommitment = await queryOne<{ count: string }>(
-      'SELECT COUNT(*) AS count FROM commitments WHERE user_id = $1 LIMIT 1',
-      [client.id]
-    );
     const hasSetup =
       client.onboarded === 1 || parseInt(hasCommitment?.count || '0') > 0;
     const hasCheckIns = !!lastEntry || total7 > 0 || done7 > 0;
@@ -197,12 +206,14 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <InboxClient items={inboxItems.items} avatars={inboxItems.avatars} />
+
+      <div className="flex items-center justify-between gap-4 mt-12 mb-4">
         <div>
           <MutedMono>Coach</MutedMono>
-          <h1 className="font-display text-[30px] mt-1">Clients</h1>
+          <h2 className="font-display text-[26px] md:text-[30px] mt-1 leading-[1.15]">Clients</h2>
         </div>
-        <Link href="/dashboard/clients/new">
+        <Link href="/dashboard/clients/new" className="flex-shrink-0">
           <Button variant="filled" size="sm">+ Add Client</Button>
         </Link>
       </div>

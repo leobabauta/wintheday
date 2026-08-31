@@ -2,25 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import InboxView from './InboxView';
-import { INBOX_REFRESH_EVENT } from '@/components/layout/InboxBadge';
+import type { InboxItem, InboxPayload } from '@/lib/inbox';
 
-interface InboxItem {
-  id: string;
-  messageId?: number;
-  meetingId?: number;
-  journalId?: number;
-  completionUserId?: number;
-  completionDate?: string;
-  clientId: string;
-  clientName: string;
-  clientAvatarUrl?: string | null;
-  kind: 'reflection' | 'message' | 'quiet' | 'pre_coaching' | 'completion';
-  at: string;
-  preview: string;
-  meta: string;
-}
-
-export default function InboxClient({ items }: { items: InboxItem[] }) {
+export default function InboxClient({ items, avatars }: InboxPayload) {
   const router = useRouter();
 
   const onMarkAttended = async (item: InboxItem) => {
@@ -46,7 +30,6 @@ export default function InboxClient({ items }: { items: InboxItem[] }) {
     // Pre-coaching items leave the inbox on their own once opened (opened_at
     // is stamped server-side when the coach lands on the session detail).
     router.refresh();
-    window.dispatchEvent(new CustomEvent(INBOX_REFRESH_EVENT));
   };
 
   const onHeart = async (item: InboxItem) => {
@@ -67,7 +50,6 @@ export default function InboxClient({ items }: { items: InboxItem[] }) {
       });
     }
     router.refresh();
-    window.dispatchEvent(new CustomEvent(INBOX_REFRESH_EVENT));
   };
 
   const onReply = async (item: InboxItem, content: string) => {
@@ -88,8 +70,7 @@ export default function InboxClient({ items }: { items: InboxItem[] }) {
       body: JSON.stringify({ ids: [item.messageId] }),
     });
     router.refresh();
-    window.dispatchEvent(new CustomEvent(INBOX_REFRESH_EVENT));
   };
 
-  return <InboxView items={items} onMarkAttended={onMarkAttended} onReply={onReply} onHeart={onHeart} />;
+  return <InboxView items={items} avatars={avatars} onMarkAttended={onMarkAttended} onReply={onReply} onHeart={onHeart} />;
 }

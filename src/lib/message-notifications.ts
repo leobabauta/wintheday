@@ -36,8 +36,8 @@ export async function notifyNewMessage(senderId: number, recipientId: number, co
     const firstName = recipient.name.split(' ')[0];
     const fromFirstName = sender.name.split(' ')[0];
     const snippet = content.length > 160 ? content.slice(0, 160) + '…' : content;
-    const link = recipient.role === 'coach' ? `${APP_URL}/dashboard/inbox` : `${APP_URL}/messages`;
-    const inAppPath = recipient.role === 'coach' ? '/dashboard/inbox' : '/messages';
+    const link = recipient.role === 'coach' ? `${APP_URL}/dashboard` : `${APP_URL}/messages`;
+    const inAppPath = recipient.role === 'coach' ? '/dashboard' : '/messages';
 
     const pushPromise = sendPushToUser(recipientId, {
       title: `New message from ${fromFirstName}`,
