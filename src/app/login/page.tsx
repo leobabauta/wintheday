@@ -40,7 +40,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-dvh flex justify-center bg-bg">
-      <div className="w-full max-w-[520px] min-h-dvh bg-bg rounded-none sm:rounded-[28px] sm:my-6 sm:min-h-0 sm:border sm:border-border flex items-center justify-center px-6">
+      <div className="w-full max-w-[520px] min-h-dvh bg-bg rounded-none sm:rounded-[28px] sm:my-6 sm:min-h-0 sm:border sm:border-border flex flex-col items-center justify-center px-6">
         <Card className="w-full max-w-sm bg-surface">
           <div className="text-center mb-8">
             <div className="text-accent text-3xl mb-3" aria-hidden>✦</div>
@@ -78,6 +78,9 @@ export default function LoginPage() {
             </a>
           </form>
         </Card>
+        <a href="/privacy" className="text-xs text-text-muted hover:text-text text-center block mt-4">
+          Privacy
+        </a>
       </div>
     </div>
   );

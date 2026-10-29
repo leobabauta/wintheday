@@ -1,5 +1,6 @@
 import { getSession } from '@/lib/auth';
 import { queryOne } from '@/lib/db';
+import { redirect } from 'next/navigation';
 import { getUserSettings } from '@/lib/settings';
 import ClientShell from '@/components/layout/ClientShell';
 import TimezoneSync from '@/components/layout/TimezoneSync';
@@ -12,14 +13,16 @@ export default async function ClientLayout({ children }: { children: React.React
   let userName: string | undefined;
 
   if (session) {
-    const settings = await getUserSettings(session.userId);
-    timezone = settings.timezone;
-
     const user = await queryOne<{ name: string }>(
       'SELECT name FROM users WHERE id = $1',
       [session.userId]
     );
-    userName = user?.name;
+    // A still-valid JWT for a deleted account (e.g. a second device).
+    if (!user) redirect('/login');
+    userName = user.name;
+
+    const settings = await getUserSettings(session.userId);
+    timezone = settings.timezone;
 
     const clientInfo = await queryOne<{ coach_id: number }>(
       'SELECT coach_id FROM client_info WHERE user_id = $1',

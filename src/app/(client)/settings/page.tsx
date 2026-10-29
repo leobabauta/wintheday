@@ -11,6 +11,7 @@ import PasswordSetting from '@/components/layout/PasswordSetting';
 import NudgeSettingsCard from '@/components/layout/NudgeSettingsCard';
 import AppearanceSettings from '@/components/layout/AppearanceSettings';
 import LogoutButton from '@/components/layout/LogoutButton';
+import DeleteAccountSetting from '@/components/layout/DeleteAccountSetting';
 import MutedMono from '@/components/ui/MutedMono';
 
 export default async function SettingsPage() {
@@ -85,8 +86,18 @@ export default async function SettingsPage() {
       </section>
 
       {/* Sign out */}
-      <div className="pt-6 border-t border-border">
+      <div className="pt-6 border-t border-border flex items-center gap-6">
         <LogoutButton />
+        <a
+          href="/privacy"
+          className="font-mono text-[10px] uppercase tracking-[0.22em] text-text-muted hover:text-text transition-colors"
+        >
+          Privacy
+        </a>
+      </div>
+
+      <div className="mt-10">
+        <DeleteAccountSetting />
       </div>
     </div>
   );

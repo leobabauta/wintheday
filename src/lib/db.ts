@@ -32,6 +32,24 @@ export async function execute(
   return { rowCount: result.rowCount ?? 0 };
 }
 
+// Runs `fn` on one pooled connection inside BEGIN/COMMIT; any throw rolls back.
+export async function transaction<T>(
+  fn: (exec: (text: string, params?: unknown[]) => Promise<unknown[]>) => Promise<T>
+): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(async (text, params) => (await client.query(text, params)).rows);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 export async function insertReturning<T = { id: number }>(
   text: string,
   params?: unknown[]
